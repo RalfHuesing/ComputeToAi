@@ -18,30 +18,14 @@ from compute_to_ai.engine.result import SimulationResult
 from compute_to_ai.engine.simulation import run_simulation
 from compute_to_ai.engine.store import Store
 from compute_to_ai.engine.timeline import Timeline
+from compute_to_ai.mcp.tools.plan_storage import load_plan as _load_plan
+from compute_to_ai.mcp.tools.plan_storage import load_result as _load_result
+from compute_to_ai.mcp.tools.plan_storage import save_plan as _save_plan
+from compute_to_ai.mcp.tools.plan_storage import save_result as _save_result
 
 logger = logging.getLogger(__name__)
 
-
-def _plan_file(working_directory: Path, plan_name: str) -> Path:
-    return working_directory / plan_name / "plan.json"
-
-
-def _result_file(working_directory: Path, plan_name: str) -> Path:
-    return working_directory / plan_name / "result.json"
-
-
-def _load_plan(working_directory: Path, plan_name: str) -> Plan:
-    plan_file = _plan_file(working_directory, plan_name)
-    if not plan_file.exists():
-        msg = f"no plan named {plan_name!r}; create it first with core_create_plan"
-        raise ValueError(msg)
-    return Plan.model_validate_json(plan_file.read_text(encoding="utf-8"))
-
-
-def _save_plan(working_directory: Path, plan: Plan) -> None:
-    plan_file = _plan_file(working_directory, plan.name)
-    plan_file.parent.mkdir(parents=True, exist_ok=True)
-    plan_file.write_text(plan.model_dump_json(indent=2), encoding="utf-8")
+_RESULT_FILENAME = "result.json"
 
 
 def register_core_tools(mcp: FastMCP, working_directory: Path) -> None:
@@ -88,8 +72,7 @@ def register_core_tools(mcp: FastMCP, working_directory: Path) -> None:
         """Run the deterministic simulation for a Plan."""
         plan = _load_plan(working_directory, plan_name)
         result = run_simulation(plan)
-        result_file = _result_file(working_directory, plan_name)
-        result_file.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+        _save_result(working_directory, plan_name, _RESULT_FILENAME, result)
         logger.info("core_run_simulation: plan=%r status=ok", plan_name)
         logger.debug("core_run_simulation result: %s", result.final_balances)
         return f"simulation for plan {plan_name!r} complete"
@@ -99,11 +82,7 @@ def register_core_tools(mcp: FastMCP, working_directory: Path) -> None:
         plan_name: str, include_time_series: bool = False
     ) -> dict[str, Any]:
         """Return the final balances (and optionally the time series) of a Plan's last run."""
-        result_file = _result_file(working_directory, plan_name)
-        if not result_file.exists():
-            msg = f"no result for plan {plan_name!r}; call core_run_simulation first"
-            raise ValueError(msg)
-        result = SimulationResult.model_validate_json(result_file.read_text(encoding="utf-8"))
+        result = _load_result(working_directory, plan_name, _RESULT_FILENAME, SimulationResult)
         logger.info("core_get_result: plan=%r status=ok", plan_name)
         payload = (
             result.model_dump()
