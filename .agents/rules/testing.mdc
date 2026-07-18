@@ -1,0 +1,17 @@
+---
+description: Testpflicht für nicht-trivialen Code
+globs: ["src/**", "tests/**"]
+alwaysApply: false
+---
+
+# Testpflicht
+
+Jedes nicht-triviale Feature (jede Funktion mit einer Fallunterscheidung, einer Formel oder einem Seiteneffekt auf einen Store) bekommt **mindestens einen Unit-Test**. Trivial – und damit ohne eigenen Test zulässig – sind reine Datencontainer ohne Logik und einfache Weiterleitungen ohne eigene Berechnung.
+
+- **Framework**: `pytest`.
+- **Ein Testmodul je Quellmodul** (`tests/test_engine/test_store.py` für `src/compute_to_ai/engine/store.py`), Teststruktur spiegelt Codestruktur.
+- **Golden-/Referenztests** für alles mit einem von Hand nachrechenbaren Ergebnis – der wichtigste Baustein für Vertrauen in größtenteils agentisch gebauten Code.
+- **Kein hartes Coverage-Ziel in Prozent** – die Regel ist qualitativ, nicht ein Prozentwert.
+- Ein Agent committet keine Änderung an `src/`, für die die vorgeschriebenen Tests fehlen oder rot sind (siehe `git-workflow.mdc`).
+
+Details/Begründung: `Docs/11-Code-Standards-und-Projektstruktur.md`.

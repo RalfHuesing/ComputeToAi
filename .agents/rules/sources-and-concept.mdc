@@ -1,0 +1,19 @@
+---
+description: Quellentreue, Konzept-vor-Code, Umgang mit offenen Fragen
+alwaysApply: true
+---
+
+# Quellentreue
+
+Aussagen zu deutschem Steuer- und Rentenrecht müssen nachvollziehbar und möglichst aktuell sein. Bei unsicheren oder sich ändernden Werten (z. B. Freibeträge, Basiszins) wird der Stand (Jahr) explizit im Text vermerkt, statt ihn stillschweigend als feste Konstante zu behandeln. Recherchierte externe Fakten werden **zusätzlich** mit Quelle/URL/Abrufdatum in `Docs/09-Quellen.md` festgehalten, nicht nur im jeweiligen Fachdokument verlinkt.
+
+# Konzept vor Code
+
+Solange primär an `Docs/` gearbeitet wird, werden Implementierungsdetails nicht vorweggenommen. Bereits getroffene Grundsatzentscheidungen (Sprache Python, MCP-only ohne eigenes Frontend, lokale Datenhaltung – siehe `Docs/02-Architektur-und-MCP.md`) sind davon ausgenommen; alle weiteren Architektur-/Technologiefragen bleiben offen, bis sie in `Docs/08-Offene-Fragen.md` geklärt werden. Sobald Meilenstein 1 (siehe `Docs/10-Roadmap.md`) beginnt, gilt zusätzlich `code-standards.mdc`.
+
+# Offene Fragen bleiben offen
+
+`Docs/08-Offene-Fragen.md` enthält ausschließlich Punkte, die tatsächlich noch ungeklärt sind. Sobald eine Frage inhaltlich entschieden wird:
+
+1. Frage **entfernen** (nicht nur als „beantwortet" markieren und stehen lassen).
+2. Entscheidung direkt im fachlich passenden Dokument festhalten (Kern-Domänenmodell, Architektur, Feature-Dokumente oder Anforderungen).

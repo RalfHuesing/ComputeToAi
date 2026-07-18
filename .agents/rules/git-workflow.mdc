@@ -1,0 +1,33 @@
+---
+description: Vollagentische Entwicklung, Auto-Commits, Commit-Konventionen
+alwaysApply: true
+---
+
+# Vollagentische Entwicklung
+
+Dieses Repo wird bewusst vollagentisch entwickelt, inklusive **eigenständiger Commits durch den Agenten** – anders als in klassischen Setups ist hier **keine explizite Freigabe pro Commit** durch den Nutzer nötig. Das gilt für alle Agenten, die an diesem Repo arbeiten (Claude Code, ggf. weitere), nicht nur für einen bestimmten.
+
+Push auf ein Remote (`git push`) sowie destruktive Git-Operationen (`reset --hard`, `push --force`, Branches löschen, History umschreiben) bleiben davon ausgenommen und brauchen weiterhin ausdrückliche Nutzerfreigabe.
+
+## Wann committen
+
+Ein Commit erfolgt pro **abgeschlossener Teilaufgabe** – einer in sich sinnvollen, kleinen, nachvollziehbaren Einheit. Beispiele: eine Doc-Änderung, eine neue/geänderte Funktion inklusive ihrer Tests, eine abgeschlossene Roadmap-Task. Nicht: ein einzelner Dateispeichervorgang (zu klein) und nicht ein ganzer Session-/Auftrags-Umfang in einem Commit (zu grob, schlecht nachvollziehbar/revertierbar).
+
+- Änderungen an `src/` werden nur committet, wenn die laut `testing.mdc` vorgeschriebenen Tests vorhanden und grün sind.
+- Direkt auf `main` committen ist der Standard-Workflow in dieser frühen Konzept-/Prototypenphase (Solo-Projekt, kein PR-Overhead). Feature-Branches sind kein Muss; sollte das Projekt später mehrere parallel/unbeaufsichtigt laufende Agenten bekommen, wird diese Regel überprüft.
+
+## Commit-Messages: Conventional Commits
+
+Format: `<type>(<scope>): <description>`, englisch, im Imperativ, ohne Satzpunkt am Ende.
+
+| Type | Wofür |
+|---|---|
+| `docs` | Änderungen an `Docs/`, `README.md`, `CLAUDE.md`, `.agents/rules/` |
+| `feat` | Neue Funktionalität in `src/` |
+| `fix` | Bugfix in `src/` |
+| `refactor` | Code-Umbau ohne Verhaltensänderung |
+| `test` | Nur Tests hinzugefügt/geändert |
+| `chore` | Tooling, Dependencies, Repo-Housekeeping |
+| `build` | Build-/Packaging-Konfiguration (`pyproject.toml` u. Ä.) |
+
+`scope` ist optional, wenn er Klarheit schafft (z. B. `feat(engine): add Store balance rollup`, `docs(finance): clarify cash-bucket priority`). Bei Bedarf ein kurzer Body für das *Warum*, nicht das *Was* (das zeigt der Diff).

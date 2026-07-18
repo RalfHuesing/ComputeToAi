@@ -1,0 +1,10 @@
+# Zeilenenden im Repo konsistent LF, unabhängig von core.autocrlf des jeweiligen Rechners.
+# Siehe .agents/rules/environment.mdc.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

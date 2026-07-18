@@ -1,0 +1,17 @@
+---
+description: Code-Stil, Architektur-Grundsätze und Projektstruktur (sobald Code entsteht, ab Meilenstein 1)
+globs: ["src/**", "tests/**", "pyproject.toml"]
+alwaysApply: false
+---
+
+# Code-Standards & Projektstruktur
+
+Vollständige, verbindliche Fassung: `Docs/11-Code-Standards-und-Projektstruktur.md`. Kurzfassung:
+
+- **Einfacher Code statt Enterprise-Architektur**: Early Returns statt verschachtelter Bedingungen, niedrige zyklomatische Komplexität (eine Funktion passt auf einen Bildschirm, max. eine Verschachtelungsebene), keine vorzeitige Abstraktion (kein Interface/keine "Manager"/"Factory"-Klasse ohne mindestens zwei konkrete Implementierungen – Rule of Three).
+- **Standardbibliotheken statt Eigenbau**: NumPy/SciPy für Numerik, Pydantic für Schema/Validierung, offizielles MCP-Python-SDK für den Server.
+- **Drei Schichten mit fester Abhängigkeitsrichtung**: `engine` (domänenneutraler Kern, kennt `features`/`mcp` nicht) ← `features/*` (untereinander unabhängig) ← `mcp` (nur Ein-/Ausgabe-Mapping, keine Fachlogik).
+- **Tooling**: `uv` (Dependencies/Environment), `ruff` (Linting & Formatierung inkl. Komplexitätsregel `C901`), `pytest` (Tests), `pyright` (Typprüfung, Type Hints überall).
+- **Projektstruktur** (`src`-Layout): siehe Diagramm in `Docs/11-Code-Standards-und-Projektstruktur.md`.
+
+Bei Widerspruch zwischen dieser Kurzfassung und `Docs/11` gilt `Docs/11`.

@@ -1,6 +1,6 @@
 # Docs – ComputeToAi Konzept
 
-Konzeptdokumentation für eine generische Simulations-Engine (Speicher/Effekt/Zeitstrahl, siehe 01), deren erstes und bislang am weitesten ausgearbeitetes Feature-Modul die finanzielle Lebensplanung / Ruhestandssimulation (Monte Carlo) ist. Projektregeln (u. a. Commit-Verhalten) stehen in der `CLAUDE.md` im Repo-Root. Die Vision steht in 00-Vision.md.
+Konzeptdokumentation für eine generische Simulations-Engine (Speicher/Effekt/Zeitstrahl, siehe 01), deren erstes und bislang am weitesten ausgearbeitetes Feature-Modul die finanzielle Lebensplanung / Ruhestandssimulation (Monte Carlo) ist. Arbeitsregeln für Agenten (u. a. Commit-Verhalten, Code-Standards) stehen in [`.agents/rules/`](../.agents/rules/README.md) im Repo-Root, verlinkt über die dortige `CLAUDE.md`. Die Vision steht in 00-Vision.md.
 
 1. [00-Vision.md](00-Vision.md) – Grundidee, Architekturprinzip Kern+Feature, Abgrenzung
 2. [01-Kern-Domaenenmodell.md](01-Kern-Domaenenmodell.md) – Generische Begriffe: Speicher, Effekt, Korrelation, Zeitstrahl, Phase, Zielbedingung, Plan

@@ -1,0 +1,11 @@
+---
+description: Sprachregeln für Kommunikation, Dokumentation und Code
+alwaysApply: true
+---
+
+# Sprache
+
+- **Kommunikation mit dem Nutzer** sowie **Konzept-/Projektdokumente** (`Docs/`, `README.md`, `CLAUDE.md`, `.agents/rules/`): Deutsch. Fachbegriffe, die im Deutschen unüblich sind (z. B. aus der Portfoliotheorie), dürfen englisch stehen bleiben.
+- **Alles Übrige – insbesondere Code**: Englisch. Das umfasst Klassen-, Funktions-, Variablen- und Modulnamen, Code-Kommentare und Docstrings, Commit-Messages, Namen von Konfigurations-/Skriptdateien sowie deren Inhalt.
+- Deutsche Fachbegriffe aus den Docs dürfen in Code-Kommentaren/Docstrings referenziert werden, wenn das die Nachvollziehbarkeit zum Konzept verbessert, der Kommentartext selbst bleibt aber englisch (Beispiel: `class Store:  # Speicher, siehe Docs/01-Kern-Domaenenmodell.md`).
+- Deutsch/Englisch-Glossar der Kernbegriffe: siehe Tabelle in `Docs/11-Code-Standards-und-Projektstruktur.md`.

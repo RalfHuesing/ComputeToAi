@@ -8,12 +8,13 @@ Langfristige Vision: Das fertige Programm soll agentisch/KI-gestützt nutzbar se
 
 ## Arbeitsregeln für dieses Repo
 
-**Keine automatischen Commits**: Es werden keine Git-Commits von selbst ausgeführt. Commits erfolgen ausschließlich auf ausdrückliche Aufforderung.
+Dieses Repo wird **vollagentisch** entwickelt – bewusst mit mehreren Agenten (Claude Code, ggf. weitere), nicht nur mit einem. Die eigentlichen Arbeitsregeln liegen deshalb tool-neutral im Verzeichnis [.agents/rules/](.agents/rules/README.md) (Format `.mdc`, aus den Konzeptdokumenten in `Docs/` abgeleitet – bei Widerspruch gilt `Docs/`) und werden hier für Claude Code eingebunden:
 
-**Sprache**: Konzeptdokumente werden auf Deutsch verfasst, fachliche Fremdbegriffe (z. B. aus der Portfoliotheorie) dürfen auf Englisch stehen bleiben, wenn das der übliche Fachbegriff ist.
+@.agents/rules/language.mdc
+@.agents/rules/sources-and-concept.mdc
+@.agents/rules/code-standards.mdc
+@.agents/rules/testing.mdc
+@.agents/rules/git-workflow.mdc
+@.agents/rules/environment.mdc
 
-**Quellentreue**: Aussagen zu deutschem Steuer- und Rentenrecht sollen nachvollziehbar und möglichst aktuell sein; bei unsicheren oder sich ändernden Werten (z. B. Freibeträge, Basiszins) wird der Stand (Jahr) explizit vermerkt statt stillschweigend als Konstante angenommen. Recherchierte externe Fakten mit Quelle/URL/Abrufdatum werden zusätzlich in `Docs/09-Quellen.md` festgehalten, nicht nur im jeweiligen Fachdokument verlinkt.
-
-**Konzept vor Code**: Solange primär an `Docs/` gearbeitet wird, werden Implementierungsdetails nicht vorweggenommen. Eine kleine Zahl expliziter Grundsatzentscheidungen ist davon ausgenommen und bereits getroffen (Sprache Python, MCP-only ohne eigenes Frontend, lokale Datenhaltung – siehe `Docs/02-Architektur-und-MCP.md`); alle weiteren Architektur-/Technologiefragen bleiben offen und stehen in `Docs/08-Offene-Fragen.md`.
-
-**Offene Fragen bleiben offen**: `Docs/08-Offene-Fragen.md` enthält ausschließlich Punkte, die tatsächlich noch ungeklärt sind. Sobald eine Frage inhaltlich entschieden wird, wird sie aus dieser Datei entfernt (nicht nur als „beantwortet" markiert und stehen gelassen) und die Entscheidung direkt im fachlich passenden Dokument (Kern-Domänenmodell, Architektur, Feature-Dokumente oder Anforderungen) festgehalten.
+Die vollständige fachliche Konzeptdokumentation liegt in `Docs/`, beginnend mit [Docs/README.md](Docs/README.md).
