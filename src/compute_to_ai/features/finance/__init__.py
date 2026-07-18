@@ -16,6 +16,7 @@ from compute_to_ai.features.finance.portfolio import (
     add_portfolio_rebalancing,
     set_correlation_matrix,
 )
+from compute_to_ai.features.finance.tax import add_tax_manager
 
 __all__ = [
     "add_asset_class",
@@ -26,5 +27,6 @@ __all__ = [
     "add_income_stream",
     "add_liability",
     "add_portfolio_rebalancing",
+    "add_tax_manager",
     "set_correlation_matrix",
 ]
