@@ -1,0 +1,7 @@
+# Example settings file. Copy to settings.toml and adjust working_directory.
+# See Docs/02-Architektur-und-MCP.md ("Settings-Datei").
+
+working_directory = "./examples"
+
+[logging]
+level = "INFO"
