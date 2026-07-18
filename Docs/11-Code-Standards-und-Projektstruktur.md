@@ -55,15 +55,15 @@ ComputeToAi/
 │       │   ├── simulation.py              # Simulationslauf-Ausführung, Monte-Carlo-Schleife
 │       │   └── result.py                  # SimulationResult, Aggregation über Läufe
 │       ├── features/
-│       │   ├── finance/                   # Feature Finanzen (ab Meilenstein 2)
-│       │   └── calculations/              # Feature Berechnungen (ab Meilenstein 3)
+│       │   ├── finance/                   # Feature Finanzen (ab Meilenstein 3)
+│       │   └── calculations/              # Feature Berechnungen (ab Meilenstein 2)
 │       └── mcp/                           # MCP-Server-Adapter
 │           ├── server.py                  # Server-Bootstrap, stdio-Transport, Logging-Konfiguration
 │           ├── settings.py                # Settings-Datei laden (TOML → Pydantic), siehe 02-Architektur-und-MCP.md
 │           └── tools/
 │               ├── core_tools.py           # Kern-Tools (Plan/Store/Effect/Simulation)
-│               ├── finance_tools.py        # Finanzen-Tools (ab Meilenstein 2)
-│               └── calculation_tools.py    # Berechnungen-Tools (ab Meilenstein 3)
+│               ├── finance_tools.py        # Finanzen-Tools (ab Meilenstein 3)
+│               └── calculation_tools.py    # Berechnungen-Tools (ab Meilenstein 2)
 └── tests/
     ├── test_engine/
     ├── test_features/
