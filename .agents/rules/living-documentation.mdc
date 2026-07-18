@@ -1,0 +1,15 @@
+---
+description: Dokumentation beschreibt ausschließlich den aktuellen Ist-Stand, wächst automatisch mit
+alwaysApply: true
+---
+
+# Living Documentation: nur der Ist-Stand
+
+Dokumentation (`Docs/`, `README.md`, `CLAUDE.md`, `.agents/rules/`, Docstrings/Kommentare im Code) beschreibt ausschließlich den **aktuellen Stand** – nie die Historie. Veraltete Dokumentation ist schädlicher als keine Dokumentation.
+
+## Konkret
+
+- **Kein Verweis auf die Vergangenheit im Fließtext**: keine Formulierungen wie „in der vorherigen Version...", „früher wurde X gemacht, jetzt Y", „mit Task/Issue #4711 wurde ... umgesetzt". Was früher war, steht in der Git-Historie (`git log`), nicht in der Doku.
+- **Doku wächst im selben Commit mit**: Ändert eine Änderung Verhalten, Struktur oder eine Entscheidung, wird die betroffene Doku direkt mit aktualisiert – nicht als Folgeaufgabe, nicht „später". Ein Agent prüft vor dem Commit aktiv, welche Doku durch seine Änderung veraltet, und zieht sie nach.
+- **`Docs/10-Roadmap.md` wird laufend aktuell gehalten**: abgeschlossene Punkte werden abgehakt, sobald sie fertig sind, neue Teilaufgaben ergänzt, nicht mehr zutreffende korrigiert oder entfernt – nicht gesammelt am Ende einer Session.
+- Gleiches Prinzip wie in `sources-and-concept.mdc` beschrieben (offene Fragen werden entfernt, nicht nur markiert), hier auf die gesamte Doku verallgemeinert.

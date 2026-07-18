@@ -13,6 +13,7 @@ Dieses Repo wird **vollagentisch** entwickelt – bewusst mit mehreren Agenten (
 @.agents/rules/language.mdc
 @.agents/rules/proactive-questions.mdc
 @.agents/rules/sources-and-concept.mdc
+@.agents/rules/living-documentation.mdc
 @.agents/rules/code-standards.mdc
 @.agents/rules/testing.mdc
 @.agents/rules/git-workflow.mdc
