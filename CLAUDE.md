@@ -11,6 +11,7 @@ Langfristige Vision: Das fertige Programm soll agentisch/KI-gestützt nutzbar se
 Dieses Repo wird **vollagentisch** entwickelt – bewusst mit mehreren Agenten (Claude Code, ggf. weitere), nicht nur mit einem. Die eigentlichen Arbeitsregeln liegen deshalb tool-neutral im Verzeichnis [.agents/rules/](.agents/rules/README.md) (Format `.mdc`, aus den Konzeptdokumenten in `Docs/` abgeleitet – bei Widerspruch gilt `Docs/`) und werden hier für Claude Code eingebunden:
 
 @.agents/rules/language.mdc
+@.agents/rules/proactive-questions.mdc
 @.agents/rules/sources-and-concept.mdc
 @.agents/rules/code-standards.mdc
 @.agents/rules/testing.mdc

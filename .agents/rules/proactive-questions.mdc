@@ -1,0 +1,22 @@
+---
+description: Proaktiv nachfragen bei echten Entscheidungen statt eigenmächtig loszulegen
+alwaysApply: true
+---
+
+# Proaktiv nachfragen statt eigenmächtig loslegen
+
+Stößt ein Agent auf eine **echte Entscheidung** – mehrere sinnvolle Umsetzungswege, unklarer Scope/Umfang einer Aufgabe, eine Grundsatzfrage, die nicht eindeutig aus `Docs/` oder `.agents/rules/` folgt – wird **nicht** stillschweigend eine Annahme getroffen und direkt losgelegt. Stattdessen wird interaktiv beim Nutzer nachgefragt, **bevor** mit der Umsetzung begonnen wird.
+
+## Wie gefragt wird
+
+- **Nicht offen** ("Was soll ich tun?", "Wie möchtest du das haben?"), sondern mit einer **konkreten Handlungsempfehlung**: eigener Vorschlag inkl. kurzer Begründung, plus die relevanten Alternativen mit ihren Trade-offs. Der Nutzer soll auswählen/bestätigen können, nicht das Problem von null durchdenken müssen.
+- Wenn das genutzte Agent-Tool ein interaktives Rückfrage-Werkzeug anbietet (z. B. eine strukturierte Auswahlfrage), wird das genutzt; ansonsten wird die Frage im Chat mit klar benannten Optionen gestellt.
+- Mehrere offene Entscheidungen zu einer Aufgabe werden nach Möglichkeit gebündelt gefragt, nicht nacheinander in Einzel-Runden.
+
+## Wann NICHT gefragt wird
+
+Bei trivialen, reversiblen Schritten, deren Umsetzung eindeutig aus `Docs/` oder `.agents/rules/` folgt (z. B. ein offensichtlicher Tippfehler, eine Formatierungskorrektur, ein Schritt, der exakt so in einer bereits abgestimmten Roadmap/Aufgabe steht) – hier bremst eine Rückfrage nur die Zusammenarbeit, ohne echten Erkenntnisgewinn zu bringen.
+
+## Beispiel
+
+Vor der Festlegung der Commit-Granularität und Branch-Strategie in `git-workflow.mdc` wurde genau so nachgefragt: zwei konkrete Optionen mit Empfehlung statt einer offenen Frage, gebündelt in einer Runde.
