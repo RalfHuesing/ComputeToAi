@@ -16,6 +16,7 @@ class Lot(BaseModel):
     created_step: int
     rule_version: str | None = None
     cost_basis: float = 0.0
+    taxed_vorabpauschale: float = 0.0
 
 
 class Store(BaseModel):
@@ -63,15 +64,22 @@ class Store(BaseModel):
                     self.lots.pop(0)
                 else:
                     # Partial consumption: copy lot with consumed quantity
+                    fraction = remaining / lot.quantity
+                    consumed_cost = lot.cost_basis * fraction
+                    consumed_vorab = lot.taxed_vorabpauschale * fraction
+
                     consumed.append(
                         Lot(
                             quantity=remaining,
                             created_step=lot.created_step,
                             rule_version=lot.rule_version,
-                            cost_basis=lot.cost_basis,
+                            cost_basis=consumed_cost,
+                            taxed_vorabpauschale=consumed_vorab,
                         )
                     )
                     lot.quantity -= remaining
+                    lot.cost_basis -= consumed_cost
+                    lot.taxed_vorabpauschale -= consumed_vorab
                     remaining = 0.0
             self.balance = sum(lot.quantity for lot in self.lots)
             return consumed
