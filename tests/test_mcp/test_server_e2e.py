@@ -103,3 +103,4 @@ async def test_docs_are_exposed_as_resources(server_params: StdioServerParameter
 
     uris = {str(resource.uri) for resource in resources.resources}
     assert "docs://00-Vision.md" in uris
+    assert "docs://prompts/finance_de/finanzberater.md" in uris

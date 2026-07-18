@@ -12,7 +12,7 @@ Das System besteht aus einem domänenneutralen Kern (siehe 01-Kern-Domaenenmodel
 
 ## Agentische Nutzung, kein eigenes Frontend
 
-Das System hat keine eigene Benutzeroberfläche. Einziger Zugangsweg ist ein MCP-Server, angesprochen von einem bestehenden Agenten (Claude Code, Claude Cowork o. Ä.), der über Prompts/Workflow-Dateien (Markdown) weiß, welche Rolle er gerade einnimmt – z. B. „du bist mein Finanzberater, hilf mir bei der Ruhestandsplanung". Die deterministische Rechenarbeit (Simulation, Berechnung) liegt vollständig im MCP-Server; Kontext verstehen, Rückfragen stellen, Ergebnisse erklären und jede Visualisierung liegen vollständig beim Agenten. Details der technischen Umsetzung stehen in 02-Architektur-und-MCP.md.
+Das System hat keine eigene Benutzeroberfläche. Einziger Zugangsweg ist ein MCP-Server, angesprochen von einem bestehenden Agenten (Claude Code, Claude Cowork o. Ä.), der über Prompts/Workflow-Dateien (Markdown) weiß, welche Rolle er gerade einnimmt – z. B. „du bist mein Finanzberater, hilf mir bei der Ruhestandsplanung". Diese Dateien liegen unter `Docs/prompts/<feature>_<sprache>/` (z. B. `Docs/prompts/finance_de/finanzberater.md`) und werden wie die übrige Konzeptdokumentation als `docs://`-Resources bereitgestellt – bewusst klientenneutrales Markdown statt eines an einen bestimmten Agenten gebundenen Formats. Die deterministische Rechenarbeit (Simulation, Berechnung) liegt vollständig im MCP-Server; Kontext verstehen, Rückfragen stellen, Ergebnisse erklären und jede Visualisierung liegen vollständig beim Agenten. Details der technischen Umsetzung stehen in 02-Architektur-und-MCP.md.
 
 ## Was-wäre-wenn-Charakter
 

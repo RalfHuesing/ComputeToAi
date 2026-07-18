@@ -38,7 +38,7 @@ Eine konkrete, abhakbare Abfolge von Meilensteinen. Jeder Meilenstein gliedert s
 
 - [x] Epic 2.1 – Liste der Rechenbausteine festgelegt: Datums-/Altersarithmetik, Zinseszins/Diskontierung (Einmalanlage, Sparraten-Endwert, Rentenbarwert), Kreditvergleich (siehe 06-Feature-Berechnungen.md)
 - [x] Epic 2.2 – Rechenbausteine implementiert und per MCP angeboten (Tool-Präfix `calculations_`, siehe 02-Architektur-und-MCP.md)
-- [ ] Epic 2.3 – Beispiel-Workflow „Plausibilitätsprüfung eines Simulationsergebnisses" als Prompt/Skill – zurückgestellt, weil noch offen ist, wo/in welchem Format Prompt-/Workflow-Dateien im Repo abgelegt werden (siehe „Agentische Nutzung" in 00-Vision.md)
+- [x] Epic 2.3 – Beispiel-Workflow „Plausibilitätsprüfung eines Simulationsergebnisses" als Prompt (`Docs/prompts/finance_de/finanzberater.md`, Abschnitt „Prüfe Nutzereingaben und Ergebnisse auf Plausibilität")
 
 ## Meilenstein 3 – Feature Finanzen
 

@@ -24,8 +24,6 @@ Dinge, die im weiteren Konzeptgespräch noch geklärt werden müssen.
 
 **Performance interaktiver Ad-hoc-Anfragen**: Eine Chat-eingebettete Frage wie „kann ich mir das jetzt leisten?" sollte spürbar schneller beantwortbar sein als eine volle Batch-Simulation mit tausenden Läufen. Reicht eine reduzierte Laufzahl für solche Anfragen, eine Wiederverwendung des letzten Batch-Ergebnisses mit einem schnellen Differenz-Check, oder braucht es einen eigenen, leichteren Rechenweg?
 
-**Ablageort von Prompt-/Workflow-Dateien**: 00-Vision.md sieht vor, dass ein Agent über Prompts/Workflow-Dateien (Markdown) weiß, welche Rolle er gerade einnimmt (z. B. „du bist mein Finanzberater"). Wo im Repo liegen solche Dateien, in welchem Format/welcher Konvention, und wie unterscheiden sie sich von den `.agents/rules/*.mdc`-Dateien (die Entwicklungsregeln für Coding-Agenten sind, keine fachlichen Nutzer-Workflows)?
-
 ## Detailfragen zur Besteuerung (Feature Finanzen)
 
 Wie wird der gemeinsame Sparerpauschbetrag (2.000 €) auf mehrere Depots/Anlageklassen aufgeteilt, wenn nicht alle Erträge in einem Depot anfallen? Sollen Verlustverrechnungstöpfe (allgemeiner Verlusttopf vs. Aktien-Verlusttopf) und Verlustvorträge über mehrere Jahre abgebildet werden?

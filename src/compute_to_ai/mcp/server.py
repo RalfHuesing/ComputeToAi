@@ -41,10 +41,16 @@ def _make_doc_reader(path: Path) -> Callable[[], str]:
 
 
 def _register_docs_resources(mcp: FastMCP) -> None:
+    """Expose every Markdown file under Docs/ (including subdirectories, e.g.
+    Docs/prompts/) as a docs:// resource, so an agent can discover concept
+    docs and role/workflow prompts the same way (see "Selbstbeschreibung" in
+    Docs/02-Architektur-und-MCP.md).
+    """
     if not DOCS_DIR.exists():
         return
-    for doc_file in sorted(DOCS_DIR.glob("*.md")):
-        mcp.resource(f"docs://{doc_file.name}", name=doc_file.stem, mime_type="text/markdown")(
+    for doc_file in sorted(DOCS_DIR.glob("**/*.md")):
+        uri = doc_file.relative_to(DOCS_DIR).as_posix()
+        mcp.resource(f"docs://{uri}", name=doc_file.stem, mime_type="text/markdown")(
             _make_doc_reader(doc_file)
         )
 
