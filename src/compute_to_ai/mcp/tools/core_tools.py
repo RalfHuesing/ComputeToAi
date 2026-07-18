@@ -12,7 +12,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from compute_to_ai.engine.effect import FixedEffect
+from compute_to_ai.engine.effect import GrowingFixedEffect
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.result import SimulationResult
 from compute_to_ai.engine.simulation import run_simulation
@@ -75,7 +75,9 @@ def register_core_tools(mcp: FastMCP, working_directory: Path) -> None:
         """Add a fixed per-step Effect on a Store in an existing Plan."""
         plan = _load_plan(working_directory, plan_name)
         plan.store(store_name)  # raises KeyError if store_name is unknown
-        plan.effects.append(FixedEffect(store_name=store_name, amount_per_step=amount_per_step))
+        plan.effects.append(
+            GrowingFixedEffect(store_name=store_name, amount_per_step=amount_per_step)
+        )
         _save_plan(working_directory, plan)
         logger.info("core_add_effect: plan=%r store=%r status=ok", plan_name, store_name)
         logger.debug("core_add_effect args: amount_per_step=%s", amount_per_step)
