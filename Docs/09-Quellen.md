@@ -11,6 +11,12 @@ Dieses Dokument sammelt externe Fakten (v. a. deutsches Steuer- und Rentenrecht 
 | Teilfreistellung: 30 % Aktienfonds (>50 % Aktienquote), 15 % Mischfonds (≥25 %), 0 % Rentenfonds | § 20 InvStG, unbefristet | [§ 20 InvStG – gesetze-im-internet.de](https://www.gesetze-im-internet.de/invstg_2018/__20.html) | 2026-07-18 |
 | Bestandsschutz: Aktien/Fondsanteile vor dem 1.1.2009 (Einführung Abgeltungsteuer) bleiben beim Verkauf dauerhaft steuerfrei, auch über Vererbung hinweg (Ausnahme: Beteiligungen ≥ 1 %) | laufend gültige Übergangsregel | [Erben aufgepasst: Wann Gewinne aus vor 2009 gekauften Aktien steuerfrei sind – t-online](https://www.t-online.de/finanzen/frag-t-online-ihr-geld/id_101099960/abgeltungssteuer-was-gilt-fuer-alt-aktien-vor-2009-.html), [Altanteile (erworben vor 2009) – Union Investment](https://www.union-investment.de/fonds_depot/fonds_verstehen/lexikon/altanteile) | 2026-07-18 |
 
+## Einkommensteuertarif (progressive Rentenbesteuerung)
+
+| Aussage | Stand | Quelle | Abgerufen |
+|---|---|---|---|
+| § 32a EStG Einkommensteuertarif: Grundfreibetrag 12.348 €; Zone 2 (12.349–17.799 €) `(914,51·y+1.400)·y` mit y=(zvE−12.348)/10.000; Zone 3 (17.800–69.878 €) `(173,10·z+2.397)·z+1.034,87` mit z=(zvE−17.799)/10.000; Zone 4 (69.879–277.825 €) `0,42·x−11.135,63`; Zone 5 (ab 277.826 €) `0,45·x−19.470,38` | 2026 (Veranlagungszeitraum) | [§ 32a EStG – gesetze-im-internet.de](https://www.gesetze-im-internet.de/estg/__32a.html) | 2026-07-18 |
+
 ## Kryptowährungen
 
 | Aussage | Stand | Quelle | Abgerufen |

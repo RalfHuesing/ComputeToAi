@@ -9,14 +9,17 @@ from pydantic import BaseModel
 class Lot(BaseModel):
     """A specific unit of currency/asset purchased at a specific time.
 
-    Required for tax-aware FIFO asset selling.
+    Required for rule-version-aware FIFO asset selling. `metadata` is a generic
+    extension point for feature-specific per-lot bookkeeping (e.g. a tax
+    building block tracking already-taxed gains); the engine assigns it no
+    meaning and only ever splits it proportionally on partial withdrawal.
     """
 
     quantity: float
     created_step: int
     rule_version: str | None = None
     cost_basis: float = 0.0
-    taxed_vorabpauschale: float = 0.0
+    metadata: dict[str, float] = {}
 
 
 class Store(BaseModel):
@@ -69,7 +72,7 @@ class Store(BaseModel):
                     # Partial consumption: copy lot with consumed quantity
                     fraction = remaining / lot.quantity
                     consumed_cost = lot.cost_basis * fraction
-                    consumed_vorab = lot.taxed_vorabpauschale * fraction
+                    consumed_metadata = {k: v * fraction for k, v in lot.metadata.items()}
 
                     consumed.append(
                         Lot(
@@ -77,12 +80,14 @@ class Store(BaseModel):
                             created_step=lot.created_step,
                             rule_version=lot.rule_version,
                             cost_basis=consumed_cost,
-                            taxed_vorabpauschale=consumed_vorab,
+                            metadata=consumed_metadata,
                         )
                     )
                     lot.quantity -= remaining
                     lot.cost_basis -= consumed_cost
-                    lot.taxed_vorabpauschale -= consumed_vorab
+                    lot.metadata = {
+                        k: v - consumed_metadata[k] for k, v in lot.metadata.items()
+                    }
                     remaining = 0.0
             self.balance = sum(lot.quantity for lot in self.lots)
             self.withdrawn_lots_this_step.extend(consumed)

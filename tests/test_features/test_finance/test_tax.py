@@ -141,7 +141,7 @@ def test_vorabpauschale_increases_basis() -> None:
     #   vorab = min(14, 100) = 14.
     #   Tax = 14 * 0.25 * 1.055 = 3.6925.
     #   Cash becomes 100 - 3.6925 = 96.3075.
-    #   equity_acc lot taxed_vorabpauschale becomes 14.0.
+    #   equity_acc lot's tracked vorabpauschale_taxed becomes 14.0.
     # Step 1:
     # Phase 1: equity_acc grows by 10% to 1210.
     # Phase 2:
@@ -192,12 +192,17 @@ def test_altfaelle_bestandsschutz() -> None:
 
 
 def test_progressive_rent_taxation() -> None:
-    """Test GKV/PV deductions and progressive income tax tariff on pension income."""
+    """Test GKV/PV deductions and progressive income tax tariff on pension income.
+
+    The phase is deliberately named "Ruhestand" rather than "Rentenphase" to prove
+    that pension taxation is triggered solely by the explicit `retirement_step`
+    parameter, never by matching the phase's (opaque) name.
+    """
     plan = Plan(
         name="rent-tax-test",
         timeline=Timeline(step_count=1),
         stores=[Store(name="cash", balance=0.0)],
-        phases=[Phase(name="Rentenphase", start_step=0, end_step=10)],
+        phases=[Phase(name="Ruhestand", start_step=0, end_step=10)],
         effects=[
             GrowingFixedEffect(
                 name="Rente", store_name="cash", amount_per_step=40000.0
@@ -208,7 +213,7 @@ def test_progressive_rent_taxation() -> None:
     add_tax_manager(
         plan=plan,
         cash_store_name="cash",
-        gfb=11784.0,
+        gfb=12348.0,
         kvdr_rate=0.0875,
         pv_rate=0.042,
         retirement_step=0,
@@ -217,12 +222,12 @@ def test_progressive_rent_taxation() -> None:
 
     result = run_simulation(plan)
 
-    # Calculations:
+    # Calculations (§ 32a EStG 2026, see Docs/09-Quellen.md):
     # Rent income = 40000.0
     # Taxable share = 84% (pension start 2026) -> 33600.0
     # Insurance = 40000 * (8.75% + 4.2%) = 40000 * 12.95% = 5180.0
-    # ZV = max(0, 33600.0 - 11784.0 - 5180.0) = 16636.0
-    # y = (16636.0 - 11784.0) / 10000 = 0.4852
-    # Tax = (995.21 * 0.4852 + 1400.0) * 0.4852 = 913.57007
-    # Final cash = 40000.0 - 5180.0 - 913.57007 = 33906.42993
-    assert pytest.approx(result.final_balances["cash"]) == 33906.43
+    # ZV = max(0, 33600.0 - 12348.0 - 5180.0) = 16072.0
+    # y = (16072.0 - 12348.0) / 10000 = 0.3724
+    # Tax = (914.51 * 0.3724 + 1400.0) * 0.3724 = 648.18585634
+    # Final cash = 40000.0 - 5180.0 - 648.18585634 = 34171.81414366
+    assert pytest.approx(result.final_balances["cash"]) == 34171.81414366

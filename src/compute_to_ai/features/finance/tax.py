@@ -9,23 +9,23 @@ from compute_to_ai.engine.effect import ComputedEffect, register_computed_effect
 from compute_to_ai.engine.plan import Plan
 
 
-def calculate_german_income_tax(zv: float, gfb: float = 11784.0) -> float:
-    """Calculate the progressive German income tax according to § 32a EStG for 2024."""
+def calculate_german_income_tax(zv: float, gfb: float = 12348.0) -> float:
+    """Calculate the progressive German income tax according to § 32a EStG for 2026."""
     if zv <= gfb:
         return 0.0
 
-    if zv <= 17005.0:
+    if zv <= 17799.0:
         y = (zv - gfb) / 10000.0
-        return (995.21 * y + 1400.0) * y
+        return (914.51 * y + 1400.0) * y
 
-    if zv <= 66760.0:
-        z = (zv - 17005.0) / 10000.0
-        return ((208.85 * z + 2397.0) * z) + 951.64
+    if zv <= 69878.0:
+        z = (zv - 17799.0) / 10000.0
+        return ((173.10 * z + 2397.0) * z) + 1034.87
 
     if zv <= 277825.0:
-        return 0.42 * zv - 10602.13
+        return 0.42 * zv - 11135.63
 
-    return 0.45 * zv - 18936.88
+    return 0.45 * zv - 19470.38
 
 
 def _apply_pension_taxation(
@@ -34,18 +34,23 @@ def _apply_pension_taxation(
     plan: Plan,
     cash_store: str,
     parameters: dict[str, Any],
-    active_phase: str | None,
 ) -> None:
-    """Calculate and deduct progressive tax and KVdR/PV contributions from pension income."""
+    """Calculate and deduct progressive tax and KVdR/PV contributions from pension income.
+
+    Whether pension taxation applies is decided solely by the explicit
+    `retirement_step` parameter, never by inspecting a phase's name - a
+    Phase's name is an opaque label (see Docs/01-Kern-Domaenenmodell.md).
+    """
     retirement_step = int(parameters.get("retirement_step", 47))
     start_year = int(parameters.get("start_year", 2026))
-    gfb = float(parameters.get("gfb", 11784.0))
+    gfb = float(parameters.get("gfb", 12348.0))
     kvdr_rate = float(parameters.get("kvdr_rate", 0.0875))
     pv_rate = float(parameters.get("pv_rate", 0.042))
 
-    is_rente = active_phase is not None and "rente" in active_phase.lower()
-    if not (is_rente or step >= retirement_step):
+    if step < retirement_step:
         return
+
+    active_phase = plan.get_active_phase_name(step)
 
     # Sum rent income (positive cashflows from Phase 1)
     rent_income = 0.0
@@ -90,7 +95,8 @@ def _calculate_sales_taxable_gains(
             is_pre_2009 = lot.created_step < 0 or lot.rule_version == "pre_2009"
             if not is_pre_2009:
                 raw_gain = lot.quantity - lot.cost_basis
-                taxable_gain = max(0.0, raw_gain - lot.taxed_vorabpauschale)
+                already_taxed = lot.metadata.get("vorabpauschale_taxed", 0.0)
+                taxable_gain = max(0.0, raw_gain - already_taxed)
                 gains_from_sales += taxable_gain * (1.0 - partial_exemption)
     return gains_from_sales
 
@@ -120,8 +126,10 @@ def _calculate_vorabpauschale_taxable(
             vorab = min(potential_vorab, max(0.0, actual_growth))
 
             vorab_taxable_total += vorab * (1.0 - partial_exemption)
-            # Add to taxed_vorabpauschale to avoid double taxation on sale
-            lot.taxed_vorabpauschale += vorab
+            # Track already-taxed gain on the lot to avoid double taxation on sale
+            lot.metadata["vorabpauschale_taxed"] = (
+                lot.metadata.get("vorabpauschale_taxed", 0.0) + vorab
+            )
     return vorab_taxable_total
 
 
@@ -159,10 +167,9 @@ def tax_manager_func(  # pyright: ignore[reportUnusedFunction]
 ) -> None:
     """Computed effect implementing capital gains and progressive pension income taxation."""
     cash_store = str(parameters.get("cash_store_name", "cash"))
-    active_phase = plan.get_active_phase_name(step)
 
     # 1. Progressive Renten-Besteuerung und KVdR/PV
-    _apply_pension_taxation(balances, step, plan, cash_store, parameters, active_phase)
+    _apply_pension_taxation(balances, step, plan, cash_store, parameters)
 
     # 2. Kapitalertragssteuer & Vorabpauschale
     _apply_capital_gains_taxation(balances, plan, cash_store, parameters)
@@ -176,7 +183,7 @@ def add_tax_manager(
     withholding_tax_rate: float = 0.25,
     soli_rate: float = 0.055,
     church_tax_rate: float = 0.0,
-    gfb: float = 11784.0,
+    gfb: float = 12348.0,
     kvdr_rate: float = 0.0875,
     pv_rate: float = 0.042,
     retirement_step: int = 47,
