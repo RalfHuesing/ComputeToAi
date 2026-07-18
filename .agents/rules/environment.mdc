@@ -1,0 +1,30 @@
+---
+description: Windows-Entwicklungsumgebung, verfügbare Tools
+alwaysApply: true
+---
+
+# Entwicklungsumgebung
+
+Entwickelt wird auf **Windows**. Konkret bedeutet das:
+
+- Keine Bash als gegeben annehmen. Automatisierungs-/Hilfsskripte werden als PowerShell (`.ps1`) geschrieben, nicht als `.sh`. Ein Agent mit Bash-Zugriff darf Bash interaktiv nutzen, aber committete Skripte im Repo sind PowerShell.
+- Zeilenenden: `.gitattributes` im Repo-Root erzwingt `eol=lf` für Text-/Codedateien, unabhängig von der lokalen `core.autocrlf`-Einstellung des jeweiligen Rechners/Agenten. Neue Dateitypen, die spezielle Zeilenenden brauchen, werden dort ergänzt statt sich auf implizite Defaults zu verlassen.
+- Pfade in Doku/Skripten möglichst plattformneutral halten (`pathlib` in Python statt String-Konkatenation mit `\`).
+
+## Verfügbare Tools (Stand: 2026-07-18, geprüft in dieser Umgebung)
+
+| Tool | Version | Zweck |
+|---|---|---|
+| git | 2.38.1 | Versionskontrolle |
+| PowerShell (`pwsh`) | 7.6.3 | primäre Shell |
+| ripgrep (`rg`) | 15.1.0 | Codesuche |
+| Python | 3.13.14 | Implementierungssprache (siehe `Docs/02-Architektur-und-MCP.md`) |
+| Node.js | 24.15.0 | für Tooling/MCP-Clients bei Bedarf |
+| GitHub CLI (`gh`) | 2.92.0 | PR-/Issue-Interaktion |
+| Docker | 28.4.0 | bei Bedarf für isolierte Ausführung |
+| winget | 1.29.280 | Paketinstallation unter Windows |
+| `uv` | 0.11.29 | Paket-/Dependency-/Environment-Verwaltung (siehe `Docs/11-Code-Standards-und-Projektstruktur.md`) |
+| `ruff` | 0.15.22 | Linting & Formatierung |
+| `pyright` | 1.1.411 | Typprüfung |
+
+`uv`, `ruff`, `pyright` sind aktuell global installiert (Stand: 2026-07-18), damit sie in dieser Umgebung sofort nutzbar sind. Sobald in Meilenstein 1 (`Docs/10-Roadmap.md`, Epic 1.1) ein `pyproject.toml` entsteht, werden `ruff` und `pyright` zusätzlich als Dev-Dependencies dort eingetragen (`uv add --dev ruff pyright`), damit jede Umgebung, die das Repo klont, exakt dieselben Versionen bekommt – die globale Installation ist dann nur noch die Fallback-/Editor-Integration. `pytest` kommt ebenfalls erst als Dev-Dependency über `uv`, sobald das Projekt existiert.
