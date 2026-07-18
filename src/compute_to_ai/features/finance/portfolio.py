@@ -89,3 +89,142 @@ def add_portfolio_rebalancing(
         parameters={"weights": weights},
     )
     plan.effects.append(effect)
+
+
+def _calculate_near_horizon_outlook(
+    plan: Plan, cash_store: str, step: int, near_horizon_steps: int
+) -> float:
+    """Calculate the near-horizon component (upcoming expenses)."""
+    buffer_2 = 0.0
+    end_s = min(step + 1 + near_horizon_steps, plan.timeline.step_count)
+    for s in range(step + 1, end_s):
+        s_phase = plan.get_active_phase_name(s)
+        for effect in plan.effects:
+            if (
+                effect.is_active(s, s_phase)
+                and getattr(effect, "store_name", None) == cash_store
+            ):
+                amount = getattr(effect, "amount_per_step", 0.0)
+                if amount < 0.0:
+                    rate = getattr(effect, "growth_rate", 0.0)
+                    buffer_2 += -amount * ((1.0 + rate) ** s)
+    return buffer_2
+
+
+def _calculate_entnahme_buffer(
+    plan: Plan, cash_store: str, step: int, active_phase: str | None, entnahme_years: float
+) -> float:
+    """Calculate the entnahme buffer component (retirement gap buffer)."""
+    is_rente = active_phase is not None and "rente" in active_phase.lower()
+    if not is_rente:
+        return 0.0
+
+    e_val = 0.0
+    i_val = 0.0
+    for effect in plan.effects:
+        if (
+            effect.is_active(step, active_phase)
+            and getattr(effect, "store_name", None) == cash_store
+        ):
+            amount = getattr(effect, "amount_per_step", 0.0)
+            rate = getattr(effect, "growth_rate", 0.0)
+            val = amount * ((1.0 + rate) ** step)
+            if val < 0.0:
+                e_val += -val
+            else:
+                i_val += val
+
+    if e_val > 0.0:
+        dependency = max(0.0, (e_val - i_val) / e_val)
+        return entnahme_years * dependency * e_val
+    return 0.0
+
+
+@register_computed_effect("cash_bucket_manager")
+def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
+    balances: dict[str, float], step: int, parameters: dict[str, Any], plan: Plan
+) -> None:
+    """Computed effect to manage Cash-Bucket target sizes and portfolio rebalancing."""
+    cash_store = str(parameters.get("cash_store_name", "cash"))
+    portfolio_weights = {k: float(v) for k, v in parameters["portfolio_weights"].items()}
+    emergency_buffer_months = {
+        k: float(v) for k, v in parameters["emergency_buffer_months"].items()
+    }
+    monthly_expenses = float(parameters["monthly_expenses"])
+    inflation_rate = float(parameters.get("inflation_rate", 0.0))
+    near_horizon_steps = int(parameters.get("near_horizon_steps", 2))
+    entnahme_years = float(parameters.get("entnahme_years", 3.0))
+
+    active_phase = plan.get_active_phase_name(step)
+
+    # 1. Einkommensausfallpuffer
+    months = emergency_buffer_months.get(active_phase or "", 0.0)
+    monthly_expenses_inflated = monthly_expenses * ((1.0 + inflation_rate) ** step)
+    buffer_1 = months * monthly_expenses_inflated
+
+    # 2. Nahsicht-Komponente
+    buffer_2 = _calculate_near_horizon_outlook(plan, cash_store, step, near_horizon_steps)
+
+    # 3. Entnahmepuffer
+    buffer_3 = _calculate_entnahme_buffer(plan, cash_store, step, active_phase, entnahme_years)
+
+    # Target Cash-Bucket size
+    target_cash = buffer_1 + buffer_2 + buffer_3
+    current_cash = balances.get(cash_store, 0.0)
+
+    if current_cash > target_cash:
+        # Excess cash: move to portfolio
+        excess = current_cash - target_cash
+        balances[cash_store] = target_cash
+        for name, weight in portfolio_weights.items():
+            balances[name] = balances.get(name, 0.0) + excess * weight
+    elif current_cash < target_cash:
+        # Deficit: withdraw from portfolio
+        deficit = target_cash - current_cash
+        total_portfolio = sum(balances.get(name, 0.0) for name in portfolio_weights)
+        if total_portfolio >= deficit:
+            balances[cash_store] = target_cash
+            for name, weight in portfolio_weights.items():
+                balances[name] = balances.get(name, 0.0) - deficit * weight
+        else:
+            # Withdraw everything
+            balances[cash_store] = current_cash + total_portfolio
+            for name in portfolio_weights:
+                balances[name] = 0.0
+
+
+def add_cash_bucket(
+    plan: Plan,
+    portfolio_weights: dict[str, float],
+    emergency_buffer_months: dict[str, float],
+    monthly_expenses: float,
+    inflation_rate: float = 0.0,
+    near_horizon_steps: int = 2,
+    entnahme_years: float = 3.0,
+    cash_store_name: str = "cash",
+) -> None:
+    """Add a computed cash bucket manager to the plan."""
+    # Ensure the cash store exists
+    store_exists = False
+    for st in plan.stores:
+        if st.name == cash_store_name:
+            store_exists = True
+            break
+    if not store_exists:
+        plan.stores.append(Store(name=cash_store_name, balance=0.0))
+
+    effect = ComputedEffect(
+        name="Cash Bucket Manager",
+        function_name="cash_bucket_manager",
+        parameters={
+            "cash_store_name": cash_store_name,
+            "portfolio_weights": portfolio_weights,
+            "emergency_buffer_months": emergency_buffer_months,
+            "monthly_expenses": monthly_expenses,
+            "inflation_rate": inflation_rate,
+            "near_horizon_steps": near_horizon_steps,
+            "entnahme_years": entnahme_years,
+        },
+    )
+    plan.effects.append(effect)
+
