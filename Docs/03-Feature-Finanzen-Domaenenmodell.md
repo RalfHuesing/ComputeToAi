@@ -4,11 +4,15 @@ Dieses Dokument beschreibt, wie das Finanzen-Feature die generischen Kern-Begrif
 
 ## Zuordnung Kern → Finanz-Feature
 
+Kern-Effekt-Arten sind in 01-Kern-Domaenenmodell.md, Abschnitt „Effekt-Arten", definiert. Einkommen und Ausgabe sind derselbe Effekt-Typ mit umgekehrtem Vorzeichen, ebenso die Verzinsung einer Anlage und einer Verbindlichkeit (siehe dort) – das Finanz-Feature fügt ausschließlich Namen und Parameterwerte hinzu, keine neue Mechanik:
+
 | Kern-Begriff | Finanz-Instanz(en) |
 |---|---|
-| Speicher | Portfolio (Depot), Cash-Bucket, Restschuld einer Verbindlichkeit |
-| Effekt (roh) | einfache Ausgabe, einfache fixe Anschaffung |
-| Effekt (Baustein) | Einkommensstrom inkl. Wachstum, Abgeltungsteuer-Baustein, Baustein „Nachgelagerte Rentenbesteuerung", Baustein „Korrelierte Anlageklassen-Renditen", Verbindlichkeits-Tilgungsplan, Inflation |
+| Speicher | Portfolio (Depot, mit Lot-Semantik), Cash-Bucket, Restschuld einer Verbindlichkeit (eigener Speicher je Verbindlichkeit) |
+| Additiver Effekt (fix/wachsend) | Einkommensstrom (Wachstumsrate = Gehaltssteigerung bzw. Rentenanpassung), Ausgabe (Wachstumsrate = Inflation), fixe Anschaffung (einmaliger Effekt in einem Zeitschritt), Tilgungsrate einer Verbindlichkeit (negativ, auf den Verbindlichkeits-Speicher **und** auf das Cash-/Portfolio-Konto) |
+| Prozentualer Wachstumseffekt | Zinsanfall einer Verbindlichkeit (positiv, auf den Verbindlichkeits-Speicher) |
+| Korrelierter stochastischer Effekt | Anlageklassen-Rendite (Korrelationsgruppe „anlageklassen") |
+| Berechneter Effekt (nur als Baustein) | Abgeltungsteuer-Baustein, Vorabpauschale, Baustein „Nachgelagerte Rentenbesteuerung" inkl. KVdR/Pflege, Cash-Bucket-Management, Referenzpfad-Trigger für flexible Anschaffungen, Sondertilgungs-Entscheidung |
 | Phase | Lebensphase (Ausbildung, Erwerbsphase, Frühruhestandslücke, Rentenphase) |
 | Zielbedingung | Ruin (Portfolio + Cash-Bucket reichen nicht mehr für eine fällige Zahlung) |
 | Plan | Simulationsszenario einer Primärperson |
@@ -23,7 +27,9 @@ Das hat eine wichtige Konsequenz: Ändert sich etwas beim Partner – z. B. eine
 
 Die **Primärperson** hat: ein aktuelles Alter, ein Erwerbsende (Zeitpunkt, ab dem kein Erwerbseinkommen mehr fließt – kann vom gesetzlichen Rentenbeginn abweichen, siehe unten), einen gesetzlichen Rentenbeginn mit zugehörigem Rentenanspruch, ein angenommenes Lebensende (Lebenserwartung, bestimmt das Ende des Zeitstrahls), individuelle Einkommensströme und individuelle Ausgaben.
 
-Weitere Personen im Haushalt (**Partnerbeitrag**) werden reduziert auf: einen Netto-Cashflow (Einkommen minus individuelle Ausgaben, inkl. eigener gesetzlicher Rente ab deren Rentenbeginn), ohne eigene Zielbedingung und ohne eigenen Zeitstrahl. Details und Grenzen dieser Vereinfachung (z. B. Tod oder Wegfall des Partnerbeitrags) stehen in 08-Offene-Fragen.md.
+Weitere Personen im Haushalt (**Partnerbeitrag**) werden reduziert auf: einen Netto-Cashflow (Einkommen minus individuelle Ausgaben, inkl. eigener gesetzlicher Rente ab deren Rentenbeginn), ohne eigene Zielbedingung und ohne eigenen Zeitstrahl.
+
+Der einfachste Fall eines Wegfalls (Trennung, Tod ohne Hinterbliebenenrente) braucht keinen eigenen Simulationsmechanismus: Der Partnerbeitrags-Effekt endet einfach zu einem definierten Zeitpunkt, geprüft als eigener, kopierter Plan (Was-wäre-wenn, siehe „Plan" in 01-Kern-Domaenenmodell.md) statt als automatisch mitsimuliertes Zufallsereignis. Eine realistischere Hinterbliebenenrente bei Ehe/Lebenspartnerschaft bleibt offen (siehe 08-Offene-Fragen.md).
 
 ## Lebensphase (Phase)
 
@@ -48,6 +54,8 @@ Ein Abfluss-Effekt für laufende Kosten, unterschieden nach:
 
 Ausgaben unterliegen der Inflation (ebenfalls ein Effekt, siehe unten) und können ein altersabhängiges Profil haben (z. B. geringere Ausgaben im hohen Alter).
 
+Es gibt keinen festen Kategorien-Katalog (Wohnen, Konsum, Gesundheit, ...) im Kern oder im Feature: Eine Ausgabe ist ein frei benannter Effekt, und ein Plan kann beliebig viele davon enthalten – von einer einzigen pauschalen Ausgabe bis zu einer feinteiligen Aufschlüsselung. Die Kategorisierung ist reine Namensgebung durch den Agenten bzw. Nutzer, keine Strukturfrage.
+
 ## Anschaffung (Acquisition)
 
 Ein größerer, nicht-laufender Abfluss-Effekt mit eigenem Zeitbezug. Es gibt zwei Typen:
@@ -57,9 +65,15 @@ Ein größerer, nicht-laufender Abfluss-Effekt mit eigenem Zeitbezug. Es gibt zw
 
 Eine Anschaffung hat einen Betrag, einen Zeitbezug (fest oder Zieljahr + Toleranzfenster + Trigger-Regel) und eine Zuordnung (Haushalt oder Person).
 
+Eine unregelmäßige **Sondereinnahme** (Erbschaft, Bonus) ist strukturell dieselbe Instanz mit positivem statt negativem Betrag – kein eigenes Konzept.
+
 ## Verbindlichkeit (Liability)
 
-Eine periodisch zu bedienende Verpflichtung mit einem tendenziell fallenden Restbetrag – strukturell ein Speicher mit negativem Zielsaldo (Restschuld) plus ein Abfluss-Effekt (die Rate), der zusätzlich zu den Ausgaben den Haushaltscashflow belastet. Beispiele: Hauskredit, Konsumentenkredit, Unterhaltsverpflichtung. Diese Fälle werden als Instanzen eines einzigen allgemeinen Konzepts modelliert, da sie sich strukturell nur in wenigen Parametern unterscheiden.
+Eine periodisch zu bedienende Verpflichtung mit einem tendenziell fallenden Restbetrag – strukturell ein eigener Speicher (Restschuld, als positive „Höhe der Schuld" geführt, nicht als negatives Vermögen – dieselbe Vorzeichenkonvention wie die bereits bestehenden `calculations_loan_*`-Werkzeuge aus 06-Feature-Berechnungen.md) plus ein prozentualer Wachstumseffekt (Zinsanfall, erhöht die Restschuld) plus ein Abfluss-Effekt (die Tilgungsrate, senkt die Restschuld **und** zusätzlich zu den Ausgaben das Cash-Konto). Beispiele: Hauskredit, Konsumentenkredit, Unterhaltsverpflichtung. Diese Fälle werden als Instanzen eines einzigen allgemeinen Konzepts modelliert, da sie sich strukturell nur in wenigen Parametern unterscheiden.
+
+Die Rate selbst wird nicht neu hergeleitet, sondern mit den bereits vorhandenen Berechnungen-Werkzeugen bestimmt (`calculations_loan_monthly_payment` für die Rate, `calculations_loan_amortization_schedule_with_extra_payments` für einen Tilgungsplan inkl. Sondertilgung) – das Finanz-Feature konfiguriert damit nur noch die zwei oben genannten Effekte mit den daraus errechneten Werten, siehe 10-Roadmap.md.
+
+Ein finanziertes **Wohneigentum** wird in der Basisausprägung dieses Features ausschließlich über die Kombination Anschaffung (Eigenkapital-Abfluss) + Verbindlichkeit (Hypothek) abgebildet, ohne eigenen Vermögens-Speicher für den Immobilienwert (keine Wertsteigerung, keine Mietkostenersparnis als Gegenrechnung). Ein eigener „Immobilienwert"-Speicher mit prozentualem Wachstumseffekt wäre eine strukturell naheliegende, aber vorerst zurückgestellte Erweiterung (siehe 08-Offene-Fragen.md).
 
 Eine Verbindlichkeit hat einen Ursprungsbetrag bzw. eine aktuelle Restschuld, eine periodische Rate, einen Zinssatz (der bei jeder Rate anteilig anfällt und die Restschuld nur um den Tilgungsanteil reduziert – der Zinssatz kann auch 0 % sein, z. B. bei Unterhalt) sowie eine Endbedingung: entweder die Restschuld erreicht null (Kredite) oder ein festes bzw. ereignisbezogenes Datum wird erreicht (z. B. Unterhalt bis zur Volljährigkeit eines Kindes). Hauskredit und Konsumentenkredit sind dieselbe Instanz mit Zinssatz > 0 % und tilgungsgetriebenem Ende; Unterhalt ist dieselbe Instanz mit Zinssatz = 0 % und datums-/ereignisgetriebenem statt tilgungsgetriebenem Ende.
 

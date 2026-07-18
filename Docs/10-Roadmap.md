@@ -42,14 +42,59 @@ Eine konkrete, abhakbare Abfolge von Meilensteinen. Jeder Meilenstein gliedert s
 
 ## Meilenstein 3 – Feature Finanzen
 
-**Ziel**: Das in 03–05 beschriebene Finanz-Domänenmodell ist auf dem Kern umgesetzt: Rendite/Korrelation, Steuer-Bausteine (inkl. Bestandsschutz), Verbindlichkeiten, Cash-Bucket, Lebensphasen. Für die zentralen Bausteine gibt es Referenz-/Golden-Testfälle mit von Hand nachgerechnetem Ergebnis. Epics werden bei Start dieses Meilensteins auf Task-Ebene heruntergebrochen.
+**Ziel**: Das in 03–05 beschriebene Finanz-Domänenmodell ist auf dem Kern umgesetzt: Rendite/Korrelation, Steuer-Bausteine (inkl. Bestandsschutz), Verbindlichkeiten, Cash-Bucket, Lebensphasen. Für die zentralen Bausteine gibt es Referenz-/Golden-Testfälle mit von Hand nachgerechnetem Ergebnis.
 
-- [ ] Epic 3.1 – Stochastische Effekte & Korrelation (Anlageklassen-Renditen)
-- [ ] Epic 3.2 – Steuer-Bausteine (Abgeltungsteuer, Vorabpauschale, Teilfreistellung, Bestandsschutz)
-- [ ] Epic 3.3 – Verbindlichkeiten (Tilgungsplan, Sondertilgung)
-- [ ] Epic 3.4 – Cash-Bucket (drei Komponenten, Auffüll-Logik)
-- [ ] Epic 3.5 – Lebensphasen & Rentenübergang (Erwerbsende/Rentenbeginn, Abschlag/Zuschlag, KVdR/Pflegeversicherung)
-- [ ] Epic 3.6 – Referenz-/Golden-Tests für alle obigen Bausteine
+**Leitprinzip**: Fast der gesamte fachliche Umfang reduziert sich auf eine kleine, feste Zahl generischer Kern-Effekt-Arten mit unterschiedlichem Vorzeichen und unterschiedlichen Parametern statt auf viele fachspezifische Sonderfälle (siehe „Effekt-Arten" in 01-Kern-Domaenenmodell.md) – Einkommen und Ausgabe sind derselbe Effekt-Typ, ebenso die Verzinsung einer Anlage und einer Verbindlichkeit. Das Finanz-Feature fügt darauf ausschließlich Namen, Parameter und ein paar wirklich eigenständige Berechnungen (Steuer, Cash-Bucket-Logik) hinzu. Epic 3.1 und 3.2 erweitern deshalb zunächst den domänenneutralen Kern (`compute_to_ai.engine`), erst ab Epic 3.3 entsteht fachlicher Finanz-Code (`compute_to_ai.features.finance`).
+
+### Beispiel-Plan als roter Faden
+
+Ein durchgängiges Beispiel, das möglichst viele Bausteine dieses Meilensteins gleichzeitig braucht – dient als Testfall und als Prüfung, ob die generische Modellierung wirklich trägt, nicht als Teil des Konzepts selbst (die Begriffe stehen abschließend in 03–05):
+
+Anna, 20 Jahre, startet ins Berufsleben mit 5.000 € Cash und ohne Portfolio. Erwerbsphase 20–63, danach eine vierjährige Frühruhestandslücke bis zum gesetzlichen Rentenbeginn mit 67 (bewusst gewählt, um auch diese Phase abzudecken), Rentenphase bis Lebenserwartung 90. Gehalt 2.800 €/Monat netto mit 2 % jährlicher Steigerung; Lebenshaltung 1.600 €/Monat, wächst mit 2 % Inflation. Mit 25 ein Autokredit über 20.000 € (4 % Zins, 60 Monate Laufzeit). Mit 28 ein Hauskauf für 350.000 €: 70.000 € Eigenkapital als fixe Anschaffung aus dem Portfolio, 280.000 € als Hypothek (3,5 % Zins, 25 Jahre, mit Sondertilgungsoption). Portfolio 70 % Aktien-ETF (7 % erwartete Rendite, 15 % Volatilität) / 30 % Anleihen-ETF (3 % Rendite, 5 % Volatilität), Korrelation −0,2. Cash-Bucket mit 6 Monaten Notfallpuffer in der Erwerbsphase, 3 Jahren Entnahmehorizont in der Rentenphase. Gesetzliche Rente ab 67: 1.800 €/Monat, 1 % jährliche Anpassung, nachgelagert besteuert, KVdR/Pflegeversicherung abgezogen. Ziel: Endvermögen nie unter 0 bis Alter 90, ausgewertet über z. B. 5.000 Monte-Carlo-Läufe.
+
+Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichkeiten unterschiedlicher Laufzeit (davon eine mit Sondertilgung), eine große fixe Anschaffung, korrelierte Mehr-Anlageklassen-Rendite, alle vier Lebensphasen inkl. Frühruhestandslücke, Cash-Bucket mit phasenabhängiger Zielgröße, Kapitalertragsteuer inkl. Vorabpauschale, nachgelagerte Rentenbesteuerung inkl. Sozialabgaben, und eine Zielbedingung mit Monte-Carlo-Aggregation. Bewusst nicht abgedeckt (siehe 08-Offene-Fragen.md): Bestandsschutz-Lots vor 2009 (Anna ist dafür zu jung), Immobilienwertsteigerung, Partnerbeitrag.
+
+- [ ] **Epic 3.1 – Kern-Erweiterung: Effekt-Arten & Ausführungsmodell** (`compute_to_ai.engine`)
+  - [ ] `GrowingFixedEffect` löst `FixedEffect` ab: Betrag + Wachstumsrate je Schritt (Rate 0 entspricht dem bisherigen `FixedEffect`-Verhalten); deckt Einkommen, Ausgaben, Tilgungsraten, fixe Anschaffungen und Sondereinnahmen ab (siehe 01, „Effekt-Arten")
+  - [ ] `PercentageGrowthEffect`: Speicher-Saldo wächst je Schritt um eine feste Rate – deckt sowohl Zinsanfall einer Verbindlichkeit als auch eine deterministisch angenommene Kapitalrendite ab
+  - [ ] `CorrelatedReturnEffect`: wie oben, aber Rate wird je Lauf stochastisch gezogen, gemeinsam mit allen Effekten derselben benannten Korrelationsgruppe (multivariate Normalverteilung, Cholesky-Zerlegung – NumPy/SciPy werden hier erstmals als Dependency gebraucht, siehe 11-Code-Standards-und-Projektstruktur.md)
+  - [ ] `ComputedEffect`-Basis: kuratierte Python-Funktion statt Formel, läuft nach den drei Effekt-Arten oben im selben Schritt auf Basis der bereits aktualisierten Salden (siehe 01, Abschnitt „Reihenfolge & keine zirkulären Abhängigkeiten")
+  - [ ] Effekte optional auf einen Schrittbereich beschränkbar (aktiv ab/bis) – Grundlage für Phasenbindung in Epic 3.2
+  - [ ] Unit-Tests je Effekt-Art, inkl. Golden-Test für `PercentageGrowthEffect` gegen `calculations_future_value_lump_sum` (M2) als Referenz
+- [ ] **Epic 3.2 – Kern-Erweiterung: Phasen, Lot-Semantik, Monte-Carlo-Runner** (`compute_to_ai.engine`)
+  - [ ] `Phase` (Name, Start-/Endschritt) auf `Plan`/`Timeline`; `active_phases` auf Effekten referenziert Phasennamen statt eigener Schrittgrenzen
+  - [ ] `Lot` auf `Store` (Menge, Entstehungsschritt, Regelwerk-Version, Einstandspreis), FIFO-Verbrauch bei Abfluss (siehe 01, Speicher-Abschnitt)
+  - [ ] `run_monte_carlo(plan, num_runs)`: wiederholt den Einzellauf aus Meilenstein 1 mit je Lauf neu gezogenen stochastischen Effekten
+  - [ ] Aggregation über alle Läufe: Perzentile des Endsaldos, Ruin-Wahrscheinlichkeit, Verteilung des Ruin-Zeitpunkts (Ruin selbst läuft weiter statt abzubrechen, siehe 01)
+  - [ ] Unit-Tests für Phasen-Lookup, FIFO-Verbrauch, Monte-Carlo-Aggregation (bekannte Verteilung mit erwartbaren Perzentilen)
+- [ ] **Epic 3.3 – Bausteine: Einkommen, Ausgaben, Anschaffungen** (`compute_to_ai.features.finance`)
+  - [ ] Einkommensstrom = `GrowingFixedEffect` (positiv), phasengebunden (z. B. Gehalt nur in der Erwerbsphase)
+  - [ ] Ausgabe = `GrowingFixedEffect` (negativ), Wachstumsrate = Inflation; beliebig viele, frei benannt statt fester Kategorien (siehe 03)
+  - [ ] Fixe Anschaffung / Sondereinnahme = `GrowingFixedEffect` mit Rate 0 auf genau einen Schritt beschränkt
+  - [ ] Flexible Anschaffung = `ComputedEffect` mit Referenzpfad-Vergleich + Glidepath (siehe 04); konkrete Referenzpfad-Kurve bleibt offen (siehe 08-Offene-Fragen.md)
+- [ ] **Epic 3.4 – Bausteine: Verbindlichkeiten** (`compute_to_ai.features.finance`)
+  - [ ] Eigener `Store` je Verbindlichkeit (Restschuld, positiv geführt – dieselbe Vorzeichenkonvention wie `calculations_loan_remaining_balance` aus M2)
+  - [ ] `PercentageGrowthEffect` (Zins, positiv) + `GrowingFixedEffect` Rate 0 (Tilgung, negativ auf Verbindlichkeits-Store **und** auf Cash) je Verbindlichkeit
+  - [ ] Rate wird nicht neu hergeleitet, sondern über `calculations_loan_monthly_payment` (M2) berechnet und als Parameter übergeben
+  - [ ] Sondertilgung als optionaler `ComputedEffect`; `calculations_loan_amortization_schedule_with_extra_payments` (M2) dient als Referenz für Golden-Tests. Die konkrete Entscheidungsregel Sondertilgung vs. Investition bleibt eine offene Kalibrierungsfrage (siehe 04 und 08-Offene-Fragen.md) – für M3 reicht ein Baustein, der eine vom Nutzer vorgegebene Regel (fester Schwellenwert Kreditzins vs. erwartete Rendite) anwendet
+- [ ] **Epic 3.5 – Bausteine: Kapitalanlage** (`compute_to_ai.features.finance`)
+  - [ ] Anlageklasse = `CorrelatedReturnEffect` mit Korrelationsgruppe `"anlageklassen"`, je Anlageklasse ein Sub-Speicher oder Allokationsanteil
+  - [ ] Portfolio = `Store` mit Lot-Semantik; Allokation/Rebalancing als eigener `ComputedEffect`
+  - [ ] Cash-Bucket = eigener `Store` + `ComputedEffect` mit der Drei-Komponenten-Zielgröße aus 04 (Einkommensausfallpuffer, Nahsicht, Entnahmepuffer), phasenabhängige Notfallpuffer-Monate, Vorrang-Auffüllung vor Portfolio-Investition, spiegelbildliche Entnahme-Priorität (siehe 04)
+- [ ] **Epic 3.6 – Bausteine: Steuern** (`compute_to_ai.features.finance`)
+  - [ ] Abgeltungsteuer, Sparerpauschbetrag, Vorabpauschale, Teilfreistellung, Bestandsschutz (Lot-Regelwerk-Version) als `ComputedEffect` auf Portfolio-Lots
+  - [ ] Nachgelagerte Rentenbesteuerung inkl. KVdR/Pflegeversicherung (GKV/PKV als Parameter, siehe 05) als `ComputedEffect` auf den Renten-Einkommensstrom
+  - [ ] Konkrete Sätze aus 05-Feature-Finanzen-Parameter.md, mit Stand-Jahr-Vermerk und Beleg in 09-Quellen.md (Quellentreue-Pflicht, siehe CLAUDE.md)
+- [ ] **Epic 3.7 – Lebensphasen & Rentenübergang** (`compute_to_ai.features.finance`)
+  - [ ] Standard-Phasenmodell (Ausbildung optional, Erwerbsphase, ggf. Frühruhestandslücke, Rentenphase) als vorkonfigurierbare Phasenliste
+  - [ ] Erwerbsende und gesetzlicher Rentenbeginn als separate Phasengrenzen, lösen den Wechsel Einkommensstrom → gesetzliche Rente aus
+  - [ ] Rentenabschlag (0,3 %/Monat vorzeitig, max. 14,4 %) bzw. -zuschlag (0,5 %/Monat Aufschub) als einmalige Anpassung der Renten-`GrowingFixedEffect`-Basis bei Aktivierung
+- [ ] **Epic 3.8 – MCP-Tools, Zielbedingung, Referenz-/Golden-Tests**
+  - [ ] Tool-Präfix `finance_*` (siehe 02-Architektur-und-MCP.md): je Baustein ein Tool zum Hinzufügen/Konfigurieren (z. B. `finance_add_income_stream`, `finance_add_liability`, `finance_add_asset_class`)
+  - [ ] Tool zum Start eines Monte-Carlo-Laufs und zur Abfrage des aggregierten Ergebnisses
+  - [ ] Zielbedingung konfigurierbar (Zielvermögen, Ziel-Erfolgswahrscheinlichkeit)
+  - [ ] Golden-Tests mit von Hand nachrechenbarem Ergebnis je Baustein (0 %-Rendite-/0 %-Zins-Sonderfälle analog zu M1/M2, wo eine geschlossene Formel existiert)
+  - [ ] End-to-End-Test über den vollständigen Beispiel-Plan (Anna) per echtem MCP-Tool-Aufruf
 
 ## Meilenstein 4 – Baustein-Katalog & Regelwerk-Templates
 

@@ -4,11 +4,7 @@ Dinge, die im weiteren Konzeptgespräch noch geklärt werden müssen.
 
 ## Fragen zum generischen Kern
 
-**Zirkuläre Effekt-Abhängigkeiten**: Wenn Effekte beliebig voneinander abhängen dürfen (z. B. eine Entscheidung hängt von einer erwarteten Rendite ab, die selbst von einer Zufallsziehung abhängt, die wiederum von einer Korrelationsstruktur abhängt, die von Entscheidungen im selben Jahr beeinflusst wird), braucht der Kern eine explizite, nachvollziehbare Auswertungsreihenfolge (z. B. topologische Sortierung des Abhängigkeitsgraphen). Wie wird das technisch gelöst, und wie zeigt die Selbstbeschreibung einem Agenten, welche Effekte von welchen abhängen, damit er keine unlösbare Konfiguration baut?
-
-**Sandbox/Sicherheit bei rohen Effekten**: Sobald ein Agent (oder ein Nutzer) einen „rohen" Effekt frei formuliert, nähert sich das einer kleinen Skriptsprache an. Wie wird verhindert, dass ein fehlerhafter oder böswilliger roher Effekt die Simulation unbemerkt verfälscht oder unsicheren Code ausführt?
-
-**Generische Korrelations-Mechanik**: Wie deklariert ein beliebiger, auch domänenfremder Effekt technisch, mit welchen anderen Effekten er korreliert ist, ohne dass „Korrelation" an ein bestimmtes Fachkonzept wie „Anlageklassen" gebunden bleibt?
+**Sandbox/Sicherheit bei rohen Effekten**: Sobald ein Agent (oder ein Nutzer) einen „rohen" Effekt frei formuliert, nähert sich das einer kleinen Skriptsprache an. Wie wird verhindert, dass ein fehlerhafter oder böswilliger roher Effekt die Simulation unbemerkt verfälscht oder unsicheren Code ausführt? Für Meilenstein 3 (siehe 10-Roadmap.md) stellt sich die Frage nicht akut, da dort ausschließlich kuratierte Bausteine (keine rohen, frei formulierten Effekte) verwendet werden – sobald rohe Effekte tatsächlich gebraucht werden, muss das geklärt sein.
 
 **Grenzen der Generizität**: Ab wann lohnt sich ein neuer, eigener Baustein bzw. ein neues Feature-Modul gegenüber einem rohen, ad hoc definierten Effekt? Gibt es Kriterien (Komplexität der Mathematik, Wiederverwendungshäufigkeit, Fehlerkosten), nach denen entschieden wird, was in den kuratierten Katalog aufgenommen wird?
 
@@ -46,29 +42,17 @@ Wie wird der Referenzpfad konkret definiert – linear interpoliert oder nach ei
 
 Ein gemeinsames Portfolio für den Haushalt, oder getrennte Depots je Person mit ggf. unterschiedlicher Allokation und steuerlicher Behandlung?
 
-## Detailgrad der Ausgabenmodellierung
-
-Reicht ein pauschaler Ausgabenbetrag je Person/Haushalt mit altersabhängigem Faktor, oder sollen Ausgaben nach Kategorien (Wohnen, Konsum, Gesundheit, Freizeit) getrennt modelliert werden?
-
-## Cash-Bucket-Details
-
-Wie wird priorisiert, wenn die Sparquote weder Bucket-Auffüllung noch reguläre Sparrate vollständig decken kann? Wie läuft der Übergang des Einkommensausfallpuffers nach dem Erwerbsende ab – schlagartig oder schrittweise? Welche konkreten Werte sind für Notfallpuffer-Monate und Entnahmehorizont sinnvoll, und sollte der Entnahmehorizont selbst mit dem Alter variieren?
-
 ## Detailfragen zu Verbindlichkeiten (Kredite, Unterhalt)
 
-Nach welcher konkreten Regel wird zwischen Sondertilgung und Investition entschieden? Sind Kreditzinsen steuerlich absetzbar (z. B. Werbungskosten bei vermieteter Immobilie)? Ist Unterhalt steuerlich relevant (Realsplitting, Kindesunterhalt)? Soll ein variabler Hauskreditzins (Anschlussfinanzierung) als unsichere Größe abgebildet werden? Wie verknüpft sich ein Hauskredit mit einem etwaigen Immobilien-Vermögenswert?
+Nach welcher konkreten Regel wird zwischen Sondertilgung und Investition entschieden? Sind Kreditzinsen steuerlich absetzbar (z. B. Werbungskosten bei vermieteter Immobilie)? Ist Unterhalt steuerlich relevant (Realsplitting, Kindesunterhalt)? Soll ein variabler Hauskreditzins (Anschlussfinanzierung) als unsichere Größe abgebildet werden?
 
 ## Lebensphasen-Details
 
 Sollen unfreiwillige, zufällige Phasenübergänge abgebildet werden (z. B. unerwarteter Jobverlust)? Welche weiteren Parameter außer den Notfallpuffer-Monaten sollten phasenspezifisch sein?
 
-## Krankenversicherungsstatus (GKV vs. PKV)
+## Immobilie/Wohneigentum als Vermögenswert
 
-Ist die Primärperson gesetzlich oder privat krankenversichert? Das betrifft KVdR-Beitrag vs. PKV-Prämie in der Rentenphase sowie die Nettogehalt-Annahme in der Erwerbsphase.
-
-## Immobilie/Wohneigentum
-
-Wird selbstgenutztes oder vermietetes Wohneigentum abgebildet – als Vermögenswert, als Mietkostenersparnis, als Anschaffung, als spätere Liquiditätsquelle?
+Die Basisausprägung bildet ein finanziertes Wohneigentum bereits als Anschaffung + Verbindlichkeit ab (siehe 03-Feature-Finanzen-Domaenenmodell.md). Offen bleibt die Erweiterung: Soll der Immobilienwert selbst als eigener, wertsteigernder Vermögens-Speicher geführt werden, und soll eine Mietkostenersparnis bei selbstgenutztem Eigentum gegengerechnet werden?
 
 ## Weitere Altersvorsorge-Formen
 
@@ -82,21 +66,9 @@ Falls ein Vererbungsziel für die Partnerin gilt: Soll die Erbschaftssteuerlast 
 
 Zinserträge aus dem Cash-Bucket unterliegen ebenfalls der Abgeltungsteuer unter Nutzung des Sparerpauschbetrags – sollte im Jahresablauf explizit als eigener Fall ergänzt werden.
 
-## Entnahme-Priorisierung zwischen Cash-Bucket und Portfolio
+## Hinterbliebenenrente bei Wegfall des Partnerbeitrags
 
-Wird zuerst der Cash-Bucket bis auf seine Zielgröße abgeschmolzen, oder proportional aus beiden entnommen?
-
-## Ruin-Verhalten
-
-Läuft eine Simulation nach Eintritt des Ruins mit Nullvermögen weiter, oder bricht der Lauf ab?
-
-## Sondereinnahmen und -ausgaben
-
-Sollen unregelmäßige Ereignisse wie Erbschaften, Boni oder unerwartete größere Ausgaben abgebildet werden?
-
-## Wegfall des Partnerbeitrags (Trennung oder Tod)
-
-Was passiert, wenn der Partnerbeitrag wegfällt? Einfachste Annahme: ab einem Jahr auf null. Realistischer: Hinterbliebenenrente bei Ehe/Lebenspartnerschaft.
+Der einfache Fall (Partnerbeitrag endet zu einem Zeitpunkt) ist gelöst (siehe 03-Feature-Finanzen-Domaenenmodell.md). Offen bleibt die realistischere Hinterbliebenenrente bei Ehe/Lebenspartnerschaft.
 
 ## Ehe/Lebenspartnerschaft vs. nichteheliche Lebensgemeinschaft
 
@@ -106,10 +78,6 @@ Mehrere Annahmen (gemeinsamer Sparerpauschbetrag, Hinterbliebenenrente, gesetzli
 
 Soll ein Tail-Risiko-Szenario für Pflegebedürftigkeit/altersgerechten Umbau abgebildet werden, oder reicht der altersabhängige Ausgabenfaktor als Näherung?
 
-## Reale vs. nominale Größen
-
-Sind alle Beträge konsequent nominal oder real zu verstehen? Muss projektweit einheitlich festgelegt werden.
-
 ## Quelle der Höhe der gesetzlichen Rente
 
 Extern vorgegebener Wert (Renteninformation der Deutschen Rentenversicherung) oder eigene Nachbildung der Rentenformel (Entgeltpunkte × aktueller Rentenwert)?
@@ -118,6 +86,6 @@ Extern vorgegebener Wert (Renteninformation der Deutschen Rentenversicherung) od
 
 Woher stammen Referenzwerte zu typischen Nutzungsdauern/Kostenrahmen (Küche, Auto, Dach) für proaktive Vorschläge – LLM-Wissen, gepflegte Tabelle, oder Kombination?
 
-## Renditeannahmen: parametrisch vs. Bootstrapping
+## Konkrete Werte für Cash-Bucket-Parameter
 
-Parametrische Verteilung je Anlageklasse oder historisches Bootstrapping (inkl. Fat-Tails und Autokorrelation)?
+Welche konkreten Werte sind für Notfallpuffer-Monate und Entnahmehorizont sinnvoll (siehe Wertebeispiele in 05-Feature-Finanzen-Parameter.md), und sollte der Entnahmehorizont selbst mit dem Alter variieren?

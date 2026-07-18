@@ -18,9 +18,22 @@ Ein Effekt ist eine Funktion, die für einen Zeitschritt aus dem aktuellen Zusta
 
 Ein Effekt ist entweder **roh** – eine einfache, im jeweiligen Feature oder direkt per Prompt frei definierte Formel, geeignet für unkritische oder einmalige Fälle – oder ein **Baustein**: eine kuratierte, vorimplementierte und getestete Effekt-Vorlage für mathematisch anspruchsvolle oder fehleranfällige Fälle (z. B. korrelierte Renditen mehrerer Anlageklassen, eine mehrstufige Steuerformel mit Deckelung). Bausteine werden aktiviert und parametrisiert, nicht neu geschrieben – vergleichbar mit den eingebauten Funktionen einer Tabellenkalkulation gegenüber einer frei geschriebenen Zellformel: Wo bereits eine geprüfte Lösung existiert, wird sie genutzt statt ad hoc neu erfunden. Der Baustein-Katalog ist erweiterbar, ohne dass der Kern selbst geändert werden muss (siehe 02-Architektur-und-MCP.md).
 
+### Effekt-Arten (konkrete Realisierung im Kern)
+
+Die oben abstrakt beschriebenen Fähigkeiten eines Effekts (zeitabhängig, stochastisch, korreliert, von anderen Speichern abhängend) werden im Kern durch eine kleine, feste Zahl generischer Effekt-Arten realisiert – bewusst klein gehalten, weil sich praktisch jeder Fachfall (in jeder Domäne) auf eine dieser Arten zurückführen lässt, nur mit anderem Vorzeichen und anderen Parametern:
+
+- **Additiver Effekt (fix oder wachsend)**: addiert je Zeitschritt einen Betrag zu einem Speicher, der optional mit einer festen Rate wächst (Rate 0 = konstanter Betrag). Deckt sowohl feste als auch wachsende Zu-/Abflüsse ab – ein positiver Betrag ist ein Zufluss, ein negativer ein Abfluss; „Einkommen" und „Ausgabe" sind daher **derselbe** Effekt-Typ mit unterschiedlichem Vorzeichen, ebenso „Gehaltssteigerung" und „Inflation auf Ausgaben" (beides die Wachstumsrate desselben Effekt-Typs).
+- **Prozentualer Wachstumseffekt**: multipliziert den Saldo eines Speichers selbst je Zeitschritt mit `(1 + Rate)`, mit fester (nicht-stochastischer) Rate. Deckt sowohl Kapitalwachstum als auch Verzinsung einer Verbindlichkeit ab – eine wachsende Restschuld (Zinssatz > 0) ist strukturell **derselbe** Effekt-Typ wie ein wachsendes Guthaben, nur auf einen Speicher angewendet, dessen Saldo eine Schuld statt eines Vermögens darstellt.
+- **Korrelierter stochastischer Effekt**: wie der prozentuale Wachstumseffekt, aber die Rate wird je Simulationslauf zufällig gezogen; mehrere Effekte, die eine gemeinsame Korrelationsgruppe (frei benannt, z. B. `"anlageklassen"`) referenzieren, werden gemeinsam aus einer multivariaten Verteilung gezogen (siehe „Korrelation" unten) statt unabhängig voneinander.
+- **Berechneter Effekt**: kein vorab feststehender Betrag, sondern eine kuratierte Funktion, die aus dem aktuellen Zustand (Salden aller Speicher **nach** Anwendung der Effekte oben in diesem Zeitschritt) einen Betrag ableitet. Ausschließlich als Baustein (nie „roh") verfügbar, weil hier tatsächlich Logik statt einer reinen Formel steht – z. B. eine Steuerberechnung, eine Cash-Bucket-Auffüllung oder eine Trigger-Prüfung.
+
+**Reihenfolge & keine zirkulären Abhängigkeiten** (löst die entsprechende Frage aus 08-Offene-Fragen.md): Ein Zeitschritt läuft zweiphasig ab – zuerst werden alle additiven, prozentualen und korrelierten Effekte auf Basis des Saldos vom **Beginn** des Schritts angewendet, danach laufen die berechneten Effekte in einer festen (Registrierungs-)Reihenfolge auf Basis der bereits aktualisierten Salden. Berechnete Effekte dürfen sich nicht gegenseitig referenzieren. Das deckt den gesamten heute bekannten Bedarf ab (siehe 04-Feature-Finanzen-Methodik.md, dessen 13-Schritte-Jahresablauf genau diesem Muster folgt) und vermeidet einen allgemeinen, topologisch zu sortierenden Abhängigkeitsgraphen, ohne diesen für die Zukunft grundsätzlich auszuschließen.
+
 ## Korrelation
 
 Effekte mit einer stochastischen Komponente können paarweise korreliert sein (technisch z. B. über eine gemeinsame multivariate Ziehung, etwa via Cholesky-Zerlegung). Korrelation ist damit keine Eigenschaft eines bestimmten Fachkonzepts wie „Anlageklassen", sondern eine generische Beziehung zwischen beliebigen stochastischen Effekten – im Finanz-Feature konkret zwischen Anlageklassen-Renditen, denkbar aber ebenso zwischen ganz anderen Effekten in einem anderen Feature.
+
+**Technischer Mechanismus** (löst die entsprechende Frage aus 08-Offene-Fragen.md): Ein korrelierter stochastischer Effekt (siehe „Effekt-Arten" oben) trägt einen frei wählbaren Gruppennamen. Vor jedem Simulationslauf zieht der Kern für jede vorkommende Gruppe gemeinsam eine multivariate Normalverteilung (Erwartungswerte und Volatilitäten je Effekt der Gruppe, Korrelationsmatrix über die Gruppe, per Cholesky-Zerlegung – parametrisch, nicht historisches Bootstrapping, siehe 04-Feature-Finanzen-Methodik.md) und weist jedem Effekt der Gruppe seine gezogene Rate für den jeweiligen Zeitschritt zu. Der Gruppenname ist eine reine Zeichenkette ohne Fachbezug; „Anlageklassen" ist nur der Gruppenname, den das Finanz-Feature verwendet, kein Kern-Konzept.
 
 ## Zeitstrahl
 
@@ -33,6 +46,8 @@ Der Zeitstrahl definiert Startzeitpunkt, Dauer und Schrittweite eines Simulation
 ## Zielbedingung
 
 Eine Zielbedingung definiert, wann ein Simulationslauf als Erfolg bzw. als „Ruin" gilt – meist: der Saldo eines oder mehrerer Speicher darf zu keinem Zeitpunkt eine kritische Schwelle (üblicherweise 0) unterschreiten. Das ist strukturell identisch mit der Ruinwahrscheinlichkeit der Versicherungsmathematik und wird bei einem Monte-Carlo-Lauf über viele Wiederholungen zu einer Erfolgswahrscheinlichkeit aggregiert.
+
+Ein Simulationslauf **läuft nach Eintritt eines Ruins weiter** statt abzubrechen (der betroffene Speicher wird auf 0 gedeckelt, nicht negativ fortgeschrieben) – so hält das Simulationsergebnis sowohl den Zeitpunkt als auch das Ausmaß eines Ruins fest, statt nur ein binäres Ereignis.
 
 ## Plan
 

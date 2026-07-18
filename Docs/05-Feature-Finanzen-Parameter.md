@@ -99,8 +99,9 @@ Alle Größen, die das Finanzen-Feature konfigurierbar macht. Konkrete Zahlenwer
 | Bestandsschutz-Stichtag | 1.1.2009 (Einführung Abgeltungsteuer) – Lots davor dauerhaft steuerfrei veräußerbar |
 | Besteuerungsanteil gesetzliche Rente | abhängig vom Rentenbeginn-Jahr (2026: 84 %), steigt 0,5 Punkte/Jahr, 100 % ab 2058 |
 | Grundfreibetrag | mindert die einkommensteuerpflichtige Bemessungsgrundlage der Rente |
-| KVdR-Beitragssatz | 14,6 % + Ø Zusatzbeitrag 2,9 % (2026), hälftig subventioniert |
-| Pflegeversicherungsbeitrag Rentner | 3,6 % bzw. 4,2 % Kinderlose (2026), vollständig vom Rentner getragen |
+| KVdR-Beitragssatz | 14,6 % + Ø Zusatzbeitrag 2,9 % (2026), hälftig subventioniert, nur bei GKV |
+| Pflegeversicherungsbeitrag Rentner | 3,6 % bzw. 4,2 % Kinderlose (2026), vollständig vom Rentner getragen, nur bei GKV |
+| Krankenversicherungsstatus | GKV oder PKV, Eingabeparameter je Person – bestimmt, ob KVdR/Pflegeversicherung (GKV) oder eine fest konfigurierte PKV-Prämie (Rentenphase) bzw. eine Nettogehalt-Annahme ohne KVdR-Abzug (Erwerbsphase) angewendet wird |
 
 ## Cash-Bucket (Liquiditätspuffer)
 
