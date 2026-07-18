@@ -13,6 +13,7 @@ from pydantic import Field as PydanticField
 class BaseEffect(BaseModel):
     """Common base for all simulation effects."""
 
+    name: str | None = Field(default=None, description="Optional custom name of this effect")
     start_step: int | None = Field(default=None, description="Start step (inclusive)")
     end_step: int | None = Field(default=None, description="End step (inclusive)")
     active_phases: list[str] | None = Field(
