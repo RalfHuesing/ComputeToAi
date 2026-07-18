@@ -207,3 +207,84 @@ def test_cash_bucket_with_near_horizon_expenses() -> None:
     assert pytest.approx(result.time_series[0]["equity"]) == 14.0
     assert pytest.approx(result.time_series[0]["bond"]) == 6.0
 
+
+def test_cash_bucket_entnahme_buffer_ignores_phase_name() -> None:
+    """The Entnahmepuffer component must fire purely via `withdrawal_phase_names`.
+
+    The phase is deliberately named "Ruhestand" rather than "Rentenphase" to prove
+    genericity: nothing about the phase's name is special-cased.
+    """
+    from compute_to_ai.engine.effect import GrowingFixedEffect
+    from compute_to_ai.engine.timeline import Phase
+
+    plan = Plan(
+        name="cash-bucket-entnahme-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+        phases=[Phase(name="Ruhestand", start_step=0, end_step=10)],
+        effects=[
+            GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)
+        ],
+    )
+
+    add_asset_class(plan, "equity", 4000.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 2000.0, 0.0, 0.0)
+
+    add_cash_bucket(
+        plan=plan,
+        portfolio_weights={"equity": 0.70, "bond": 0.30},
+        emergency_buffer_months={"Ruhestand": 0.0},
+        monthly_expenses=0.0,
+        entnahme_years=3.0,
+        withdrawal_phase_names=["Ruhestand"],
+    )
+
+    result = run_simulation(plan)
+
+    # Entnahmeabhängigkeit = (1000 - 0) / 1000 = 1.0 (no offsetting income).
+    # Entnahmepuffer = 3 Jahre * 1.0 * 1000 = 3000. Deficit vs. cash (-1000) = 4000.
+    # Portfolio (6000) covers it: equity -= 4000*0.7=2800, bond -= 4000*0.3=1200.
+    assert pytest.approx(result.final_balances["cash"]) == 3000.0
+    assert pytest.approx(result.final_balances["equity"]) == 1200.0
+    assert pytest.approx(result.final_balances["bond"]) == 800.0
+
+
+def test_cash_bucket_entnahme_buffer_skips_unlisted_phase() -> None:
+    """A phase not listed in `withdrawal_phase_names` never contributes the buffer,
+    even if it happens to be named "Rentenphase".
+    """
+    from compute_to_ai.engine.effect import GrowingFixedEffect
+    from compute_to_ai.engine.timeline import Phase
+
+    plan = Plan(
+        name="cash-bucket-entnahme-skip-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+        phases=[Phase(name="Rentenphase", start_step=0, end_step=10)],
+        effects=[
+            GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)
+        ],
+    )
+
+    add_asset_class(plan, "equity", 4000.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 2000.0, 0.0, 0.0)
+
+    add_cash_bucket(
+        plan=plan,
+        portfolio_weights={"equity": 0.70, "bond": 0.30},
+        emergency_buffer_months={"Rentenphase": 0.0},
+        monthly_expenses=0.0,
+        entnahme_years=3.0,
+        withdrawal_phase_names=[],
+    )
+
+    result = run_simulation(plan)
+
+    # No withdrawal_phase_names configured -> Entnahmepuffer contributes 0, so
+    # target cash is 0 (buffer_1/buffer_2 are 0 too). The expense drove cash to
+    # -1000; the manager still reconciles cash to the (lower) target of 0 by
+    # pulling 1000 from the portfolio: equity -= 1000*0.7=700, bond -= 1000*0.3=300.
+    assert pytest.approx(result.final_balances["cash"]) == 0.0
+    assert pytest.approx(result.final_balances["equity"]) == 3300.0
+    assert pytest.approx(result.final_balances["bond"]) == 1700.0
+

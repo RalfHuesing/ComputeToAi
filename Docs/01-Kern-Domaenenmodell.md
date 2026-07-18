@@ -43,6 +43,8 @@ Der Zeitstrahl definiert Startzeitpunkt, Dauer und Schrittweite eines Simulation
 
 Über dem Zeitstrahl liegt optional eine geordnete, lückenlose Folge von Phasen (im Finanz-Feature z. B. Ausbildung, Erwerbsphase, Frühruhestandslücke, Rentenphase). Jede Phase hat einen Start- und Endzeitpunkt und kann Effekte an- oder abschalten bzw. deren Parameter verändern. Das verallgemeinert, was im Finanzkonzept „Lebensphase" heißt.
 
+Der **Name** einer Phase ist ein frei wählbares Label ohne feste Bedeutung für den Kern oder für Bausteine. Ob z. B. eine Phase „die Rentenphase" ist, entscheidet ausschließlich explizite Konfiguration – Start-/Endschritt, die `active_phases`-Zuordnung eines Effekts, oder ein expliziter Baustein-Parameter (z. B. ein `retirement_step`) –, nie ein Textvergleich/Mustererkennung auf dem Namen selbst. Andernfalls bricht ein Baustein stillschweigend, sobald eine Phase anders benannt wird als vom Baustein-Autor angenommen.
+
 ## Zielbedingung
 
 Eine Zielbedingung definiert, wann ein Simulationslauf als Erfolg bzw. als „Ruin" gilt – meist: der Saldo eines oder mehrerer Speicher darf zu keinem Zeitpunkt eine kritische Schwelle (üblicherweise 0) unterschreiten. Das ist strukturell identisch mit der Ruinwahrscheinlichkeit der Versicherungsmathematik und wird bei einem Monte-Carlo-Lauf über viele Wiederholungen zu einer Erfolgswahrscheinlichkeit aggregiert.

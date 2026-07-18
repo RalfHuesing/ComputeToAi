@@ -118,11 +118,20 @@ def _calculate_near_horizon_outlook(
 
 
 def _calculate_entnahme_buffer(
-    plan: Plan, cash_store: str, step: int, active_phase: str | None, entnahme_years: float
+    plan: Plan,
+    cash_store: str,
+    step: int,
+    active_phase: str | None,
+    entnahme_years: float,
+    withdrawal_phase_names: list[str],
 ) -> float:
-    """Calculate the entnahme buffer component (retirement gap buffer)."""
-    is_rente = active_phase is not None and "rente" in active_phase.lower()
-    if not is_rente:
+    """Calculate the entnahme buffer component (retirement gap buffer).
+
+    Which phases count towards this buffer is decided solely by the explicit
+    `withdrawal_phase_names` parameter, never by inspecting a phase's name -
+    a Phase's name is an opaque label (see Docs/01-Kern-Domaenenmodell.md).
+    """
+    if active_phase is None or active_phase not in withdrawal_phase_names:
         return 0.0
 
     e_val = 0.0
@@ -160,6 +169,7 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
     inflation_rate = float(parameters.get("inflation_rate", 0.0))
     near_horizon_steps = int(parameters.get("near_horizon_steps", 2))
     entnahme_years = float(parameters.get("entnahme_years", 3.0))
+    withdrawal_phase_names = list(parameters.get("withdrawal_phase_names", []))
 
     active_phase = plan.get_active_phase_name(step)
 
@@ -172,7 +182,9 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
     buffer_2 = _calculate_near_horizon_outlook(plan, cash_store, step, near_horizon_steps)
 
     # 3. Entnahmepuffer
-    buffer_3 = _calculate_entnahme_buffer(plan, cash_store, step, active_phase, entnahme_years)
+    buffer_3 = _calculate_entnahme_buffer(
+        plan, cash_store, step, active_phase, entnahme_years, withdrawal_phase_names
+    )
 
     # Target Cash-Bucket size
     target_cash = buffer_1 + buffer_2 + buffer_3
@@ -208,8 +220,14 @@ def add_cash_bucket(
     near_horizon_steps: int = 2,
     entnahme_years: float = 3.0,
     cash_store_name: str = "cash",
+    withdrawal_phase_names: list[str] | None = None,
 ) -> None:
-    """Add a computed cash bucket manager to the plan."""
+    """Add a computed cash bucket manager to the plan.
+
+    `withdrawal_phase_names` names the phases (e.g. the retirement phase)
+    whose withdrawal dependency feeds the Entnahmepuffer component; phases
+    not listed there never contribute to it, regardless of how they're named.
+    """
     # Ensure the cash store exists
     store_exists = False
     for st in plan.stores:
@@ -230,6 +248,7 @@ def add_cash_bucket(
             "inflation_rate": inflation_rate,
             "near_horizon_steps": near_horizon_steps,
             "entnahme_years": entnahme_years,
+            "withdrawal_phase_names": withdrawal_phase_names or [],
         },
     )
     plan.effects.append(effect)
