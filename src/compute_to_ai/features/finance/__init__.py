@@ -12,12 +12,14 @@ from compute_to_ai.features.finance.cashflow import (
 from compute_to_ai.features.finance.liability import add_liability
 from compute_to_ai.features.finance.portfolio import (
     add_asset_class,
+    add_cash_bucket,
     add_portfolio_rebalancing,
     set_correlation_matrix,
 )
 
 __all__ = [
     "add_asset_class",
+    "add_cash_bucket",
     "add_expense",
     "add_fixed_acquisition",
     "add_flexible_acquisition",
