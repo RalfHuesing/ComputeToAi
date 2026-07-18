@@ -5,6 +5,8 @@ See Docs/03-Feature-Finanzen-Domaenenmodell.md and Docs/04-Feature-Finanzen-Meth
 
 from typing import Any
 
+from pydantic import BaseModel
+
 from compute_to_ai.engine.effect import (
     ComputedEffect,
     CorrelatedReturnEffect,
@@ -14,18 +16,24 @@ from compute_to_ai.engine.plan import CorrelationGroup, Plan
 from compute_to_ai.engine.store import Lot, Store
 
 
+class PortfolioRebalancingParameters(BaseModel):
+    """Parameters for the `portfolio_rebalancing` computed effect."""
+
+    weights: dict[str, float]
+
+
 @register_computed_effect("portfolio_rebalancing")
 def portfolio_rebalancing_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], _step: int, parameters: dict[str, Any], _plan: Plan
 ) -> None:
     """Computed effect to rebalance asset classes to match target weights."""
-    weights = {k: float(v) for k, v in parameters["weights"].items()}
+    params = PortfolioRebalancingParameters.model_validate(parameters)
 
-    total_value = sum(balances.get(name, 0.0) for name in weights)
+    total_value = sum(balances.get(name, 0.0) for name in params.weights)
     if total_value <= 0.0:
         return
 
-    for name, weight in weights.items():
+    for name, weight in params.weights.items():
         balances[name] = total_value * weight
 
 
@@ -87,14 +95,34 @@ def add_portfolio_rebalancing(
     end_step: int | None = None,
 ) -> None:
     """Add a computed rebalancing effect to the plan."""
+    params = PortfolioRebalancingParameters(weights=weights)
     effect = ComputedEffect(
         name=name,
         function_name="portfolio_rebalancing",
         start_step=start_step,
         end_step=end_step,
-        parameters={"weights": weights},
+        parameters=params.model_dump(),
     )
     plan.effects.append(effect)
+
+
+class CashBucketParameters(BaseModel):
+    """Parameters for the `cash_bucket_manager` computed effect.
+
+    Both `add_cash_bucket` (writer) and `cash_bucket_manager_func` (reader)
+    validate through this single model instead of matching dict-key strings
+    by convention, so a typo becomes a validation error instead of a
+    silently ignored default.
+    """
+
+    cash_store_name: str = "cash"
+    portfolio_weights: dict[str, float]
+    emergency_buffer_months: dict[str, float]
+    monthly_expenses: float
+    inflation_rate: float = 0.0
+    near_horizon_steps: int = 2
+    withdrawal_years: float = 3.0
+    withdrawal_phase_names: list[str] = []
 
 
 def _calculate_near_horizon_outlook(
@@ -117,15 +145,15 @@ def _calculate_near_horizon_outlook(
     return buffer_2
 
 
-def _calculate_entnahme_buffer(
+def _calculate_withdrawal_buffer(
     plan: Plan,
     cash_store: str,
     step: int,
     active_phase: str | None,
-    entnahme_years: float,
+    withdrawal_years: float,
     withdrawal_phase_names: list[str],
 ) -> float:
-    """Calculate the entnahme buffer component (retirement gap buffer).
+    """Calculate the withdrawal buffer component (Entnahmepuffer, retirement gap buffer).
 
     Which phases count towards this buffer is decided solely by the explicit
     `withdrawal_phase_names` parameter, never by inspecting a phase's name -
@@ -151,7 +179,7 @@ def _calculate_entnahme_buffer(
 
     if e_val > 0.0:
         dependency = max(0.0, (e_val - i_val) / e_val)
-        return entnahme_years * dependency * e_val
+        return withdrawal_years * dependency * e_val
     return 0.0
 
 
@@ -160,35 +188,36 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], step: int, parameters: dict[str, Any], plan: Plan
 ) -> None:
     """Computed effect to manage Cash-Bucket target sizes and portfolio rebalancing."""
-    cash_store = str(parameters.get("cash_store_name", "cash"))
-    portfolio_weights = {k: float(v) for k, v in parameters["portfolio_weights"].items()}
-    emergency_buffer_months = {
-        k: float(v) for k, v in parameters["emergency_buffer_months"].items()
-    }
-    monthly_expenses = float(parameters["monthly_expenses"])
-    inflation_rate = float(parameters.get("inflation_rate", 0.0))
-    near_horizon_steps = int(parameters.get("near_horizon_steps", 2))
-    entnahme_years = float(parameters.get("entnahme_years", 3.0))
-    withdrawal_phase_names = list(parameters.get("withdrawal_phase_names", []))
-
+    params = CashBucketParameters.model_validate(parameters)
+    cash_store = params.cash_store_name
     active_phase = plan.get_active_phase_name(step)
 
     # 1. Einkommensausfallpuffer
-    months = emergency_buffer_months.get(active_phase or "", 0.0)
-    monthly_expenses_inflated = monthly_expenses * ((1.0 + inflation_rate) ** step)
+    months = params.emergency_buffer_months.get(active_phase or "", 0.0)
+    monthly_expenses_inflated = params.monthly_expenses * (
+        (1.0 + params.inflation_rate) ** step
+    )
     buffer_1 = months * monthly_expenses_inflated
 
     # 2. Nahsicht-Komponente
-    buffer_2 = _calculate_near_horizon_outlook(plan, cash_store, step, near_horizon_steps)
+    buffer_2 = _calculate_near_horizon_outlook(
+        plan, cash_store, step, params.near_horizon_steps
+    )
 
     # 3. Entnahmepuffer
-    buffer_3 = _calculate_entnahme_buffer(
-        plan, cash_store, step, active_phase, entnahme_years, withdrawal_phase_names
+    buffer_3 = _calculate_withdrawal_buffer(
+        plan,
+        cash_store,
+        step,
+        active_phase,
+        params.withdrawal_years,
+        params.withdrawal_phase_names,
     )
 
     # Target Cash-Bucket size
     target_cash = buffer_1 + buffer_2 + buffer_3
     current_cash = balances.get(cash_store, 0.0)
+    portfolio_weights = params.portfolio_weights
 
     if current_cash > target_cash:
         # Excess cash: move to portfolio
@@ -218,7 +247,7 @@ def add_cash_bucket(
     monthly_expenses: float,
     inflation_rate: float = 0.0,
     near_horizon_steps: int = 2,
-    entnahme_years: float = 3.0,
+    withdrawal_years: float = 3.0,
     cash_store_name: str = "cash",
     withdrawal_phase_names: list[str] | None = None,
 ) -> None:
@@ -237,19 +266,20 @@ def add_cash_bucket(
     if not store_exists:
         plan.stores.append(Store(name=cash_store_name, balance=0.0))
 
+    params = CashBucketParameters(
+        cash_store_name=cash_store_name,
+        portfolio_weights=portfolio_weights,
+        emergency_buffer_months=emergency_buffer_months,
+        monthly_expenses=monthly_expenses,
+        inflation_rate=inflation_rate,
+        near_horizon_steps=near_horizon_steps,
+        withdrawal_years=withdrawal_years,
+        withdrawal_phase_names=withdrawal_phase_names or [],
+    )
+
     effect = ComputedEffect(
         name="Cash Bucket Manager",
         function_name="cash_bucket_manager",
-        parameters={
-            "cash_store_name": cash_store_name,
-            "portfolio_weights": portfolio_weights,
-            "emergency_buffer_months": emergency_buffer_months,
-            "monthly_expenses": monthly_expenses,
-            "inflation_rate": inflation_rate,
-            "near_horizon_steps": near_horizon_steps,
-            "entnahme_years": entnahme_years,
-            "withdrawal_phase_names": withdrawal_phase_names or [],
-        },
+        parameters=params.model_dump(),
     )
     plan.effects.append(effect)
-

@@ -4,7 +4,7 @@ from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_simulation
 from compute_to_ai.engine.store import Store
 from compute_to_ai.engine.timeline import Timeline
-from compute_to_ai.features.finance.liability import add_liability
+from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
 
 
 def test_loan_amortization_without_extra_payments() -> None:
@@ -58,7 +58,7 @@ def test_loan_with_scheduled_extra_payments() -> None:
     )
 
     # Scheduled extra payment of 100.0 at step 1
-    extra_payments = [{"step": 1, "amount": 100.0}]
+    extra_payments = [ScheduledExtraPayment(step=1, amount=100.0)]
 
     add_liability(
         plan=plan,

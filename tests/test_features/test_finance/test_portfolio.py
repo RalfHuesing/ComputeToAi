@@ -235,7 +235,7 @@ def test_cash_bucket_entnahme_buffer_ignores_phase_name() -> None:
         portfolio_weights={"equity": 0.70, "bond": 0.30},
         emergency_buffer_months={"Ruhestand": 0.0},
         monthly_expenses=0.0,
-        entnahme_years=3.0,
+        withdrawal_years=3.0,
         withdrawal_phase_names=["Ruhestand"],
     )
 
@@ -274,7 +274,7 @@ def test_cash_bucket_entnahme_buffer_skips_unlisted_phase() -> None:
         portfolio_weights={"equity": 0.70, "bond": 0.30},
         emergency_buffer_months={"Rentenphase": 0.0},
         monthly_expenses=0.0,
-        entnahme_years=3.0,
+        withdrawal_years=3.0,
         withdrawal_phase_names=[],
     )
 

@@ -5,6 +5,8 @@ See Docs/03-Feature-Finanzen-Domaenenmodell.md and Docs/04-Feature-Finanzen-Meth
 
 from typing import Any
 
+from pydantic import BaseModel
+
 from compute_to_ai.engine.effect import (
     ComputedEffect,
     GrowingFixedEffect,
@@ -79,24 +81,40 @@ def add_fixed_acquisition(
     plan.effects.append(effect)
 
 
+class FlexibleAcquisitionParameters(BaseModel):
+    """Configuration for the `flexible_acquisition` computed effect.
+
+    Excludes `triggered_step`: that's run-scoped mutable state (set once the
+    acquisition fires), not configuration, so it's read/written directly on
+    the raw parameters dict rather than through this model.
+    """
+
+    target_step: int
+    tolerance_steps: int
+    amount: float
+    inflation_rate: float = 0.0
+    risky_store_name: str
+    safe_store_name: str
+    glidepath_start_step: int
+
+
 @register_computed_effect("flexible_acquisition")
 def flexible_acquisition_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], step: int, parameters: dict[str, Any], _plan: Plan
 ) -> None:
     """Computed effect implementing flexible acquisition with trigger and glidepath logic."""
-    target_step = int(parameters["target_step"])
-    tolerance_steps = int(parameters["tolerance_steps"])
-    amount = float(parameters["amount"])
-    inflation_rate = float(parameters.get("inflation_rate", 0.0))
-    risky_store_name = str(parameters["risky_store_name"])
-    safe_store_name = str(parameters["safe_store_name"])
-    glidepath_start_step = int(parameters["glidepath_start_step"])
+    params = FlexibleAcquisitionParameters.model_validate(parameters)
+    target_step = params.target_step
+    tolerance_steps = params.tolerance_steps
+    risky_store_name = params.risky_store_name
+    safe_store_name = params.safe_store_name
+    glidepath_start_step = params.glidepath_start_step
 
     # If already triggered, do nothing
     if parameters.get("triggered_step") is not None:
         return
 
-    amount_inflated = amount * ((1.0 + inflation_rate) ** step)
+    amount_inflated = params.amount * ((1.0 + params.inflation_rate) ** step)
     trigger_start_step = target_step - tolerance_steps
     trigger_end_step = target_step + tolerance_steps
 
@@ -146,17 +164,18 @@ def add_flexible_acquisition(
     inflation_rate: float = 0.0,
 ) -> None:
     """Add a computed flexible acquisition effect to the plan."""
+    params = FlexibleAcquisitionParameters(
+        target_step=target_step,
+        tolerance_steps=tolerance_steps,
+        amount=amount,
+        inflation_rate=inflation_rate,
+        risky_store_name=risky_store_name,
+        safe_store_name=safe_store_name,
+        glidepath_start_step=glidepath_start_step,
+    )
     effect = ComputedEffect(
         name=name,
         function_name="flexible_acquisition",
-        parameters={
-            "target_step": target_step,
-            "tolerance_steps": tolerance_steps,
-            "amount": amount,
-            "inflation_rate": inflation_rate,
-            "risky_store_name": risky_store_name,
-            "safe_store_name": safe_store_name,
-            "glidepath_start_step": glidepath_start_step,
-        },
+        parameters=params.model_dump(),
     )
     plan.effects.append(effect)

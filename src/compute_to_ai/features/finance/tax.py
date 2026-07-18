@@ -5,35 +5,94 @@ See Docs/03-Feature-Finanzen-Domaenenmodell.md and Docs/04-Feature-Finanzen-Meth
 
 from typing import Any
 
+from pydantic import BaseModel
+
 from compute_to_ai.engine.effect import ComputedEffect, register_computed_effect
 from compute_to_ai.engine.plan import Plan
 
 
-def calculate_german_income_tax(zv: float, gfb: float = 12348.0) -> float:
-    """Calculate the progressive German income tax according to § 32a EStG for 2026."""
-    if zv <= gfb:
+class IncomeTaxTariff(BaseModel):
+    """A § 32a EStG-shaped progressive income tax tariff.
+
+    The five-zone shape (exempt, two quadratic brackets, two linear top
+    brackets) has been structurally stable for decades; only the bracket
+    boundaries and coefficients change from one tax year to the next. Every
+    such number is a field here rather than a Python literal, so switching to
+    a different year's tariff never requires a code change - only a
+    different `IncomeTaxTariff` instance. Defaults are the sourced 2026
+    values (see Docs/09-Quellen.md); a full mechanism for automatically
+    switching tariffs mid-simulation is out of scope (see Meilenstein 4 in
+    Docs/10-Roadmap.md).
+    """
+
+    basic_allowance: float = 12348.0
+    zone2_upper_bound: float = 17799.0
+    zone2_coefficient: float = 914.51
+    zone2_constant: float = 1400.0
+    zone3_upper_bound: float = 69878.0
+    zone3_coefficient: float = 173.10
+    zone3_constant: float = 2397.0
+    zone3_offset: float = 1034.87
+    zone4_upper_bound: float = 277825.0
+    zone4_rate: float = 0.42
+    zone4_subtract: float = 11135.63
+    zone5_rate: float = 0.45
+    zone5_subtract: float = 19470.38
+
+
+def calculate_income_tax(taxable_income: float, tariff: IncomeTaxTariff) -> float:
+    """Calculate progressive income tax for a given tariff (§ 32a EStG shape)."""
+    zv = taxable_income
+    if zv <= tariff.basic_allowance:
         return 0.0
 
-    if zv <= 17799.0:
-        y = (zv - gfb) / 10000.0
-        return (914.51 * y + 1400.0) * y
+    if zv <= tariff.zone2_upper_bound:
+        y = (zv - tariff.basic_allowance) / 10000.0
+        return (tariff.zone2_coefficient * y + tariff.zone2_constant) * y
 
-    if zv <= 69878.0:
-        z = (zv - 17799.0) / 10000.0
-        return ((173.10 * z + 2397.0) * z) + 1034.87
+    if zv <= tariff.zone3_upper_bound:
+        z = (zv - tariff.zone2_upper_bound) / 10000.0
+        return (tariff.zone3_coefficient * z + tariff.zone3_constant) * z + tariff.zone3_offset
 
-    if zv <= 277825.0:
-        return 0.42 * zv - 11135.63
+    if zv <= tariff.zone4_upper_bound:
+        return tariff.zone4_rate * zv - tariff.zone4_subtract
 
-    return 0.45 * zv - 19470.38
+    return tariff.zone5_rate * zv - tariff.zone5_subtract
+
+
+class AssetClassTaxConfig(BaseModel):
+    """Per-asset-class taxation parameters for the capital gains building block."""
+
+    partial_exemption_rate: float = 0.0
+    is_accumulating: bool = False
+    growth_rate: float = 0.0
+
+
+class TaxManagerParameters(BaseModel):
+    """Parameters for the `tax_manager` computed effect.
+
+    Both `add_tax_manager` (writer) and `tax_manager_func` (reader) validate
+    through this single model instead of matching dict-key strings by
+    convention, so a typo becomes a validation error instead of a silently
+    ignored default.
+    """
+
+    cash_store_name: str = "cash"
+    sparerpauschbetrag: float = 1000.0
+    basiszins: float = 0.032
+    withholding_tax_rate: float = 0.25
+    soli_rate: float = 0.055
+    church_tax_rate: float = 0.0
+    tariff: IncomeTaxTariff = IncomeTaxTariff()
+    kvdr_rate: float = 0.0875
+    pv_rate: float = 0.042
+    retirement_step: int = 47
+    start_year: int = 2026
+    asset_classes: dict[str, AssetClassTaxConfig] = {}
 
 
 def _apply_pension_taxation(
-    balances: dict[str, float],
-    step: int,
-    plan: Plan,
-    cash_store: str,
-    parameters: dict[str, Any],
+    balances: dict[str, float], step: int, plan: Plan, params: TaxManagerParameters
 ) -> None:
     """Calculate and deduct progressive tax and KVdR/PV contributions from pension income.
 
@@ -41,15 +100,10 @@ def _apply_pension_taxation(
     `retirement_step` parameter, never by inspecting a phase's name - a
     Phase's name is an opaque label (see Docs/01-Kern-Domaenenmodell.md).
     """
-    retirement_step = int(parameters.get("retirement_step", 47))
-    start_year = int(parameters.get("start_year", 2026))
-    gfb = float(parameters.get("gfb", 12348.0))
-    kvdr_rate = float(parameters.get("kvdr_rate", 0.0875))
-    pv_rate = float(parameters.get("pv_rate", 0.042))
-
-    if step < retirement_step:
+    if step < params.retirement_step:
         return
 
+    cash_store = params.cash_store_name
     active_phase = plan.get_active_phase_name(step)
 
     # Sum rent income (positive cashflows from Phase 1)
@@ -65,67 +119,61 @@ def _apply_pension_taxation(
             if val > 0.0:
                 rent_income += val
 
-    if rent_income > 0.0:
-        # Insurance contributions
-        insurance_premium = rent_income * (kvdr_rate + pv_rate)
-        balances[cash_store] = balances.get(cash_store, 0.0) - insurance_premium
+    if rent_income <= 0.0:
+        return
 
-        # Taxable share based on retirement year
-        retirement_year = start_year + retirement_step
-        taxable_share = min(1.0, 0.84 + 0.005 * (retirement_year - 2026))
-        rent_taxable = rent_income * taxable_share
+    # Insurance contributions
+    insurance_premium = rent_income * (params.kvdr_rate + params.pv_rate)
+    balances[cash_store] = balances.get(cash_store, 0.0) - insurance_premium
 
-        # Taxable income (Einkommensteuer-Bemessungsgrundlage)
-        zv = max(0.0, rent_taxable - gfb - insurance_premium)
-        rent_tax = calculate_german_income_tax(zv, gfb)
-        balances[cash_store] = balances.get(cash_store, 0.0) - rent_tax
+    # Taxable share based on retirement year
+    retirement_year = params.start_year + params.retirement_step
+    taxable_share = min(1.0, 0.84 + 0.005 * (retirement_year - 2026))
+    rent_taxable = rent_income * taxable_share
+
+    # Taxable income (Einkommensteuer-Bemessungsgrundlage)
+    zv = max(0.0, rent_taxable - params.tariff.basic_allowance - insurance_premium)
+    rent_tax = calculate_income_tax(zv, params.tariff)
+    balances[cash_store] = balances.get(cash_store, 0.0) - rent_tax
 
 
 def _calculate_sales_taxable_gains(
-    balances: dict[str, float], plan: Plan, asset_classes: dict[str, Any]
+    plan: Plan, asset_classes: dict[str, AssetClassTaxConfig]
 ) -> float:
     """Compute total taxable gains from sales from withdrawn lots during this step."""
     gains_from_sales = 0.0
     for name, ac_cfg in asset_classes.items():
-        if name not in balances:
-            continue
         store = plan.store(name)
-        partial_exemption = float(ac_cfg.get("partial_exemption_rate", 0.0))
         for lot in store.withdrawn_lots_this_step:
             is_pre_2009 = lot.created_step < 0 or lot.rule_version == "pre_2009"
             if not is_pre_2009:
                 raw_gain = lot.quantity - lot.cost_basis
                 already_taxed = lot.metadata.get("vorabpauschale_taxed", 0.0)
                 taxable_gain = max(0.0, raw_gain - already_taxed)
-                gains_from_sales += taxable_gain * (1.0 - partial_exemption)
+                gains_from_sales += taxable_gain * (1.0 - ac_cfg.partial_exemption_rate)
     return gains_from_sales
 
 
 def _calculate_vorabpauschale_taxable(
-    balances: dict[str, float], plan: Plan, asset_classes: dict[str, Any], basiszins: float
+    plan: Plan, asset_classes: dict[str, AssetClassTaxConfig], basiszins: float
 ) -> float:
     """Calculate the taxable Vorabpauschale on accumulating lots at the end of the year."""
     vorab_taxable_total = 0.0
     for name, ac_cfg in asset_classes.items():
-        if name not in balances:
-            continue
-        is_acc = ac_cfg.get("is_accumulating", False)
-        if not is_acc:
+        if not ac_cfg.is_accumulating:
             continue
 
         store = plan.store(name)
-        growth_rate = float(ac_cfg.get("growth_rate", 0.0))
-        partial_exemption = float(ac_cfg.get("partial_exemption_rate", 0.0))
 
         # Calculate Vorabpauschale on remaining lots at the end of the year
         for lot in store.lots:
-            growth_factor = 1.0 + growth_rate
+            growth_factor = 1.0 + ac_cfg.growth_rate
             q_start = lot.quantity / growth_factor
             actual_growth = lot.quantity - q_start
             potential_vorab = q_start * basiszins * 0.7
             vorab = min(potential_vorab, max(0.0, actual_growth))
 
-            vorab_taxable_total += vorab * (1.0 - partial_exemption)
+            vorab_taxable_total += vorab * (1.0 - ac_cfg.partial_exemption_rate)
             # Track already-taxed gain on the lot to avoid double taxation on sale
             lot.metadata["vorabpauschale_taxed"] = (
                 lot.metadata.get("vorabpauschale_taxed", 0.0) + vorab
@@ -134,30 +182,27 @@ def _calculate_vorabpauschale_taxable(
 
 
 def _apply_capital_gains_taxation(
-    balances: dict[str, float],
-    plan: Plan,
-    cash_store: str,
-    parameters: dict[str, Any],
+    balances: dict[str, float], plan: Plan, params: TaxManagerParameters
 ) -> None:
     """Calculate and deduct capital gains tax (withholding tax, allowance, Vorabpauschale)."""
-    sparerpauschbetrag = float(parameters.get("sparerpauschbetrag", 1000.0))
-    basiszins = float(parameters.get("basiszins", 0.032))
-    withholding_tax_rate = float(parameters.get("withholding_tax_rate", 0.25))
-    soli_rate = float(parameters.get("soli_rate", 0.055))
-    church_tax_rate = float(parameters.get("church_tax_rate", 0.0))
-    asset_classes = parameters.get("asset_classes", {})
+    asset_classes = {
+        name: cfg for name, cfg in params.asset_classes.items() if name in balances
+    }
 
-    gains_from_sales = _calculate_sales_taxable_gains(balances, plan, asset_classes)
+    gains_from_sales = _calculate_sales_taxable_gains(plan, asset_classes)
     vorab_taxable_total = _calculate_vorabpauschale_taxable(
-        balances, plan, asset_classes, basiszins
+        plan, asset_classes, params.basiszins
     )
 
-    # 4. Abgeltungsteuer-Abrechnung
+    # Abgeltungsteuer-Abrechnung
     total_cap_gains = gains_from_sales + vorab_taxable_total
-    if total_cap_gains > sparerpauschbetrag:
-        excess = total_cap_gains - sparerpauschbetrag
-        eff_rate = withholding_tax_rate * (1.0 + soli_rate + church_tax_rate)
+    if total_cap_gains > params.sparerpauschbetrag:
+        excess = total_cap_gains - params.sparerpauschbetrag
+        eff_rate = params.withholding_tax_rate * (
+            1.0 + params.soli_rate + params.church_tax_rate
+        )
         cap_gains_tax = excess * eff_rate
+        cash_store = params.cash_store_name
         balances[cash_store] = balances.get(cash_store, 0.0) - cap_gains_tax
 
 
@@ -166,13 +211,13 @@ def tax_manager_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], step: int, parameters: dict[str, Any], plan: Plan
 ) -> None:
     """Computed effect implementing capital gains and progressive pension income taxation."""
-    cash_store = str(parameters.get("cash_store_name", "cash"))
+    params = TaxManagerParameters.model_validate(parameters)
 
     # 1. Progressive Renten-Besteuerung und KVdR/PV
-    _apply_pension_taxation(balances, step, plan, cash_store, parameters)
+    _apply_pension_taxation(balances, step, plan, params)
 
     # 2. Kapitalertragssteuer & Vorabpauschale
-    _apply_capital_gains_taxation(balances, plan, cash_store, parameters)
+    _apply_capital_gains_taxation(balances, plan, params)
 
 
 def add_tax_manager(
@@ -183,30 +228,32 @@ def add_tax_manager(
     withholding_tax_rate: float = 0.25,
     soli_rate: float = 0.055,
     church_tax_rate: float = 0.0,
-    gfb: float = 12348.0,
+    tariff: IncomeTaxTariff | None = None,
     kvdr_rate: float = 0.0875,
     pv_rate: float = 0.042,
     retirement_step: int = 47,
     start_year: int = 2026,
-    asset_classes: dict[str, dict[str, Any]] | None = None,
+    asset_classes: dict[str, AssetClassTaxConfig] | None = None,
 ) -> None:
     """Add a computed tax manager to the plan."""
+    params = TaxManagerParameters(
+        cash_store_name=cash_store_name,
+        sparerpauschbetrag=sparerpauschbetrag,
+        basiszins=basiszins,
+        withholding_tax_rate=withholding_tax_rate,
+        soli_rate=soli_rate,
+        church_tax_rate=church_tax_rate,
+        tariff=tariff or IncomeTaxTariff(),
+        kvdr_rate=kvdr_rate,
+        pv_rate=pv_rate,
+        retirement_step=retirement_step,
+        start_year=start_year,
+        asset_classes=asset_classes or {},
+    )
+
     effect = ComputedEffect(
         name="Tax Manager",
         function_name="tax_manager",
-        parameters={
-            "cash_store_name": cash_store_name,
-            "sparerpauschbetrag": sparerpauschbetrag,
-            "basiszins": basiszins,
-            "withholding_tax_rate": withholding_tax_rate,
-            "soli_rate": soli_rate,
-            "church_tax_rate": church_tax_rate,
-            "gfb": gfb,
-            "kvdr_rate": kvdr_rate,
-            "pv_rate": pv_rate,
-            "retirement_step": retirement_step,
-            "start_year": start_year,
-            "asset_classes": asset_classes or {},
-        },
+        parameters=params.model_dump(),
     )
     plan.effects.append(effect)

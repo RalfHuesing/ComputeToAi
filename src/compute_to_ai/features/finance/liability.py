@@ -5,6 +5,8 @@ See Docs/03-Feature-Finanzen-Domaenenmodell.md and Docs/04-Feature-Finanzen-Meth
 
 from typing import Any
 
+from pydantic import BaseModel
+
 from compute_to_ai.engine.effect import (
     ComputedEffect,
     GrowingFixedEffect,
@@ -15,15 +17,42 @@ from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.store import Store
 
 
+class ScheduledExtraPayment(BaseModel):
+    """A one-time extra payment (Sondertilgung) due at a specific step."""
+
+    step: int
+    amount: float
+
+
+class LiabilityManagerParameters(BaseModel):
+    """Parameters for the `liability_manager` computed effect.
+
+    Both `add_liability` (writer) and `liability_manager_func` (reader)
+    validate through this single model instead of matching dict-key strings
+    by convention, so a typo becomes a validation error instead of a
+    silently ignored default.
+    """
+
+    liability_store_name: str
+    cash_store_name: str
+    payment: float
+    interest_rate: float
+    extra_payments: list[ScheduledExtraPayment] = []
+    extra_payment_threshold_rate: float | None = None
+    extra_payment_amount: float = 0.0
+    extra_payment_min_cash: float = 0.0
+
+
 @register_computed_effect("liability_manager")
 def liability_manager_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], step: int, parameters: dict[str, Any], _plan: Plan
 ) -> None:
     """Computed effect that reconciles overpayment refunds and applies Sondertilgungen."""
-    liability_store = str(parameters["liability_store_name"])
-    cash_store = str(parameters["cash_store_name"])
-    payment = float(parameters["payment"])
-    interest_rate = float(parameters["interest_rate"])
+    params = LiabilityManagerParameters.model_validate(parameters)
+    liability_store = params.liability_store_name
+    cash_store = params.cash_store_name
+    payment = params.payment
+    interest_rate = params.interest_rate
 
     l_phase1 = balances.get(liability_store, 0.0)
 
@@ -52,20 +81,20 @@ def liability_manager_func(  # pyright: ignore[reportUnusedFunction]
     extra_amount = 0.0
 
     # 1. Scheduled list
-    extra_payments = parameters.get("extra_payments")
-    if extra_payments is not None:
-        for ep in extra_payments:
-            if int(ep.get("step", -1)) == step:
-                extra_amount += float(ep.get("amount", 0.0))
+    for ep in params.extra_payments:
+        if ep.step == step:
+            extra_amount += ep.amount
 
     # 2. Threshold-based
-    threshold_rate = parameters.get("extra_payment_threshold_rate")
-    if threshold_rate is not None and interest_rate >= float(threshold_rate):
-        extra_payment_amount = float(parameters.get("extra_payment_amount", 0.0))
-        min_cash = float(parameters.get("extra_payment_min_cash", 0.0))
+    if (
+        params.extra_payment_threshold_rate is not None
+        and interest_rate >= params.extra_payment_threshold_rate
+    ):
         cash_avail = balances.get(cash_store, 0.0)
-        if cash_avail > min_cash:
-            extra_amount += min(extra_payment_amount, cash_avail - min_cash)
+        if cash_avail > params.extra_payment_min_cash:
+            extra_amount += min(
+                params.extra_payment_amount, cash_avail - params.extra_payment_min_cash
+            )
 
     # Apply extra payment
     if extra_amount > 0.0:
@@ -89,7 +118,7 @@ def add_liability(
     extra_payment_amount: float = 0.0,
     extra_payment_threshold_rate: float | None = None,
     extra_payment_min_cash: float = 0.0,
-    extra_payments: list[dict[str, Any]] | None = None,
+    extra_payments: list[ScheduledExtraPayment] | None = None,
 ) -> None:
     """Add a liability to the plan with regular payments and optional extra payments."""
     # Ensure the liability store is registered
@@ -137,21 +166,22 @@ def add_liability(
     )
 
     # Computed manager to reconcile overpayments and handle Sondertilgungen
+    params = LiabilityManagerParameters(
+        liability_store_name=liability_store_name,
+        cash_store_name=cash_store_name,
+        payment=payment,
+        interest_rate=interest_rate,
+        extra_payment_amount=extra_payment_amount,
+        extra_payment_threshold_rate=extra_payment_threshold_rate,
+        extra_payment_min_cash=extra_payment_min_cash,
+        extra_payments=extra_payments or [],
+    )
     plan.effects.append(
         ComputedEffect(
             name=f"{name} Manager",
             function_name="liability_manager",
             start_step=start_step,
             end_step=end_step,
-            parameters={
-                "liability_store_name": liability_store_name,
-                "cash_store_name": cash_store_name,
-                "payment": payment,
-                "interest_rate": interest_rate,
-                "extra_payment_amount": extra_payment_amount,
-                "extra_payment_threshold_rate": extra_payment_threshold_rate,
-                "extra_payment_min_cash": extra_payment_min_cash,
-                "extra_payments": extra_payments,
-            },
+            parameters=params.model_dump(),
         )
     )

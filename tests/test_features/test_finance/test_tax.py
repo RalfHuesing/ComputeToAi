@@ -17,7 +17,7 @@ from compute_to_ai.engine.simulation import run_simulation
 from compute_to_ai.engine.store import Lot, Store
 from compute_to_ai.engine.timeline import Phase, Timeline
 from compute_to_ai.features.finance.portfolio import add_asset_class
-from compute_to_ai.features.finance.tax import add_tax_manager
+from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 
 
 @register_computed_effect("sell_all")
@@ -76,9 +76,7 @@ def test_withholding_tax_and_allowance() -> None:
         plan=plan,
         cash_store_name="cash",
         sparerpauschbetrag=800.0,
-        asset_classes={
-            "equity": {"partial_exemption_rate": 0.0, "is_accumulating": False}
-        },
+        asset_classes={"equity": AssetClassTaxConfig(partial_exemption_rate=0.0)},
     )
 
     plan.effects.insert(0, ComputedEffect(name="Sell All", function_name="sell_all"))
@@ -116,11 +114,9 @@ def test_vorabpauschale_increases_basis() -> None:
         sparerpauschbetrag=0.0,
         basiszins=0.02,
         asset_classes={
-            "equity_acc": {
-                "partial_exemption_rate": 0.0,
-                "is_accumulating": True,
-                "growth_rate": 0.10,
-            }
+            "equity_acc": AssetClassTaxConfig(
+                partial_exemption_rate=0.0, is_accumulating=True, growth_rate=0.10
+            )
         },
     )
 
@@ -174,9 +170,7 @@ def test_altfaelle_bestandsschutz() -> None:
         plan=plan,
         cash_store_name="cash",
         sparerpauschbetrag=0.0,
-        asset_classes={
-            "equity": {"partial_exemption_rate": 0.0, "is_accumulating": False}
-        },
+        asset_classes={"equity": AssetClassTaxConfig(partial_exemption_rate=0.0)},
     )
 
     plan.effects.insert(
@@ -213,7 +207,7 @@ def test_progressive_rent_taxation() -> None:
     add_tax_manager(
         plan=plan,
         cash_store_name="cash",
-        gfb=12348.0,
+        tariff=IncomeTaxTariff(basic_allowance=12348.0),
         kvdr_rate=0.0875,
         pv_rate=0.042,
         retirement_step=0,
