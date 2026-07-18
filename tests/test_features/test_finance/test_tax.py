@@ -143,15 +143,15 @@ def test_vorabpauschale_increases_basis() -> None:
     #   Cash becomes 100 - 3.6925 = 96.3075.
     #   equity_acc lot taxed_vorabpauschale becomes 14.0.
     # Step 1:
-    # Phase 1: equity_acc has 0% growth, stays 1100.
+    # Phase 1: equity_acc grows by 10% to 1210.
     # Phase 2:
-    #   sell_all_step1 runs: cash becomes 96.3075 + 1100 = 1196.3075, equity_acc becomes 0.
+    #   sell_all_step1 runs: cash becomes 96.3075 + 1210 = 1306.3075, equity_acc becomes 0.
     #   tax_manager runs:
-    #     withdraw 1100. Raw gain = 1100 - 1000 = 100.
-    #     taxable_gain = max(0, 100 - 14.0) = 86.0.
-    #     Tax = 86.0 * 0.25 * 1.055 = 22.6825.
-    #     Cash becomes 1196.3075 - 22.6825 = 1173.625.
-    assert pytest.approx(result.final_balances["cash"]) == 1173.625
+    #     withdraw 1210. Raw gain = 1210 - 1000 = 210.
+    #     taxable_gain = max(0, 210 - 14.0) = 196.0.
+    #     Tax = 196.0 * 0.25 * 1.055 = 51.695.
+    #     Cash becomes 1306.3075 - 51.695 = 1254.6125.
+    assert pytest.approx(result.final_balances["cash"]) == 1254.6125
     assert pytest.approx(result.final_balances["equity_acc"]) == 0.0
 
 
