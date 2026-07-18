@@ -58,8 +58,9 @@ ComputeToAi/
 │       │   ├── finance/                   # Feature Finanzen (ab Meilenstein 3)
 │       │   └── calculations/              # Feature Berechnungen (siehe 06-Feature-Berechnungen.md)
 │       │       ├── dates.py               # Datums-/Altersarithmetik
-│       │       ├── growth.py              # Zinseszins, Barwert, Rentenbarwert
-│       │       └── loans.py               # Kreditvergleich (Annuität, Zinsaufwand)
+│       │       ├── growth.py              # Zinseszins, Barwert, Rentenbarwert, Entnahmepläne
+│       │       ├── loans.py               # Kreditvergleich, Tilgungspläne inkl. Sondertilgung
+│       │       └── cashflows.py           # XIRR, Effektivzins (numerisches Root-Finding)
 │       └── mcp/                           # MCP-Server-Adapter
 │           ├── server.py                  # Server-Bootstrap, stdio-Transport, Logging-Konfiguration
 │           ├── settings.py                # Settings-Datei laden (TOML → Pydantic), siehe 02-Architektur-und-MCP.md
