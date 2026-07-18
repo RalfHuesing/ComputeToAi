@@ -183,6 +183,8 @@ def _run_single_simulation(
     try:
         for t in range(plan.timeline.step_count):
             active_phase = plan.get_active_phase_name(t)
+            for store in sim_stores.values():
+                store.withdrawn_lots_this_step = []
 
             # Phase 1: Growth and fixed additive effects
             fixed_additions, total_growth_rates = _calculate_phase1_updates(

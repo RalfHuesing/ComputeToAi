@@ -28,23 +28,26 @@ class Store(BaseModel):
     name: str
     balance: float = 0.0
     lots: list[Lot] = []
+    withdrawn_lots_this_step: list[Lot] = []
 
     def add_amount(
         self,
         amount: float,
         step: int,
         rule_version: str | None = None,
-        cost_basis: float = 0.0,
+        cost_basis: float | None = None,
         track_lots: bool = False,
     ) -> None:
         """Add an amount to the store, creating a new Lot if lot tracking is active."""
-        if track_lots or self.lots or rule_version is not None or cost_basis > 0.0:
+        has_cost_basis = cost_basis is not None and cost_basis > 0.0
+        if track_lots or self.lots or rule_version is not None or has_cost_basis:
+            actual_cost = amount if cost_basis is None or cost_basis == 0.0 else cost_basis
             self.lots.append(
                 Lot(
                     quantity=amount,
                     created_step=step,
                     rule_version=rule_version,
-                    cost_basis=cost_basis,
+                    cost_basis=actual_cost,
                 )
             )
             self.balance = sum(lot.quantity for lot in self.lots)
@@ -82,6 +85,7 @@ class Store(BaseModel):
                     lot.taxed_vorabpauschale -= consumed_vorab
                     remaining = 0.0
             self.balance = sum(lot.quantity for lot in self.lots)
+            self.withdrawn_lots_this_step.extend(consumed)
             return consumed
 
         self.balance -= amount
