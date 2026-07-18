@@ -85,11 +85,25 @@ Diese Aufteilung ist bewusst schlank gehalten (keine zusätzlichen Zwischenschic
 | Zweck | Wahl | Begründung |
 |---|---|---|
 | Paket-/Abhängigkeitsverwaltung | [uv](https://docs.astral.sh/uv/) | Ein einziges, schnelles Tool für Environment, Dependencies und Lockfile – ersetzt die in der Python-Welt sonst übliche Kombination aus mehreren Tools |
-| Linting & Formatierung | [ruff](https://docs.astral.sh/ruff/) | Ein einziges, sehr schnelles Tool für beides, inkl. Komplexitäts-Regel (z. B. `C901`) zur Kontrolle der zyklomatischen Komplexität |
+| Linting & Formatierung | [ruff](https://docs.astral.sh/ruff/) | Ein einziges, sehr schnelles Tool für beides, inkl. Komplexitäts-Regel (`C90`, mccabe) zur Kontrolle der zyklomatischen Komplexität |
 | Tests | [pytest](https://docs.pytest.org/) | De-facto-Standard im Python-Ökosystem |
-| Typüberprüfung | Type Hints überall, geprüft mit [pyright](https://microsoft.github.io/pyright/) | Schnelles Feedback, fängt einen Teil der Fehler ab, ohne ein eigenes striktes Regelwerk aufzubauen |
+| Typüberprüfung | Type Hints überall, geprüft mit [pyright](https://microsoft.github.io/pyright/) im `strict`-Modus | Schnelles Feedback, fängt einen Teil der Fehler ab, bevor sie zur Laufzeit auffallen |
 | Numerik/Simulation | NumPy, SciPy | Vektorisierte Monte-Carlo-Läufe, Standardbibliotheken der wissenschaftlichen Python-Welt |
 | Schema/Validierung | Pydantic | Für Konfigurationsobjekte und MCP-Tool-Parameter |
 | MCP-Server | offizielles MCP-Python-SDK | siehe 02-Architektur-und-MCP.md |
+
+## Strenge: Warnungen sind Fehler
+
+Der Code wird größtenteils agentisch erzeugt; die Werkzeugkette ist deshalb bewusst so scharf gestellt, dass Nachlässigkeiten sofort auffallen, statt sich unbemerkt anzuhäufen – das Python-Äquivalent zu `Option Explicit` oder „Compiler-Warnungen als Fehler". Konkret, jeweils konfiguriert in `pyproject.toml`:
+
+- **`pyright` im `strict`-Modus** statt `basic`/`standard`: keine impliziten `Any`-Typen, jede Funktion vollständig typisiert.
+- **`ruff` mit einem breiten Regel-Set** über die reine Formatierung hinaus, u. a. `ANN` (Typannotationen verpflichtend), `S` (Sicherheits-/Bandit-Regeln), `B` (häufige Bug-Muster), `T20` (kein `print()` – der MCP-Server spricht über stdout mit dem Agenten, ein versehentliches `print()` würde das Protokoll beschädigen), `PTH` (Pfade über `pathlib`), `DTZ` (zeitzonenbewusste Datums-/Zeitwerte), `ERA` (kein auskommentierter Code), `PERF`, `RET`, `SIM`, `TRY`, `RUF`. Die vollständige, gepflegte Liste steht in `pyproject.toml` unter `[tool.ruff.lint]`, nicht hier dupliziert (siehe `.agents/rules/living-documentation.mdc`).
+- **`pytest` mit `filterwarnings = ["error"]`**: jede nicht abgefangene `DeprecationWarning` o. Ä. lässt den betroffenen Test fehlschlagen, statt nur eine unauffällige Zeile im Testlauf zu hinterlassen.
+
+Ein Agent behandelt jede Warnung dieser drei Werkzeuge wie einen Fehler: beheben statt unterdrücken. Eine gezielte Unterdrückung (`# noqa`, `# pyright: ignore[...]`) ist nur zulässig, wenn die Regel auf ein bekanntes, unvermeidbares Framework-Muster trifft (Beispiel: `reportUnusedFunction` für per Decorator registrierte MCP-Tool-Funktionen, die nie direkt beim Namen aufgerufen werden) – nie, um schnell einen echten Fehler wegzuklicken.
+
+## Code-Kommentare: keine Projektplanung im Code
+
+Kommentare/Docstrings erklären das *Warum* einer aktuellen Design-Entscheidung (siehe oben, „Geringe kognitive Last"), verweisen dabei aber **nie** auf Projektplanungs-Artefakte – kein „Milestone 1 scope only", kein „siehe Docs/10-Roadmap.md Epic 1.4", kein „siehe Docs/08-Offene-Fragen.md", kein „kommt später". Solche Verweise veralten garantiert (siehe `.agents/rules/living-documentation.mdc`, das sich ausdrücklich auch auf Code-Kommentare bezieht) und gehören, wenn überhaupt, in die Roadmap oder die Commit-Message, nicht in den Code. Ein Verweis auf ein Konzept-/Architekturdokument (01–07, 09, 11) ist dagegen erlaubt und erwünscht, wenn er die Nachvollziehbarkeit einer *aktuellen* Design-Entscheidung verbessert (siehe `.agents/rules/language.mdc`).
 
 Alle Tools sind bewusst so gewählt, dass möglichst wenige, weit verbreitete Werkzeuge möglichst viel abdecken (z. B. ruff statt separater Linter/Formatter/Import-Sorter), statt viele Spezialwerkzeuge zu kombinieren.

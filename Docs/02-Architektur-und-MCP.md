@@ -26,6 +26,8 @@ Damit ein Agent nicht mit einer sehr großen Zahl flacher Funktionen überforder
 
 Die genaue Aufteilung/Benennung der Tool-Kategorien ist ein Implementierungsdetail (siehe 08-Offene-Fragen.md); die Anforderung „modular und hierarchisch, nicht flach" ist dagegen bereits Konzeptbestandteil (siehe 07-Anforderungen.md).
 
+Da das MCP-Protokoll selbst keine verschachtelten Namensräume für Tools kennt (ein Server bietet eine flache Liste benannter Tools an), wird die Hierarchie über eine Namenskonvention abgebildet: Jeder Tool-Name trägt die Kategorie als Präfix, getrennt durch `_` (z. B. `core_create_plan` für ein Kern-Tool). Feature-Tools tragen entsprechend den Namen ihres Feature-Moduls als Präfix (z. B. `finance_add_income_stream`), Berechnungen-Tools das Präfix `calculations_`.
+
 ## Baustein-Katalog
 
 Bausteine (siehe 01-Kern-Domaenenmodell.md) sind fertige, getestete Effekt-Vorlagen, die ein Agent auf Zuruf aktiviert und parametrisiert, statt die zugrunde liegende Mathematik selbst zu formulieren. Der Katalog ist erweiterbar (neue Bausteine lassen sich nachrüsten, ohne den Kern zu ändern), aber kuratiert – im Unterschied zu einem rohen, frei vom Agenten definierten Effekt reduziert ein Baustein das Risiko, dass mathematisch anspruchsvolle Logik (Korrelationen, Steuerformeln mit Deckelungen) fehlerhaft ad hoc erfunden wird. Wer einen Baustein pflegt, wie er versioniert wird und wie neue Bausteine aufgenommen werden, ist als offene Frage vermerkt.

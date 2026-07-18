@@ -14,8 +14,8 @@ Dieses Verzeichnis enthält die Arbeitsregeln für KI-Coding-Agents in diesem Re
 | [proactive-questions.mdc](proactive-questions.mdc) | Proaktiv nachfragen bei echten Entscheidungen statt eigenmächtig loszulegen |
 | [sources-and-concept.mdc](sources-and-concept.mdc) | Quellentreue, Konzept-vor-Code, Umgang mit offenen Fragen |
 | [living-documentation.mdc](living-documentation.mdc) | Doku beschreibt nur den Ist-Stand, wächst automatisch mit |
-| [code-standards.mdc](code-standards.mdc) | Code-Stil, Architektur-Grundsätze, Projektstruktur (sobald Code entsteht) |
-| [mcp-server-architecture.mdc](mcp-server-architecture.mdc) | MCP-Server: Transport, Selbstbeschreibung, Settings, Arbeitsverzeichnis, Logging |
+| [code-standards.mdc](code-standards.mdc) | Code-Stil, Architektur-Grundsätze, Qualitäts-Gates, Projektstruktur |
+| [mcp-server-architecture.mdc](mcp-server-architecture.mdc) | MCP-Server: Transport, Tool-Namenskonvention, Selbstbeschreibung, Settings, Arbeitsverzeichnis, Logging |
 | [testing.mdc](testing.mdc) | Testpflicht für nicht-trivialen Code |
 | [git-workflow.mdc](git-workflow.mdc) | Vollagentische Entwicklung, Auto-Commits, Commit-Konventionen |
 | [environment.mdc](environment.mdc) | Windows-Entwicklungsumgebung, verfügbare Tools |

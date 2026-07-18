@@ -9,7 +9,8 @@ Dokumentation (`Docs/`, `README.md`, `CLAUDE.md`, `.agents/rules/`, Docstrings/K
 
 ## Konkret
 
-- **Kein Verweis auf die Vergangenheit im Fließtext**: keine Formulierungen wie „in der vorherigen Version...", „früher wurde X gemacht, jetzt Y", „mit Task/Issue #4711 wurde ... umgesetzt". Was früher war, steht in der Git-Historie (`git log`), nicht in der Doku.
+- **Kein Verweis auf Vergangenheit oder Zukunft im Fließtext**: keine Formulierungen wie „in der vorherigen Version...", „früher wurde X gemacht, jetzt Y", „mit Task/Issue #4711 wurde ... umgesetzt", aber auch nicht „kommt später", „Milestone 1 scope only", „arrives with Milestone 2". Was früher war, steht in der Git-Historie (`git log`); was später kommt, in `Docs/10-Roadmap.md` – nicht im Fließtext von Doku oder Code.
+- **Gilt ausdrücklich auch für Code-Kommentare/Docstrings**: kein Verweis auf `Docs/10-Roadmap.md`, Meilenstein-/Epic-Nummern oder `Docs/08-Offene-Fragen.md` im Code. Ein Kommentar erklärt das *Warum* der aktuellen Design-Entscheidung, nicht den Projektplan; ein Verweis auf ein Konzept-/Architekturdokument (01–07, 09, 11) zur Nachvollziehbarkeit ist dagegen erlaubt (siehe `language.mdc` und „Code-Kommentare: keine Projektplanung im Code" in `Docs/11-Code-Standards-und-Projektstruktur.md`).
 - **Doku wächst im selben Commit mit**: Ändert eine Änderung Verhalten, Struktur oder eine Entscheidung, wird die betroffene Doku direkt mit aktualisiert – nicht als Folgeaufgabe, nicht „später". Ein Agent prüft vor dem Commit aktiv, welche Doku durch seine Änderung veraltet, und zieht sie nach.
 - **`Docs/10-Roadmap.md` wird laufend aktuell gehalten**: abgeschlossene Punkte werden abgehakt, sobald sie fertig sind, neue Teilaufgaben ergänzt, nicht mehr zutreffende korrigiert oder entfernt – nicht gesammelt am Ende einer Session.
 - Gleiches Prinzip wie in `sources-and-concept.mdc` beschrieben (offene Fragen werden entfernt, nicht nur markiert), hier auf die gesamte Doku verallgemeinert.

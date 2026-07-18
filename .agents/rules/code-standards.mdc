@@ -1,5 +1,5 @@
 ---
-description: Code-Stil, Architektur-Grundsätze und Projektstruktur (sobald Code entsteht, ab Meilenstein 1)
+description: Code-Stil, Architektur-Grundsätze, Qualitäts-Gates und Projektstruktur
 globs: ["src/**", "tests/**", "pyproject.toml"]
 alwaysApply: false
 ---
@@ -11,7 +11,9 @@ Vollständige, verbindliche Fassung: `Docs/11-Code-Standards-und-Projektstruktur
 - **Einfacher Code statt Enterprise-Architektur**: Early Returns statt verschachtelter Bedingungen, niedrige zyklomatische Komplexität (eine Funktion passt auf einen Bildschirm, max. eine Verschachtelungsebene), keine vorzeitige Abstraktion (kein Interface/keine "Manager"/"Factory"-Klasse ohne mindestens zwei konkrete Implementierungen – Rule of Three).
 - **Standardbibliotheken statt Eigenbau**: NumPy/SciPy für Numerik, Pydantic für Schema/Validierung, offizielles MCP-Python-SDK für den Server.
 - **Drei Schichten mit fester Abhängigkeitsrichtung**: `engine` (domänenneutraler Kern, kennt `features`/`mcp` nicht) ← `features/*` (untereinander unabhängig) ← `mcp` (nur Ein-/Ausgabe-Mapping, keine Fachlogik).
-- **Tooling**: `uv` (Dependencies/Environment), `ruff` (Linting & Formatierung inkl. Komplexitätsregel `C901`), `pytest` (Tests), `pyright` (Typprüfung, Type Hints überall).
+- **Tooling**: `uv` (Dependencies/Environment), `ruff` (Linting & Formatierung inkl. Komplexitätsregel `C90`), `pytest` (Tests), `pyright` (Typprüfung, Type Hints überall).
+- **Warnungen sind Fehler**: `pyright` läuft im `strict`-Modus, `ruff` mit einem breiten Regel-Set über reine Formatierung hinaus (u. a. verpflichtende Typannotationen, Sicherheits-/Bug-Muster-Checks, kein `print()`, kein auskommentierter Code), `pytest` mit `filterwarnings = ["error"]`. Jede Warnung wird behoben, nicht unterdrückt – Ausnahme nur bei bekannten, unvermeidbaren Framework-Mustern (siehe „Strenge: Warnungen sind Fehler" in `Docs/11`).
+- **Keine Projektplanung im Code**: Kommentare/Docstrings verweisen nie auf `Docs/10-Roadmap.md`, Meilenstein-/Epic-Nummern oder `Docs/08-Offene-Fragen.md` (siehe `living-documentation.mdc`).
 - **Projektstruktur** (`src`-Layout): siehe Diagramm in `Docs/11-Code-Standards-und-Projektstruktur.md`.
 
 Bei Widerspruch zwischen dieser Kurzfassung und `Docs/11` gilt `Docs/11`.
