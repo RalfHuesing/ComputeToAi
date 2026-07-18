@@ -123,8 +123,8 @@ def test_cash_bucket_excess_moves_to_portfolio() -> None:
         phases=[Phase(name="Erwerbsphase", start_step=0, end_step=10)],
     )
 
-    add_asset_class(plan, "equity", 0.0, 0.07, 0.15)
-    add_asset_class(plan, "bond", 0.0, 0.03, 0.05)
+    add_asset_class(plan, "equity", 0.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 0.0, 0.0, 0.0)
 
     add_cash_bucket(
         plan=plan,
@@ -151,8 +151,8 @@ def test_cash_bucket_deficit_pulls_from_portfolio() -> None:
         phases=[Phase(name="Erwerbsphase", start_step=0, end_step=10)],
     )
 
-    add_asset_class(plan, "equity", 70.0, 0.07, 0.15)
-    add_asset_class(plan, "bond", 30.0, 0.03, 0.05)
+    add_asset_class(plan, "equity", 70.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 30.0, 0.0, 0.0)
 
     add_cash_bucket(
         plan=plan,
@@ -181,8 +181,8 @@ def test_cash_bucket_with_near_horizon_expenses() -> None:
         phases=[Phase(name="Erwerbsphase", start_step=0, end_step=10)],
     )
 
-    add_asset_class(plan, "equity", 0.0, 0.07, 0.15)
-    add_asset_class(plan, "bond", 0.0, 0.03, 0.05)
+    add_asset_class(plan, "equity", 0.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 0.0, 0.0, 0.0)
 
     add_cash_bucket(
         plan=plan,
