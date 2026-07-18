@@ -10,8 +10,12 @@ from pydantic import BaseModel
 from compute_to_ai.engine.plan import Plan
 
 
+def plan_dir(working_directory: Path, plan_name: str) -> Path:
+    return working_directory / plan_name
+
+
 def plan_file(working_directory: Path, plan_name: str) -> Path:
-    return working_directory / plan_name / "plan.json"
+    return plan_dir(working_directory, plan_name) / "plan.json"
 
 
 def load_plan(working_directory: Path, plan_name: str) -> Plan:

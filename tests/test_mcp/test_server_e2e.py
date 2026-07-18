@@ -38,8 +38,8 @@ def server_params(tmp_path: Path) -> StdioServerParameters:
     )
 
 
-async def _call_ok(session: ClientSession, name: str, **arguments: object) -> str:
-    result = await session.call_tool(name, arguments)
+async def _call_ok(session: ClientSession, tool_name: str, **arguments: object) -> str:
+    result = await session.call_tool(tool_name, arguments)
     assert not result.isError, result.content
     content = result.content[0]
     assert isinstance(content, TextContent)
@@ -104,3 +104,119 @@ async def test_docs_are_exposed_as_resources(server_params: StdioServerParameter
     uris = {str(resource.uri) for resource in resources.resources}
     assert "docs://00-Vision.md" in uris
     assert "docs://prompts/finance_de/finanzberater.md" in uris
+
+
+@pytest.mark.anyio
+async def test_duplicate_rename_and_delete_plan(server_params: StdioServerParameters) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="original", step_count=10)
+        await _call_ok(session, "core_add_store", plan_name="original", store_name="cash")
+        await _call_ok(
+            session,
+            "core_add_effect",
+            plan_name="original",
+            store_name="cash",
+            amount_per_step=10.0,
+        )
+
+        # Duplicate carries the configuration over, independently of the original.
+        await _call_ok(
+            session, "core_duplicate_plan", plan_name="original", new_plan_name="variant"
+        )
+        stores_text = await _call_ok(session, "core_list_stores", plan_name="variant")
+        assert json.loads(stores_text)["stores"][0]["name"] == "cash"
+
+        # Duplicating onto an existing name is rejected.
+        dup_conflict = await session.call_tool(
+            "core_duplicate_plan", {"plan_name": "original", "new_plan_name": "variant"}
+        )
+        assert dup_conflict.isError
+
+        # Rename moves the plan; the old name is gone, the new one works.
+        await _call_ok(session, "core_rename_plan", plan_name="variant", new_plan_name="renamed")
+        renamed_missing = await session.call_tool("core_list_stores", {"plan_name": "variant"})
+        assert renamed_missing.isError
+        stores_text = await _call_ok(session, "core_list_stores", plan_name="renamed")
+        assert json.loads(stores_text)["stores"][0]["name"] == "cash"
+
+        # Delete removes the plan entirely.
+        await _call_ok(session, "core_delete_plan", plan_name="renamed")
+        deleted_missing = await session.call_tool("core_list_stores", {"plan_name": "renamed"})
+        assert deleted_missing.isError
+
+        # The original plan was never touched by any of the above.
+        original_stores = await _call_ok(session, "core_list_stores", plan_name="original")
+        assert json.loads(original_stores)["stores"][0]["name"] == "cash"
+
+
+@pytest.mark.anyio
+async def test_list_and_remove_effect(server_params: StdioServerParameters) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="effects-test", step_count=5)
+        await _call_ok(session, "core_add_store", plan_name="effects-test", store_name="cash")
+        await _call_ok(
+            session,
+            "finance_add_income_stream",
+            plan_name="effects-test",
+            name="Gehalt",
+            store_name="cash",
+            amount=1000.0,
+        )
+
+        effects_text = await _call_ok(session, "core_list_effects", plan_name="effects-test")
+        effect_names = {effect["name"] for effect in json.loads(effects_text)["effects"]}
+        assert effect_names == {"Gehalt"}
+
+        # Removing an unknown name fails clearly.
+        unknown = await session.call_tool(
+            "core_remove_effect", {"plan_name": "effects-test", "effect_name": "does-not-exist"}
+        )
+        assert unknown.isError
+
+        await _call_ok(
+            session, "core_remove_effect", plan_name="effects-test", effect_name="Gehalt"
+        )
+        effects_text = await _call_ok(session, "core_list_effects", plan_name="effects-test")
+        assert json.loads(effects_text)["effects"] == []
+
+
+@pytest.mark.anyio
+async def test_remove_effect_is_rejected_when_name_is_ambiguous(
+    server_params: StdioServerParameters,
+) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="ambiguous-test", step_count=5)
+        await _call_ok(session, "core_add_store", plan_name="ambiguous-test", store_name="cash")
+        for _ in range(2):
+            await _call_ok(
+                session,
+                "finance_add_income_stream",
+                plan_name="ambiguous-test",
+                name="Gehalt",
+                store_name="cash",
+                amount=1000.0,
+            )
+
+        result = await session.call_tool(
+            "core_remove_effect", {"plan_name": "ambiguous-test", "effect_name": "Gehalt"}
+        )
+        assert result.isError
+
+        # Neither effect was removed by the failed, ambiguous attempt.
+        effects_text = await _call_ok(session, "core_list_effects", plan_name="ambiguous-test")
+        assert len(json.loads(effects_text)["effects"]) == 2
