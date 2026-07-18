@@ -85,10 +85,10 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] Abgeltungsteuer, Sparerpauschbetrag, Vorabpauschale, Teilfreistellung, Bestandsschutz (Lot-Regelwerk-Version) als `ComputedEffect` auf Portfolio-Lots
   - [x] Nachgelagerte Rentenbesteuerung inkl. KVdR/Pflegeversicherung (GKV/PKV als Parameter, siehe 05) als `ComputedEffect` on Renten-Einkommensstrom
   - [x] Konkrete Sätze aus 05-Feature-Finanzen-Parameter.md, mit Stand-Jahr-Vermerk und Beleg in 09-Quellen.md (Quellentreue-Pflicht, siehe CLAUDE.md)
-- [ ] **Epic 3.7 – Lebensphasen & Rentenübergang** (`compute_to_ai.features.finance`)
-  - [ ] Standard-Phasenmodell (Ausbildung optional, Erwerbsphase, ggf. Frühruhestandslücke, Rentenphase) als vorkonfigurierbare Phasenliste
-  - [ ] Erwerbsende und gesetzlicher Rentenbeginn als separate Phasengrenzen, lösen den Wechsel Einkommensstrom → gesetzliche Rente aus
-  - [ ] Rentenabschlag (0,3 %/Monat vorzeitig, max. 14,4 %) bzw. -zuschlag (0,5 %/Monat Aufschub) als einmalige Anpassung der Renten-`GrowingFixedEffect`-Basis bei Aktivierung
+- [x] **Epic 3.7 – Lebensphasen & Rentenübergang** (`compute_to_ai.features.finance`)
+  - [x] Standard-Phasenmodell (Ausbildung optional, Erwerbsphase, ggf. Frühruhestandslücke, Rentenphase) als vorkonfigurierbare Phasenliste (`build_standard_life_phases`)
+  - [x] Erwerbsende und gesetzlicher Rentenbeginn als separate Phasengrenzen, lösen den Wechsel Einkommensstrom → gesetzliche Rente aus (über `active_phases`/`start_step` der jeweiligen `GrowingFixedEffect`-Bausteine, kein eigener Mechanismus nötig)
+  - [x] Rentenabschlag (0,3 %/Monat vorzeitig, max. 14,4 %) bzw. -zuschlag (0,5 %/Monat Aufschub) als einmalige Anpassung der Renten-`GrowingFixedEffect`-Basis bei Aktivierung (`add_statutory_pension`)
 - [ ] **Epic 3.8 – MCP-Tools, Zielbedingung, Referenz-/Golden-Tests**
   - [ ] Tool-Präfix `finance_*` (siehe 02-Architektur-und-MCP.md): je Baustein ein Tool zum Hinzufügen/Konfigurieren (z. B. `finance_add_income_stream`, `finance_add_liability`, `finance_add_asset_class`)
   - [ ] Tool zum Start eines Monte-Carlo-Laufs und zur Abfrage des aggregierten Ergebnisses
