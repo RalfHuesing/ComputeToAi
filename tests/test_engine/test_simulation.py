@@ -32,10 +32,7 @@ def test_run_simulation_leaves_stores_without_effects_unchanged() -> None:
 
 
 def test_golden_100_euro_per_month_zero_return_40_years() -> None:
-    """100 €/month, 0 % return, 40 years (480 months) -> 48,000 €.
-
-    Milestone 1 acceptance criterion, see Docs/10-Roadmap.md.
-    """
+    """100 €/month, 0 % return, 40 years (480 months) -> 48,000 €."""
     plan = Plan(
         name="retirement-baseline",
         timeline=Timeline(step_count=480),

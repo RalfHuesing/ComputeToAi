@@ -1,1 +1,1 @@
-# Feature Berechnungen - see Docs/06-Feature-Berechnungen.md, planned from Milestone 3
+# Feature Berechnungen - see Docs/06-Feature-Berechnungen.md

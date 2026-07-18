@@ -1,8 +1,7 @@
 """SimulationRun execution - see Docs/01-Kern-Domaenenmodell.md.
 
-Milestone 1 scope only: a single deterministic pass over the Timeline
-applying fixed Effects. Monte Carlo (repeated stochastic runs) arrives with
-Milestone 2 once a stochastic Effect kind exists (see Docs/10-Roadmap.md).
+A single deterministic pass over the Timeline, applying each Effect to its
+Store at every step.
 """
 
 from compute_to_ai.engine.plan import Plan

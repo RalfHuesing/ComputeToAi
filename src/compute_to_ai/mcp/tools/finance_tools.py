@@ -1,1 +1,1 @@
-# Finance tools - see Docs/02-Architektur-und-MCP.md, planned from Milestone 2
+# Finance tools - see Docs/02-Architektur-und-MCP.md

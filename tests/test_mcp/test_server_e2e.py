@@ -1,6 +1,6 @@
-"""End-to-end test over the real stdio transport (Docs/10-Roadmap.md Epic 1.5):
-spawns the server as a subprocess, exactly how an agent would, and drives the
-golden path purely through MCP tool calls (not the engine's Python API).
+"""End-to-end test over the real stdio transport: spawns the server as a
+subprocess, exactly how an agent would, and drives the golden path purely
+through MCP tool calls (not the engine's Python API).
 """
 
 import json
@@ -52,23 +52,25 @@ async def test_golden_path_100_euro_per_month_zero_return_40_years(
 ) -> None:
     """100 €/month, 0 % return, 40 years (480 months) -> 48,000 €, driven
     entirely through MCP tool calls over stdio."""
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
 
-            await _call_ok(session, "create_plan", plan_name="retirement-baseline", step_count=480)
-            await _call_ok(
-                session, "add_store", plan_name="retirement-baseline", store_name="portfolio"
-            )
-            await _call_ok(
-                session,
-                "add_effect",
-                plan_name="retirement-baseline",
-                store_name="portfolio",
-                amount_per_step=100.0,
-            )
-            await _call_ok(session, "run_plan_simulation", plan_name="retirement-baseline")
-            result_text = await _call_ok(session, "get_result", plan_name="retirement-baseline")
+        await _call_ok(session, "core_create_plan", plan_name="retirement-baseline", step_count=480)
+        await _call_ok(
+            session, "core_add_store", plan_name="retirement-baseline", store_name="portfolio"
+        )
+        await _call_ok(
+            session,
+            "core_add_effect",
+            plan_name="retirement-baseline",
+            store_name="portfolio",
+            amount_per_step=100.0,
+        )
+        await _call_ok(session, "core_run_simulation", plan_name="retirement-baseline")
+        result_text = await _call_ok(session, "core_get_result", plan_name="retirement-baseline")
 
     payload = json.loads(result_text)
     assert payload["final_balances"]["portfolio"] == 48_000.0
@@ -78,22 +80,26 @@ async def test_golden_path_100_euro_per_month_zero_return_40_years(
 async def test_add_store_on_unknown_plan_is_a_tool_error(
     server_params: StdioServerParameters,
 ) -> None:
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(
-                "add_store", {"plan_name": "does-not-exist", "store_name": "x"}
-            )
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        result = await session.call_tool(
+            "core_add_store", {"plan_name": "does-not-exist", "store_name": "x"}
+        )
 
     assert result.isError
 
 
 @pytest.mark.anyio
 async def test_docs_are_exposed_as_resources(server_params: StdioServerParameters) -> None:
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            resources = await session.list_resources()
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        resources = await session.list_resources()
 
     uris = {str(resource.uri) for resource in resources.resources}
     assert "docs://00-Vision.md" in uris

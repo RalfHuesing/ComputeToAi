@@ -31,15 +31,49 @@ target-version = "py313"
 src = ["src"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "C90"]
+# Strict-by-default: this project is meant to be 100% clean, not "mostly
+# clean". T20 (no print) matters beyond style here - stdout is the MCP
+# stdio protocol channel, a stray print() would corrupt it.
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "UP",       # pyupgrade
+    "B",        # bugbear
+    "C90",      # mccabe complexity
+    "N",        # naming conventions
+    "ANN",      # require type annotations
+    "S",        # bandit security
+    "A",        # builtin shadowing
+    "C4",       # comprehension cleanliness
+    "DTZ",      # require timezone-aware datetimes
+    "T20",      # no print()
+    "PT",       # pytest style
+    "RET",      # return statement cleanliness
+    "SIM",      # simplification
+    "ARG",      # unused arguments
+    "PTH",      # pathlib over os.path
+    "ERA",      # no commented-out code
+    "TRY",      # exception handling style
+    "RUF",      # ruff-specific checks
+    "PERF",     # performance anti-patterns
+    "G",        # logging format-string safety
+]
+ignore = [
+    "ANN401",   # Any is legitimate for genuinely dynamic JSON-shaped payloads
+]
 mccabe.max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]  # assert is the point of a test
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = ["error"]
 
 [tool.pyright]
 include = ["src", "tests"]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.13"
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"
