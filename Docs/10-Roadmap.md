@@ -67,11 +67,11 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] `run_monte_carlo(plan, num_runs)`: wiederholt den Einzellauf aus Meilenstein 1 mit je Lauf neu gezogenen stochastischen Effekten
   - [x] Aggregation über alle Läufe: Perzentile des Endsaldos, Ruin-Wahrscheinlichkeit, Verteilung des Ruin-Zeitpunkts (Ruin selbst läuft weiter statt abzubrechen, siehe 01)
   - [x] Unit-Tests für Phasen-Lookup, FIFO-Verbrauch, Monte-Carlo-Aggregation (bekannte Verteilung mit erwartbaren Perzentilen)
-- [ ] **Epic 3.3 – Bausteine: Einkommen, Ausgaben, Anschaffungen** (`compute_to_ai.features.finance`)
-  - [ ] Einkommensstrom = `GrowingFixedEffect` (positiv), phasengebunden (z. B. Gehalt nur in der Erwerbsphase)
-  - [ ] Ausgabe = `GrowingFixedEffect` (negativ), Wachstumsrate = Inflation; beliebig viele, frei benannt statt fester Kategorien (siehe 03)
-  - [ ] Fixe Anschaffung / Sondereinnahme = `GrowingFixedEffect` mit Rate 0 auf genau einen Schritt beschränkt
-  - [ ] Flexible Anschaffung = `ComputedEffect` mit Referenzpfad-Vergleich + Glidepath (siehe 04); konkrete Referenzpfad-Kurve bleibt offen (siehe 08-Offene-Fragen.md)
+- [x] **Epic 3.3 – Bausteine: Einkommen, Ausgaben, Anschaffungen** (`compute_to_ai.features.finance`)
+  - [x] Einkommensstrom = `GrowingFixedEffect` (positiv), phasengebunden (z. B. Gehalt nur in der Erwerbsphase)
+  - [x] Ausgabe = `GrowingFixedEffect` (negativ), Wachstumsrate = Inflation; beliebig viele, frei benannt statt fester Kategorien (siehe 03)
+  - [x] Fixe Anschaffung / Sondereinnahme = `GrowingFixedEffect` mit Rate 0 auf genau einen Schritt beschränkt
+  - [x] Flexible Anschaffung = `ComputedEffect` mit Referenzpfad-Vergleich + Glidepath (siehe 04); konkrete Referenzpfad-Kurve bleibt offen (siehe 08-Offene-Fragen.md)
 - [ ] **Epic 3.4 – Bausteine: Verbindlichkeiten** (`compute_to_ai.features.finance`)
   - [ ] Eigener `Store` je Verbindlichkeit (Restschuld, positiv geführt – dieselbe Vorzeichenkonvention wie `calculations_loan_remaining_balance` aus M2)
   - [ ] `PercentageGrowthEffect` (Zins, positiv) + `GrowingFixedEffect` Rate 0 (Tilgung, negativ auf Verbindlichkeits-Store **und** auf Cash) je Verbindlichkeit
