@@ -79,29 +79,19 @@ def _apply_pension_taxation(
 def _calculate_sales_taxable_gains(
     balances: dict[str, float], plan: Plan, asset_classes: dict[str, Any]
 ) -> float:
-    """Withdraw from stores to match balances and compute total taxable gains from sales."""
+    """Compute total taxable gains from sales from withdrawn lots during this step."""
     gains_from_sales = 0.0
     for name, ac_cfg in asset_classes.items():
         if name not in balances:
             continue
         store = plan.store(name)
-        target_bal = balances[name]
-
-        # Check if there is a pending withdrawal
-        if target_bal < store.balance:
-            diff = store.balance - target_bal
-            consumed_lots = store.withdraw_amount(diff)
-
-            # Reconcile in balances immediately
-            balances[name] = store.balance
-
-            partial_exemption = float(ac_cfg.get("partial_exemption_rate", 0.0))
-            for lot in consumed_lots:
-                is_pre_2009 = lot.created_step < 0 or lot.rule_version == "pre_2009"
-                if not is_pre_2009:
-                    raw_gain = lot.quantity - lot.cost_basis
-                    taxable_gain = max(0.0, raw_gain - lot.taxed_vorabpauschale)
-                    gains_from_sales += taxable_gain * (1.0 - partial_exemption)
+        partial_exemption = float(ac_cfg.get("partial_exemption_rate", 0.0))
+        for lot in store.withdrawn_lots_this_step:
+            is_pre_2009 = lot.created_step < 0 or lot.rule_version == "pre_2009"
+            if not is_pre_2009:
+                raw_gain = lot.quantity - lot.cost_basis
+                taxable_gain = max(0.0, raw_gain - lot.taxed_vorabpauschale)
+                gains_from_sales += taxable_gain * (1.0 - partial_exemption)
     return gains_from_sales
 
 

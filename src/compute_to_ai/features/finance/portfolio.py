@@ -49,7 +49,13 @@ def add_asset_class(
             Store(
                 name=store_name,
                 balance=initial_balance,
-                lots=[Lot(quantity=initial_balance, created_step=0)],
+                lots=[
+                    Lot(
+                        quantity=initial_balance,
+                        created_step=0,
+                        cost_basis=initial_balance,
+                    )
+                ],
             )
         )
 
