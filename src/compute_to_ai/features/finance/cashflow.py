@@ -69,11 +69,18 @@ def add_fixed_acquisition(
     step: int,
     inflation_rate: float = 0.0,
 ) -> None:
-    """Add a one-time fixed acquisition (negative cashflow) in exactly one step."""
+    """Add a one-time fixed acquisition (outflow) in exactly one step.
+
+    `amount` is always a positive magnitude - it's negated internally
+    regardless of the sign passed in, so a caller cannot accidentally invert
+    the direction by pre-negating it. A one-time windfall (Sondereinnahme,
+    e.g. an inheritance) is a positive cashflow, not a negative acquisition -
+    use add_income_stream with start_step==end_step for that instead.
+    """
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,
-        amount_per_step=-amount,
+        amount_per_step=-abs(amount),
         growth_rate=inflation_rate,
         start_step=step,
         end_step=step,

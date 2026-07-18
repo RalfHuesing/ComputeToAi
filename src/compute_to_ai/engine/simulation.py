@@ -9,7 +9,7 @@ import copy
 import numpy as np
 
 from compute_to_ai.engine.effect import Effect
-from compute_to_ai.engine.plan import Plan
+from compute_to_ai.engine.plan import CorrelationGroup, Plan
 from compute_to_ai.engine.result import MonteCarloResult, SimulationResult
 from compute_to_ai.engine.store import Store
 
@@ -66,8 +66,39 @@ def _reconcile_balances(
                 store.withdraw_amount(-diff)
 
 
+def _default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
+    """Auto-derive an identity-matrix group for any correlation_group a
+    CorrelatedReturnEffect references but that was never registered.
+
+    Without this, a store's return would silently fall back to its
+    (non-random) expected_return in _calculate_phase1_updates - a single
+    unconfigured asset class would make an entire Monte-Carlo run
+    deterministic instead of erroring or asking, which is far more
+    dangerous than either.
+    """
+    referenced: dict[str, list[str]] = {}
+    for effect in plan.effects:
+        if getattr(effect, "type", None) != "correlated_return":
+            continue
+        group_name = getattr(effect, "correlation_group", "")
+        if group_name in plan.correlation_groups:
+            continue
+        store_name = getattr(effect, "store_name", "")
+        stores = referenced.setdefault(group_name, [])
+        if store_name not in stores:
+            stores.append(store_name)
+
+    return {
+        name: CorrelationGroup(matrix=np.eye(len(stores)).tolist(), store_names=stores)
+        for name, stores in referenced.items()
+    }
+
+
 def _pre_draw_correlated_returns(
-    plan: Plan, num_runs: int, rng: np.random.Generator
+    plan: Plan,
+    all_groups: dict[str, CorrelationGroup],
+    num_runs: int,
+    rng: np.random.Generator,
 ) -> dict[str, np.ndarray]:
     """Pre-draw correlated return rates for each correlation group in the plan.
 
@@ -77,7 +108,7 @@ def _pre_draw_correlated_returns(
     step_count = plan.timeline.step_count
     group_draws: dict[str, np.ndarray] = {}
 
-    for group_name, group_config in plan.correlation_groups.items():
+    for group_name, group_config in all_groups.items():
         n_group = len(group_config.store_names)
         means = np.zeros(n_group)
         vols = np.zeros(n_group)
@@ -230,7 +261,8 @@ def run_simulation(plan: Plan) -> SimulationResult:
 def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> MonteCarloResult:
     """Run a Monte-Carlo simulation with stochastically drawn correlated returns."""
     rng = np.random.default_rng(seed)
-    group_draws = _pre_draw_correlated_returns(plan, num_runs, rng)
+    all_groups = {**_default_correlation_groups(plan), **plan.correlation_groups}
+    group_draws = _pre_draw_correlated_returns(plan, all_groups, num_runs, rng)
 
     raw_final_balances: list[dict[str, float]] = []
     ruin_step_counts: dict[int, int] = {}
@@ -239,7 +271,7 @@ def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> Monte
 
     for run_idx in range(num_runs):
         run_drawn_rates: dict[str, np.ndarray] = {}
-        for group_name, group_config in plan.correlation_groups.items():
+        for group_name, group_config in all_groups.items():
             draws = group_draws[group_name]
             for idx, store_name in enumerate(group_config.store_names):
                 run_drawn_rates[store_name] = draws[run_idx, :, idx]

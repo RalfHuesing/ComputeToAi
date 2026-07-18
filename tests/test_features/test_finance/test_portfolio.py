@@ -114,6 +114,33 @@ def test_portfolio_rebalancing_stochastic() -> None:
         assert pytest.approx(bd_final / total) == 0.30
 
 
+def test_single_asset_class_without_correlation_matrix_is_still_stochastic() -> None:
+    """A single asset class must stay stochastic even if the caller never calls
+    set_correlation_matrix - an unconfigured correlation group must not silently
+    fall back to the deterministic expected_return (see Docs/Auffaelligkeiten.md-
+    style dogfooding feedback: this previously produced identical Monte-Carlo
+    runs with zero variance).
+    """
+    plan = Plan(
+        name="single-asset-class-stochastic",
+        timeline=Timeline(step_count=10),
+        stores=[],
+    )
+
+    add_asset_class(
+        plan=plan,
+        store_name="etf",
+        initial_balance=10000.0,
+        expected_return=0.07,
+        volatility=0.15,
+    )
+
+    mc_result = run_monte_carlo(plan, num_runs=20, seed=42)
+
+    final_values = [bal["etf"] for bal in mc_result.raw_final_balances]
+    assert len(set(final_values)) > 1
+
+
 def test_cash_bucket_excess_moves_to_portfolio() -> None:
     from compute_to_ai.engine.timeline import Phase
     plan = Plan(

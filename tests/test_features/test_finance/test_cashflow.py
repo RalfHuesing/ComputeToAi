@@ -59,6 +59,23 @@ def test_add_fixed_acquisition() -> None:
     assert result.time_series == [{"cash": 1000.0}, {"cash": 450.0}]
 
 
+def test_add_fixed_acquisition_ignores_a_pre_negated_amount() -> None:
+    """amount is always a magnitude - passing it already-negative must not
+    double-negate into an inflow (a real usability trap found in dogfooding:
+    a caller reasonably assumes "acquisition" wants a negative amount)."""
+    plan = Plan(
+        name="fixed-acquisition-negative-input-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=1000.0)],
+    )
+
+    add_fixed_acquisition(plan, "Car", "cash", amount=-500.0, step=0)
+
+    result = run_simulation(plan)
+
+    assert pytest.approx(result.final_balances["cash"]) == 500.0
+
+
 def test_flexible_acquisition_triggers_on_refpath() -> None:
     # Portfolio starts at 100, grows by 20% each step.
     # We want to buy an item of nominal cost 120 at step 5 (window [3, 7]).

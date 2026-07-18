@@ -65,7 +65,7 @@ Ein größerer, nicht-laufender Abfluss-Effekt mit eigenem Zeitbezug. Es gibt zw
 
 Eine Anschaffung hat einen Betrag, einen Zeitbezug (fest oder Zieljahr + Toleranzfenster + Trigger-Regel) und eine Zuordnung (Haushalt oder Person).
 
-Eine unregelmäßige **Sondereinnahme** (Erbschaft, Bonus) ist strukturell dieselbe Instanz mit positivem statt negativem Betrag – kein eigenes Konzept.
+Eine unregelmäßige **Sondereinnahme** (Erbschaft, Bonus) ist strukturell dieselbe Instanz mit positivem statt negativem Betrag – kein eigenes Konzept. Auf Ebene der Bausteine wird das über den Einkommensstrom-Baustein mit `start_step == end_step` abgebildet statt über ein negatives Vorzeichen am Anschaffungs-Baustein, damit dessen Betrag immer eindeutig ein Abfluss bleibt.
 
 ## Verbindlichkeit (Liability)
 
