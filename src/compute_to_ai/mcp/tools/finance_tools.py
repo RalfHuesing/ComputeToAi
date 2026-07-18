@@ -1,1 +1,402 @@
-# Finance tools - see Docs/02-Architektur-und-MCP.md
+"""Finance tools: income/expenses, liabilities, portfolio, tax, pension, phases.
+
+See Docs/02-Architektur-und-MCP.md for the `finance_` tool-name prefix and
+Docs/03/04/05-Feature-Finanzen-*.md for the underlying concepts. Each tool
+is a thin load-plan / call-building-block / save-plan wrapper around the
+`compute_to_ai.features.finance` building blocks; no financial logic lives
+here (see "Trennung der Verantwortlichkeiten" in
+Docs/11-Code-Standards-und-Projektstruktur.md).
+
+INFO-level logs stay free of concrete financial figures; DEBUG-level logs
+carry the full arguments/results (see "Logging" in Docs/02 and
+.agents/rules/mcp-server-architecture.mdc).
+"""
+
+import logging
+from pathlib import Path
+from typing import Any
+
+from mcp.server.fastmcp import FastMCP
+
+from compute_to_ai.engine.result import MonteCarloResult
+from compute_to_ai.engine.simulation import run_monte_carlo
+from compute_to_ai.features.finance.cashflow import (
+    add_expense,
+    add_fixed_acquisition,
+    add_flexible_acquisition,
+    add_income_stream,
+)
+from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
+from compute_to_ai.features.finance.pension import add_statutory_pension
+from compute_to_ai.features.finance.phases import build_standard_life_phases
+from compute_to_ai.features.finance.portfolio import (
+    add_asset_class,
+    add_cash_bucket,
+    add_portfolio_rebalancing,
+    set_correlation_matrix,
+)
+from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
+from compute_to_ai.mcp.tools.plan_storage import load_plan, load_result, save_plan, save_result
+
+logger = logging.getLogger(__name__)
+
+_MONTE_CARLO_RESULT_FILENAME = "monte_carlo_result.json"
+
+
+def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
+    """Register the finance building-block, goal-condition, and Monte-Carlo tools."""
+    _register_phase_tools(mcp, working_directory)
+    _register_cashflow_tools(mcp, working_directory)
+    _register_liability_tools(mcp, working_directory)
+    _register_portfolio_tools(mcp, working_directory)
+    _register_tax_and_pension_tools(mcp, working_directory)
+    _register_goal_and_monte_carlo_tools(mcp, working_directory)
+
+
+def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_set_life_phases(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        current_age: int,
+        employment_end_age: int,
+        statutory_pension_start_age: int,
+        life_expectancy_age: int,
+        education_end_age: int | None = None,
+    ) -> str:
+        """Set the plan's phases to the standard life-phase sequence (Docs/05, "Lebensphasen")."""
+        plan = load_plan(working_directory, plan_name)
+        plan.phases = build_standard_life_phases(
+            current_age=current_age,
+            employment_end_age=employment_end_age,
+            statutory_pension_start_age=statutory_pension_start_age,
+            life_expectancy_age=life_expectancy_age,
+            education_end_age=education_end_age,
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_set_life_phases: plan=%r status=ok", plan_name)
+        logger.debug("finance_set_life_phases args: %s", [p.model_dump() for p in plan.phases])
+        return f"set {len(plan.phases)} life phases on plan {plan_name!r}"
+
+
+def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_add_income_stream(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        store_name: str,
+        amount: float,
+        growth_rate: float = 0.0,
+        active_phases: list[str] | None = None,
+        start_step: int | None = None,
+        end_step: int | None = None,
+    ) -> str:
+        """Add a growing income stream (positive cashflow) to the plan."""
+        plan = load_plan(working_directory, plan_name)
+        add_income_stream(
+            plan, name, store_name, amount, growth_rate, active_phases, start_step, end_step
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_income_stream: plan=%r name=%r status=ok", plan_name, name)
+        return f"added income stream {name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_expense(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        store_name: str,
+        amount: float,
+        inflation_rate: float = 0.0,
+        active_phases: list[str] | None = None,
+        start_step: int | None = None,
+        end_step: int | None = None,
+    ) -> str:
+        """Add an inflation-adjusted expense (negative cashflow) to the plan."""
+        plan = load_plan(working_directory, plan_name)
+        add_expense(
+            plan, name, store_name, amount, inflation_rate, active_phases, start_step, end_step
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_expense: plan=%r name=%r status=ok", plan_name, name)
+        return f"added expense {name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_fixed_acquisition(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        store_name: str,
+        amount: float,
+        step: int,
+        inflation_rate: float = 0.0,
+    ) -> str:
+        """Add a one-time fixed acquisition or lump-sum income (positive or negative)."""
+        plan = load_plan(working_directory, plan_name)
+        add_fixed_acquisition(plan, name, store_name, amount, step, inflation_rate)
+        save_plan(working_directory, plan)
+        logger.info("finance_add_fixed_acquisition: plan=%r name=%r status=ok", plan_name, name)
+        return f"added fixed acquisition {name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_flexible_acquisition(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        amount: float,
+        target_step: int,
+        tolerance_steps: int,
+        risky_store_name: str,
+        safe_store_name: str,
+        glidepath_start_step: int,
+        inflation_rate: float = 0.0,
+    ) -> str:
+        """Add a flexible acquisition with reference-path trigger and glidepath de-risking."""
+        plan = load_plan(working_directory, plan_name)
+        add_flexible_acquisition(
+            plan,
+            name,
+            amount,
+            target_step,
+            tolerance_steps,
+            risky_store_name,
+            safe_store_name,
+            glidepath_start_step,
+            inflation_rate,
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_flexible_acquisition: plan=%r name=%r status=ok", plan_name, name)
+        return f"added flexible acquisition {name!r} to plan {plan_name!r}"
+
+
+def _register_liability_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_add_liability(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        liability_store_name: str,
+        cash_store_name: str,
+        principal: float,
+        interest_rate: float,
+        payment: float,
+        start_step: int = 0,
+        end_step: int | None = None,
+        extra_payment_amount: float = 0.0,
+        extra_payment_threshold_rate: float | None = None,
+        extra_payment_min_cash: float = 0.0,
+        extra_payments: list[ScheduledExtraPayment] | None = None,
+    ) -> str:
+        """Add a liability (loan/mortgage) with regular payments and optional Sondertilgung."""
+        plan = load_plan(working_directory, plan_name)
+        add_liability(
+            plan,
+            name,
+            liability_store_name,
+            cash_store_name,
+            principal,
+            interest_rate,
+            payment,
+            start_step,
+            end_step,
+            extra_payment_amount,
+            extra_payment_threshold_rate,
+            extra_payment_min_cash,
+            extra_payments,
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_liability: plan=%r name=%r status=ok", plan_name, name)
+        return f"added liability {name!r} to plan {plan_name!r}"
+
+
+def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_add_asset_class(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        store_name: str,
+        initial_balance: float,
+        expected_return: float,
+        volatility: float,
+        correlation_group: str = "portfolio",
+    ) -> str:
+        """Add an asset class with a correlated stochastic return effect to the plan."""
+        plan = load_plan(working_directory, plan_name)
+        add_asset_class(
+            plan, store_name, initial_balance, expected_return, volatility, correlation_group
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_asset_class: plan=%r store=%r status=ok", plan_name, store_name)
+        return f"added asset class {store_name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_set_correlation_matrix(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, group_name: str, matrix: list[list[float]], store_names: list[str]
+    ) -> str:
+        """Set the correlation matrix for a named correlation group (e.g. asset classes)."""
+        plan = load_plan(working_directory, plan_name)
+        set_correlation_matrix(plan, group_name, matrix, store_names)
+        save_plan(working_directory, plan)
+        logger.info(
+            "finance_set_correlation_matrix: plan=%r group=%r status=ok", plan_name, group_name
+        )
+        return f"set correlation matrix {group_name!r} on plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_portfolio_rebalancing(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        weights: dict[str, float],
+        start_step: int = 0,
+        end_step: int | None = None,
+    ) -> str:
+        """Add a computed rebalancing effect that keeps asset classes at target weights."""
+        plan = load_plan(working_directory, plan_name)
+        add_portfolio_rebalancing(plan, name, weights, start_step, end_step)
+        save_plan(working_directory, plan)
+        logger.info("finance_add_portfolio_rebalancing: plan=%r name=%r status=ok", plan_name, name)
+        return f"added portfolio rebalancing {name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_cash_bucket(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        portfolio_weights: dict[str, float],
+        emergency_buffer_months: dict[str, float],
+        monthly_expenses: float,
+        inflation_rate: float = 0.0,
+        near_horizon_steps: int = 2,
+        withdrawal_years: float = 3.0,
+        cash_store_name: str = "cash",
+        withdrawal_phase_names: list[str] | None = None,
+    ) -> str:
+        """Add the Cash-Bucket manager (liquidity buffer sizing and rebalancing)."""
+        plan = load_plan(working_directory, plan_name)
+        add_cash_bucket(
+            plan,
+            portfolio_weights,
+            emergency_buffer_months,
+            monthly_expenses,
+            inflation_rate,
+            near_horizon_steps,
+            withdrawal_years,
+            cash_store_name,
+            withdrawal_phase_names,
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_cash_bucket: plan=%r status=ok", plan_name)
+        return f"added cash bucket manager to plan {plan_name!r}"
+
+
+def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_add_tax_manager(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        cash_store_name: str = "cash",
+        sparerpauschbetrag: float = 1000.0,
+        basiszins: float = 0.032,
+        withholding_tax_rate: float = 0.25,
+        soli_rate: float = 0.055,
+        church_tax_rate: float = 0.0,
+        tariff: IncomeTaxTariff | None = None,
+        kvdr_rate: float = 0.0875,
+        pv_rate: float = 0.042,
+        retirement_step: int = 47,
+        start_year: int = 2026,
+        asset_classes: dict[str, AssetClassTaxConfig] | None = None,
+    ) -> str:
+        """Add the German tax manager (Abgeltungsteuer, Vorabpauschale, Rentenbesteuerung)."""
+        plan = load_plan(working_directory, plan_name)
+        add_tax_manager(
+            plan,
+            cash_store_name,
+            sparerpauschbetrag,
+            basiszins,
+            withholding_tax_rate,
+            soli_rate,
+            church_tax_rate,
+            tariff,
+            kvdr_rate,
+            pv_rate,
+            retirement_step,
+            start_year,
+            asset_classes,
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_tax_manager: plan=%r status=ok", plan_name)
+        return f"added tax manager to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_statutory_pension(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        name: str,
+        store_name: str,
+        monthly_amount_at_regular_retirement_age: float,
+        regular_retirement_step: int,
+        actual_retirement_step: int,
+        annual_increase_rate: float = 0.0,
+        early_reduction_rate_per_month: float = 0.003,
+        early_reduction_cap: float = 0.144,
+        late_bonus_rate_per_month: float = 0.005,
+        active_phases: list[str] | None = None,
+        end_step: int | None = None,
+    ) -> str:
+        """Add the statutory pension (gesetzliche Rente) including Rentenabschlag/-zuschlag."""
+        plan = load_plan(working_directory, plan_name)
+        add_statutory_pension(
+            plan,
+            name,
+            store_name,
+            monthly_amount_at_regular_retirement_age,
+            regular_retirement_step,
+            actual_retirement_step,
+            annual_increase_rate,
+            early_reduction_rate_per_month,
+            early_reduction_cap,
+            late_bonus_rate_per_month,
+            active_phases,
+            end_step,
+        )
+        save_plan(working_directory, plan)
+        logger.info("finance_add_statutory_pension: plan=%r name=%r status=ok", plan_name, name)
+        return f"added statutory pension {name!r} to plan {plan_name!r}"
+
+
+def _register_goal_and_monte_carlo_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_set_target_condition(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, ruin_stores: list[str], ruin_threshold: float = 0.0
+    ) -> str:
+        """Set the goal condition: which stores' combined balance must stay >= ruin_threshold.
+
+        There is no separate "target success probability" setting - that's a
+        property of the Monte-Carlo result (1 - ruin_probability), not of the
+        plan, so it's read from finance_get_monte_carlo_result instead of
+        configured here.
+        """
+        plan = load_plan(working_directory, plan_name)
+        plan.ruin_stores = ruin_stores
+        plan.ruin_threshold = ruin_threshold
+        save_plan(working_directory, plan)
+        logger.info("finance_set_target_condition: plan=%r status=ok", plan_name)
+        return f"set target condition on plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_run_monte_carlo(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, num_runs: int, seed: int | None = None
+    ) -> str:
+        """Run a Monte-Carlo simulation with stochastically drawn correlated returns."""
+        plan = load_plan(working_directory, plan_name)
+        result = run_monte_carlo(plan, num_runs, seed)
+        save_result(working_directory, plan_name, _MONTE_CARLO_RESULT_FILENAME, result)
+        logger.info("finance_run_monte_carlo: plan=%r num_runs=%d status=ok", plan_name, num_runs)
+        logger.debug("finance_run_monte_carlo result: ruin_probability=%s", result.ruin_probability)
+        return f"Monte-Carlo simulation for plan {plan_name!r} complete ({num_runs} runs)"
+
+    @mcp.tool()
+    def finance_get_monte_carlo_result(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, include_raw_final_balances: bool = False
+    ) -> dict[str, Any]:
+        """Return the aggregated result (ruin probability, percentiles) of the last MC run."""
+        result = load_result(
+            working_directory, plan_name, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult
+        )
+        logger.info("finance_get_monte_carlo_result: plan=%r status=ok", plan_name)
+        payload = result.model_dump()
+        if not include_raw_final_balances:
+            del payload["raw_final_balances"]
+        logger.debug("finance_get_monte_carlo_result payload: %s", payload)
+        return payload

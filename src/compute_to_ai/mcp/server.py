@@ -15,6 +15,7 @@ from platformdirs import user_log_dir
 from compute_to_ai.mcp.settings import Settings, load_settings, resolve_settings_path
 from compute_to_ai.mcp.tools.calculation_tools import register_calculation_tools
 from compute_to_ai.mcp.tools.core_tools import register_core_tools
+from compute_to_ai.mcp.tools.finance_tools import register_finance_tools
 
 # Resolved relative to this file, which assumes the server runs from a
 # source checkout (see Docs/02-Architektur-und-MCP.md).
@@ -51,6 +52,7 @@ def _register_docs_resources(mcp: FastMCP) -> None:
 def create_server(settings: Settings) -> FastMCP:
     mcp = FastMCP("compute-to-ai")
     register_core_tools(mcp, settings.working_directory)
+    register_finance_tools(mcp, settings.working_directory)
     register_calculation_tools(mcp)
     _register_docs_resources(mcp)
     return mcp

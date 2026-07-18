@@ -89,12 +89,12 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] Standard-Phasenmodell (Ausbildung optional, Erwerbsphase, ggf. Frühruhestandslücke, Rentenphase) als vorkonfigurierbare Phasenliste (`build_standard_life_phases`)
   - [x] Erwerbsende und gesetzlicher Rentenbeginn als separate Phasengrenzen, lösen den Wechsel Einkommensstrom → gesetzliche Rente aus (über `active_phases`/`start_step` der jeweiligen `GrowingFixedEffect`-Bausteine, kein eigener Mechanismus nötig)
   - [x] Rentenabschlag (0,3 %/Monat vorzeitig, max. 14,4 %) bzw. -zuschlag (0,5 %/Monat Aufschub) als einmalige Anpassung der Renten-`GrowingFixedEffect`-Basis bei Aktivierung (`add_statutory_pension`)
-- [ ] **Epic 3.8 – MCP-Tools, Zielbedingung, Referenz-/Golden-Tests**
-  - [ ] Tool-Präfix `finance_*` (siehe 02-Architektur-und-MCP.md): je Baustein ein Tool zum Hinzufügen/Konfigurieren (z. B. `finance_add_income_stream`, `finance_add_liability`, `finance_add_asset_class`)
-  - [ ] Tool zum Start eines Monte-Carlo-Laufs und zur Abfrage des aggregierten Ergebnisses
-  - [ ] Zielbedingung konfigurierbar (Zielvermögen, Ziel-Erfolgswahrscheinlichkeit)
-  - [ ] Golden-Tests mit von Hand nachrechenbarem Ergebnis je Baustein (0 %-Rendite-/0 %-Zins-Sonderfälle analog zu M1/M2, wo eine geschlossene Formel existiert)
-  - [ ] End-to-End-Test über den vollständigen Beispiel-Plan (Anna) per echtem MCP-Tool-Aufruf
+- [x] **Epic 3.8 – MCP-Tools, Zielbedingung, Referenz-/Golden-Tests**
+  - [x] Tool-Präfix `finance_*` (siehe 02-Architektur-und-MCP.md): je Baustein ein Tool zum Hinzufügen/Konfigurieren (`finance_add_income_stream`, `finance_add_expense`, `finance_add_fixed_acquisition`, `finance_add_flexible_acquisition`, `finance_add_liability`, `finance_add_asset_class`, `finance_set_correlation_matrix`, `finance_add_portfolio_rebalancing`, `finance_add_cash_bucket`, `finance_add_tax_manager`, `finance_add_statutory_pension`, `finance_set_life_phases`)
+  - [x] Tool zum Start eines Monte-Carlo-Laufs (`finance_run_monte_carlo`) und zur Abfrage des aggregierten Ergebnisses (`finance_get_monte_carlo_result`)
+  - [x] Zielbedingung konfigurierbar über `finance_set_target_condition` (Zielvermögen als `ruin_stores`/`ruin_threshold`, bereits vorhandener Kern-Mechanismus); Ziel-Erfolgswahrscheinlichkeit ist keine Plan-Konfiguration, sondern ergibt sich aus `1 - ruin_probability` im Monte-Carlo-Ergebnis
+  - [x] Golden-Tests mit von Hand nachrechenbarem Ergebnis je Baustein (Tax, Cash-Bucket, Liability, Cashflow, Pension – siehe `tests/test_features/test_finance/`)
+  - [x] End-to-End-Test über den vollständigen Beispiel-Plan (Anna) per echtem MCP-Tool-Aufruf (`tests/test_mcp/test_finance_tools_e2e.py`)
 
 ## Meilenstein 4 – Baustein-Katalog & Regelwerk-Templates
 
