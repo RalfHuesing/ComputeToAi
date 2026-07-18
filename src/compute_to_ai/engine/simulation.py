@@ -176,9 +176,14 @@ def _run_single_simulation(
     ruin_step: int | None = None
     store_names = list(sim_stores.keys())
 
-    # Temporarily substitute simulation-cloned stores into the plan
+    # Temporarily substitute simulation-cloned stores and effects into the plan.
+    # Effects are cloned too because a ComputedEffect may use its own `parameters`
+    # dict as run-scoped state (e.g. a one-time trigger flag) - without a deep
+    # copy, that state would leak into every subsequent Monte-Carlo run.
     original_stores = plan.stores
+    original_effects = plan.effects
     plan.stores = list(sim_stores.values())
+    plan.effects = copy.deepcopy(plan.effects)
 
     try:
         for t in range(plan.timeline.step_count):
@@ -208,6 +213,7 @@ def _run_single_simulation(
 
     finally:
         plan.stores = original_stores
+        plan.effects = original_effects
 
     final_balances = {name: store.balance for name, store in sim_stores.items()}
     return final_balances, time_series, ruin_step

@@ -1,7 +1,7 @@
 import pytest
 
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.engine.simulation import run_simulation
+from compute_to_ai.engine.simulation import run_monte_carlo, run_simulation
 from compute_to_ai.engine.store import Store
 from compute_to_ai.engine.timeline import Timeline
 from compute_to_ai.features.finance.cashflow import (
@@ -137,3 +137,45 @@ def test_flexible_acquisition_triggers_on_deadline() -> None:
     # Cash becomes 0, portfolio becomes 0.
     assert result.final_balances["portfolio"] == 0.0
     assert result.final_balances["cash"] == 0.0
+
+
+def test_flexible_acquisition_trigger_does_not_leak_across_monte_carlo_runs() -> None:
+    """A ComputedEffect's `parameters` dict is run-scoped state, not shared across runs.
+
+    `flexible_acquisition_func` marks itself triggered by writing into its own
+    `parameters` dict. Without a fresh per-run copy of `plan.effects`, that
+    write would persist into every subsequent Monte-Carlo run, permanently
+    disabling the acquisition after the first run it fires in.
+    """
+    plan = Plan(
+        name="flex-acq-monte-carlo",
+        timeline=Timeline(step_count=8),
+        stores=[
+            Store(name="portfolio", balance=100.0),
+            Store(name="cash", balance=0.0),
+        ],
+    )
+
+    from compute_to_ai.engine.effect import PercentageGrowthEffect
+
+    plan.effects.append(PercentageGrowthEffect(store_name="portfolio", growth_rate=0.20))
+
+    add_flexible_acquisition(
+        plan=plan,
+        name="Boat",
+        amount=120.0,
+        target_step=5,
+        tolerance_steps=2,
+        risky_store_name="portfolio",
+        safe_store_name="cash",
+        glidepath_start_step=2,
+        inflation_rate=0.0,
+    )
+
+    mc_result = run_monte_carlo(plan, num_runs=5, seed=1)
+
+    # Fully deterministic plan (no stochastic effects) - every run must trigger
+    # identically and land on the same final balance.
+    for final_bal in mc_result.raw_final_balances:
+        assert pytest.approx(final_bal["portfolio"], 1e-2) == 181.10
+        assert final_bal["cash"] == 0.0
