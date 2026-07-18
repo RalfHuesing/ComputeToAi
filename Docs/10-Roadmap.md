@@ -80,7 +80,7 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
 - [x] **Epic 3.5 – Bausteine: Kapitalanlage** (`compute_to_ai.features.finance`)
   - [x] Anlageklasse = `CorrelatedReturnEffect` mit Korrelationsgruppe `"anlageklassen"`, je Anlageklasse ein Sub-Speicher oder Allokationsanteil
   - [x] Portfolio = `Store` mit Lot-Semantik; Allokation/Rebalancing als eigener `ComputedEffect`
-  - [ ] Cash-Bucket = eigener `Store` + `ComputedEffect` mit der Drei-Komponenten-Zielgröße aus 04 (Einkommensausfallpuffer, Nahsicht, Entnahmepuffer), phasenabhängige Notfallpuffer-Monate, Vorrang-Auffüllung vor Portfolio-Investition, spiegelbildliche Entnahme-Priorität (siehe 04)
+  - [x] Cash-Bucket = eigener `Store` + `ComputedEffect` mit der Drei-Komponenten-Zielgröße aus 04 (Einkommensausfallpuffer, Nahsicht, Entnahmepuffer), phasenabhängige Notfallpuffer-Monate, Vorrang-Auffüllung vor Portfolio-Investition, spiegelbildliche Entnahme-Priorität (siehe 04)
 - [ ] **Epic 3.6 – Bausteine: Steuern** (`compute_to_ai.features.finance`)
   - [ ] Abgeltungsteuer, Sparerpauschbetrag, Vorabpauschale, Teilfreistellung, Bestandsschutz (Lot-Regelwerk-Version) als `ComputedEffect` auf Portfolio-Lots
   - [ ] Nachgelagerte Rentenbesteuerung inkl. KVdR/Pflegeversicherung (GKV/PKV als Parameter, siehe 05) als `ComputedEffect` auf den Renten-Einkommensstrom
