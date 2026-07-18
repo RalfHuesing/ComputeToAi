@@ -1,0 +1,41 @@
+[project]
+name = "compute-to-ai"
+version = "0.1.0"
+description = "Generic simulation engine (store/effect/timeline), first feature module: retirement/finance planning"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Ralf Hüsing", email = "ralf@huesing.info" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11.29,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "ruff>=0.15.22",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C90"]
+mccabe.max-complexity = 10
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src", "tests"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "standard"

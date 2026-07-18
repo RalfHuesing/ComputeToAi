@@ -7,8 +7,8 @@ Eine konkrete, abhakbare Abfolge von Meilensteinen. Jeder Meilenstein gliedert s
 **Ziel**: Der generische Kern (siehe 01-Kern-Domaenenmodell.md) steht in Python, ist über einen MCP-Server von einem Agenten ansprechbar, und kann den denkbar einfachsten Fall simulieren: 100 €/Monat sparen, 0 % Rendite, über 40 Jahre (480 Monate) → Endsaldo 48.000 €. Bewusst noch **nicht** Teil dieses Meilensteins: Zufallsziehungen, Korrelation, Steuern, Bausteine, Lot-Semantik, Phasen – das kommt erst mit Meilenstein 2.
 
 - [ ] **Epic 1.1 – Projekt-Setup**
-  - [ ] Python-Projektstruktur angelegt (src-Layout, siehe 11-Code-Standards-und-Projektstruktur.md)
-  - [ ] Dependency-/Tooling-Setup (uv, ruff, pytest) lauffähig
+  - [x] Python-Projektstruktur angelegt (src-Layout, siehe 11-Code-Standards-und-Projektstruktur.md)
+  - [x] Dependency-/Tooling-Setup (uv, ruff, pytest) lauffähig
   - [ ] Ein minimaler MCP-Server ist von einem Agenten (Claude Code/Cowork) ansprechbar (ein einziges Test-Tool reicht)
 - [ ] **Epic 1.2 – Kern-Datenmodell**
   - [ ] `Store` (Speicher): Saldo, optional Liste datierter Lots
