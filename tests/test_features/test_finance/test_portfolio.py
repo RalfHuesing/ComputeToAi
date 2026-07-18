@@ -1,6 +1,5 @@
 import pytest
 
-from compute_to_ai.engine.effect import PercentageGrowthEffect
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_monte_carlo, run_simulation
 from compute_to_ai.engine.timeline import Timeline
@@ -23,21 +22,16 @@ def test_portfolio_rebalancing_deterministic() -> None:
         plan=plan,
         store_name="equity",
         initial_balance=70.0,
-        expected_return=0.07,
+        expected_return=0.20,
         volatility=0.15,
     )
     add_asset_class(
         plan=plan,
         store_name="bond",
         initial_balance=30.0,
-        expected_return=0.03,
+        expected_return=0.10,
         volatility=0.05,
     )
-
-    # Let's add deterministic growth effects (overwriting the stochastic returns for this test)
-    # to make the step outcomes exactly predictable.
-    plan.effects.append(PercentageGrowthEffect(store_name="equity", growth_rate=0.20))
-    plan.effects.append(PercentageGrowthEffect(store_name="bond", growth_rate=0.10))
 
     # Add rebalancing computed effect
     add_portfolio_rebalancing(
