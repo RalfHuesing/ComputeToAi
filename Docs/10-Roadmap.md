@@ -81,10 +81,10 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] Anlageklasse = `CorrelatedReturnEffect` mit Korrelationsgruppe `"anlageklassen"`, je Anlageklasse ein Sub-Speicher oder Allokationsanteil
   - [x] Portfolio = `Store` mit Lot-Semantik; Allokation/Rebalancing als eigener `ComputedEffect`
   - [x] Cash-Bucket = eigener `Store` + `ComputedEffect` mit der Drei-Komponenten-Zielgröße aus 04 (Einkommensausfallpuffer, Nahsicht, Entnahmepuffer), phasenabhängige Notfallpuffer-Monate, Vorrang-Auffüllung vor Portfolio-Investition, spiegelbildliche Entnahme-Priorität (siehe 04)
-- [ ] **Epic 3.6 – Bausteine: Steuern** (`compute_to_ai.features.finance`)
-  - [ ] Abgeltungsteuer, Sparerpauschbetrag, Vorabpauschale, Teilfreistellung, Bestandsschutz (Lot-Regelwerk-Version) als `ComputedEffect` auf Portfolio-Lots
-  - [ ] Nachgelagerte Rentenbesteuerung inkl. KVdR/Pflegeversicherung (GKV/PKV als Parameter, siehe 05) als `ComputedEffect` auf den Renten-Einkommensstrom
-  - [ ] Konkrete Sätze aus 05-Feature-Finanzen-Parameter.md, mit Stand-Jahr-Vermerk und Beleg in 09-Quellen.md (Quellentreue-Pflicht, siehe CLAUDE.md)
+- [x] **Epic 3.6 – Bausteine: Steuern** (`compute_to_ai.features.finance`)
+  - [x] Abgeltungsteuer, Sparerpauschbetrag, Vorabpauschale, Teilfreistellung, Bestandsschutz (Lot-Regelwerk-Version) als `ComputedEffect` auf Portfolio-Lots
+  - [x] Nachgelagerte Rentenbesteuerung inkl. KVdR/Pflegeversicherung (GKV/PKV als Parameter, siehe 05) als `ComputedEffect` on Renten-Einkommensstrom
+  - [x] Konkrete Sätze aus 05-Feature-Finanzen-Parameter.md, mit Stand-Jahr-Vermerk und Beleg in 09-Quellen.md (Quellentreue-Pflicht, siehe CLAUDE.md)
 - [ ] **Epic 3.7 – Lebensphasen & Rentenübergang** (`compute_to_ai.features.finance`)
   - [ ] Standard-Phasenmodell (Ausbildung optional, Erwerbsphase, ggf. Frühruhestandslücke, Rentenphase) als vorkonfigurierbare Phasenliste
   - [ ] Erwerbsende und gesetzlicher Rentenbeginn als separate Phasengrenzen, lösen den Wechsel Einkommensstrom → gesetzliche Rente aus
