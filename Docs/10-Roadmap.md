@@ -54,19 +54,19 @@ Anna, 20 Jahre, startet ins Berufsleben mit 5.000 € Cash und ohne Portfolio. E
 
 Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichkeiten unterschiedlicher Laufzeit (davon eine mit Sondertilgung), eine große fixe Anschaffung, korrelierte Mehr-Anlageklassen-Rendite, alle vier Lebensphasen inkl. Frühruhestandslücke, Cash-Bucket mit phasenabhängiger Zielgröße, Kapitalertragsteuer inkl. Vorabpauschale, nachgelagerte Rentenbesteuerung inkl. Sozialabgaben, und eine Zielbedingung mit Monte-Carlo-Aggregation. Bewusst nicht abgedeckt (siehe 08-Offene-Fragen.md): Bestandsschutz-Lots vor 2009 (Anna ist dafür zu jung), Immobilienwertsteigerung, Partnerbeitrag.
 
-- [ ] **Epic 3.1 – Kern-Erweiterung: Effekt-Arten & Ausführungsmodell** (`compute_to_ai.engine`)
-  - [ ] `GrowingFixedEffect` löst `FixedEffect` ab: Betrag + Wachstumsrate je Schritt (Rate 0 entspricht dem bisherigen `FixedEffect`-Verhalten); deckt Einkommen, Ausgaben, Tilgungsraten, fixe Anschaffungen und Sondereinnahmen ab (siehe 01, „Effekt-Arten")
-  - [ ] `PercentageGrowthEffect`: Speicher-Saldo wächst je Schritt um eine feste Rate – deckt sowohl Zinsanfall einer Verbindlichkeit als auch eine deterministisch angenommene Kapitalrendite ab
-  - [ ] `CorrelatedReturnEffect`: wie oben, aber Rate wird je Lauf stochastisch gezogen, gemeinsam mit allen Effekten derselben benannten Korrelationsgruppe (multivariate Normalverteilung, Cholesky-Zerlegung – NumPy/SciPy werden hier erstmals als Dependency gebraucht, siehe 11-Code-Standards-und-Projektstruktur.md)
-  - [ ] `ComputedEffect`-Basis: kuratierte Python-Funktion statt Formel, läuft nach den drei Effekt-Arten oben im selben Schritt auf Basis der bereits aktualisierten Salden (siehe 01, Abschnitt „Reihenfolge & keine zirkulären Abhängigkeiten")
-  - [ ] Effekte optional auf einen Schrittbereich beschränkbar (aktiv ab/bis) – Grundlage für Phasenbindung in Epic 3.2
-  - [ ] Unit-Tests je Effekt-Art, inkl. Golden-Test für `PercentageGrowthEffect` gegen `calculations_future_value_lump_sum` (M2) als Referenz
-- [ ] **Epic 3.2 – Kern-Erweiterung: Phasen, Lot-Semantik, Monte-Carlo-Runner** (`compute_to_ai.engine`)
-  - [ ] `Phase` (Name, Start-/Endschritt) auf `Plan`/`Timeline`; `active_phases` auf Effekten referenziert Phasennamen statt eigener Schrittgrenzen
-  - [ ] `Lot` auf `Store` (Menge, Entstehungsschritt, Regelwerk-Version, Einstandspreis), FIFO-Verbrauch bei Abfluss (siehe 01, Speicher-Abschnitt)
-  - [ ] `run_monte_carlo(plan, num_runs)`: wiederholt den Einzellauf aus Meilenstein 1 mit je Lauf neu gezogenen stochastischen Effekten
-  - [ ] Aggregation über alle Läufe: Perzentile des Endsaldos, Ruin-Wahrscheinlichkeit, Verteilung des Ruin-Zeitpunkts (Ruin selbst läuft weiter statt abzubrechen, siehe 01)
-  - [ ] Unit-Tests für Phasen-Lookup, FIFO-Verbrauch, Monte-Carlo-Aggregation (bekannte Verteilung mit erwartbaren Perzentilen)
+- [x] **Epic 3.1 – Kern-Erweiterung: Effekt-Arten & Ausführungsmodell** (`compute_to_ai.engine`)
+  - [x] `GrowingFixedEffect` löst `FixedEffect` ab: Betrag + Wachstumsrate je Schritt (Rate 0 entspricht dem bisherigen `FixedEffect`-Verhalten); deckt Einkommen, Ausgaben, Tilgungsraten, fixe Anschaffungen und Sondereinnahmen ab (siehe 01, „Effekt-Arten")
+  - [x] `PercentageGrowthEffect`: Speicher-Saldo wächst je Schritt um eine feste Rate – deckt sowohl Zinsanfall einer Verbindlichkeit als auch eine deterministisch angenommene Kapitalrendite ab
+  - [x] `CorrelatedReturnEffect`: wie oben, aber Rate wird je Lauf stochastisch gezogen, gemeinsam mit allen Effekten derselben benannten Korrelationsgruppe (multivariate Normalverteilung, Cholesky-Zerlegung – NumPy/SciPy werden hier erstmals als Dependency gebraucht, siehe 11-Code-Standards-und-Projektstruktur.md)
+  - [x] `ComputedEffect`-Basis: kuratierte Python-Funktion statt Formel, läuft nach den drei Effekt-Arten oben im selben Schritt auf Basis der bereits aktualisierten Salden (siehe 01, Abschnitt „Reihenfolge & keine zirkulären Abhängigkeiten")
+  - [x] Effekte optional auf einen Schrittbereich beschränkbar (aktiv ab/bis) – Grundlage für Phasenbindung in Epic 3.2
+  - [x] Unit-Tests je Effekt-Art, inkl. Golden-Test für `PercentageGrowthEffect` gegen `calculations_future_value_lump_sum` (M2) als Referenz
+- [x] **Epic 3.2 – Kern-Erweiterung: Phasen, Lot-Semantik, Monte-Carlo-Runner** (`compute_to_ai.engine`)
+  - [x] `Phase` (Name, Start-/Endschritt) auf `Plan`/`Timeline`; `active_phases` auf Effekten referenziert Phasennamen statt eigener Schrittgrenzen
+  - [x] `Lot` auf `Store` (Menge, Entstehungsschritt, Regelwerk-Version, Einstandspreis), FIFO-Verbrauch bei Abfluss (siehe 01, Speicher-Abschnitt)
+  - [x] `run_monte_carlo(plan, num_runs)`: wiederholt den Einzellauf aus Meilenstein 1 mit je Lauf neu gezogenen stochastischen Effekten
+  - [x] Aggregation über alle Läufe: Perzentile des Endsaldos, Ruin-Wahrscheinlichkeit, Verteilung des Ruin-Zeitpunkts (Ruin selbst läuft weiter statt abzubrechen, siehe 01)
+  - [x] Unit-Tests für Phasen-Lookup, FIFO-Verbrauch, Monte-Carlo-Aggregation (bekannte Verteilung mit erwartbaren Perzentilen)
 - [ ] **Epic 3.3 – Bausteine: Einkommen, Ausgaben, Anschaffungen** (`compute_to_ai.features.finance`)
   - [ ] Einkommensstrom = `GrowingFixedEffect` (positiv), phasengebunden (z. B. Gehalt nur in der Erwerbsphase)
   - [ ] Ausgabe = `GrowingFixedEffect` (negativ), Wachstumsrate = Inflation; beliebig viele, frei benannt statt fester Kategorien (siehe 03)
