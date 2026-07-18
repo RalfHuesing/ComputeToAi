@@ -6,29 +6,29 @@ Eine konkrete, abhakbare Abfolge von Meilensteinen. Jeder Meilenstein gliedert s
 
 **Ziel**: Der generische Kern (siehe 01-Kern-Domaenenmodell.md) steht in Python, ist über einen MCP-Server von einem Agenten ansprechbar, und kann den denkbar einfachsten Fall simulieren: 100 €/Monat sparen, 0 % Rendite, über 40 Jahre (480 Monate) → Endsaldo 48.000 €. Bewusst noch **nicht** Teil dieses Meilensteins: Zufallsziehungen, Korrelation, Steuern, Bausteine, Lot-Semantik, Phasen – das kommt erst mit Meilenstein 2.
 
-- [ ] **Epic 1.1 – Projekt-Setup**
+- [x] **Epic 1.1 – Projekt-Setup**
   - [x] Python-Projektstruktur angelegt (src-Layout, siehe 11-Code-Standards-und-Projektstruktur.md)
   - [x] Dependency-/Tooling-Setup (uv, ruff, pytest) lauffähig
-  - [ ] Ein minimaler MCP-Server ist von einem Agenten (Claude Code/Cowork) ansprechbar (ein einziges Test-Tool reicht)
-- [ ] **Epic 1.2 – Kern-Datenmodell**
-  - [ ] `Store` (Speicher): Saldo, optional Liste datierter Lots
-  - [ ] `Effect` (Effekt): Basisabstraktion für einen Zu-/Abfluss auf einen Store; für M1 genügt eine einzige, fixe (nicht-stochastische) Effekt-Art
-  - [ ] `Timeline` (Zeitstrahl): Dauer, Schrittweite
-  - [ ] `Plan`: Container aus Store(s), Effect(s), Timeline
-- [ ] **Epic 1.3 – Einfache Simulationsschleife**
-  - [ ] Zeitschritt-Iteration über die Timeline
-  - [ ] Der fixe Zufluss-Effekt wirkt je Zeitschritt auf einen Store
-  - [ ] Saldo-Fortschreibung über alle Zeitschritte, Endsaldo abrufbar
-- [ ] **Epic 1.4 – MCP-Anbindung des Kerns**
-  - [ ] Tool: Plan anlegen
-  - [ ] Tool: Store zu einem Plan hinzufügen
-  - [ ] Tool: Effect zu einem Store hinzufügen
-  - [ ] Tool: Simulation starten
-  - [ ] Tool: Ergebnis (Endsaldo, optional Zeitreihe) abfragen
-- [ ] **Epic 1.5 – Tests & Verifikation**
-  - [ ] Unit-Tests für `Store`, `Effect`, `Timeline`, `Plan`
-  - [ ] Golden-Test: 100 €/Monat, 0 % Rendite, 40 Jahre → Endsaldo exakt 48.000 €
-  - [ ] Derselbe Fall zusätzlich als End-to-End-Test über den MCP-Tool-Aufruf (nicht nur auf reiner Python-Ebene)
+  - [x] Ein minimaler MCP-Server ist von einem Agenten (Claude Code/Cowork) ansprechbar (die 5 Kern-Tools aus Epic 1.4 erfüllen das, kein separates Test-Tool nötig)
+- [x] **Epic 1.2 – Kern-Datenmodell**
+  - [x] `Store` (Speicher): Saldo (Lot-Semantik kommt mit Meilenstein 2)
+  - [x] `Effect` (Effekt): für M1 eine einzige, fixe (nicht-stochastische) Effekt-Art (`FixedEffect`); gemeinsame Basisabstraktion und Component/Baustein-Katalog kommen mit Meilenstein 2, sobald eine zweite Effekt-Art existiert
+  - [x] `Timeline` (Zeitstrahl): Schrittanzahl (`step_count`); Startzeitpunkt kommt mit den Phasen in Meilenstein 2
+  - [x] `Plan`: Container aus Store(s), Effect(s), Timeline, mit Schema-Version
+- [x] **Epic 1.3 – Einfache Simulationsschleife**
+  - [x] Zeitschritt-Iteration über die Timeline
+  - [x] Der fixe Effekt wirkt je Zeitschritt auf seinen Store
+  - [x] Saldo-Fortschreibung über alle Zeitschritte, Endsaldo und Zeitreihe abrufbar
+- [x] **Epic 1.4 – MCP-Anbindung des Kerns**
+  - [x] Tool: Plan anlegen (`create_plan`)
+  - [x] Tool: Store zu einem Plan hinzufügen (`add_store`)
+  - [x] Tool: Effect zu einem Store hinzufügen (`add_effect`)
+  - [x] Tool: Simulation starten (`run_plan_simulation`)
+  - [x] Tool: Ergebnis (Endsaldo, optional Zeitreihe) abfragen (`get_result`)
+- [x] **Epic 1.5 – Tests & Verifikation**
+  - [x] Unit-Tests für `Plan` (Store-Lookup) und die Simulationsschleife
+  - [x] Golden-Test: 100 €/Monat, 0 % Rendite, 40 Jahre → Endsaldo exakt 48.000 €
+  - [x] Derselbe Fall zusätzlich als End-to-End-Test über den MCP-Tool-Aufruf per echtem stdio-Subprozess (nicht nur auf reiner Python-Ebene)
 
 **Abschlusskriterium**: Ralf kann über einen Agenten per MCP einen Plan mit einem Store und einem fixen monatlichen Zufluss-Effekt anlegen, 40 Jahre simulieren lassen und bekommt 48.000 € zurück – reproduzierbar und durch Tests abgesichert.
 
