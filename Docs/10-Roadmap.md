@@ -77,9 +77,9 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] `PercentageGrowthEffect` (Zins, positiv) + `GrowingFixedEffect` Rate 0 (Tilgung, negativ auf Verbindlichkeits-Store **und** auf Cash) je Verbindlichkeit
   - [x] Rate wird nicht neu hergeleitet, sondern über `calculations_loan_monthly_payment` (M2) berechnet und als Parameter übergeben
   - [x] Sondertilgung als optionaler `ComputedEffect`; `calculations_loan_amortization_schedule_with_extra_payments` (M2) dient als Referenz für Golden-Tests. Die konkrete Entscheidungsregel Sondertilgung vs. Investition bleibt eine offene Kalibrierungsfrage (siehe 04 und 08-Offene-Fragen.md) – für M3 reicht ein Baustein, der eine vom Nutzer vorgegebene Regel (fester Schwellenwert Kreditzins vs. erwartete Rendite) anwendet
-- [ ] **Epic 3.5 – Bausteine: Kapitalanlage** (`compute_to_ai.features.finance`)
-  - [ ] Anlageklasse = `CorrelatedReturnEffect` mit Korrelationsgruppe `"anlageklassen"`, je Anlageklasse ein Sub-Speicher oder Allokationsanteil
-  - [ ] Portfolio = `Store` mit Lot-Semantik; Allokation/Rebalancing als eigener `ComputedEffect`
+- [x] **Epic 3.5 – Bausteine: Kapitalanlage** (`compute_to_ai.features.finance`)
+  - [x] Anlageklasse = `CorrelatedReturnEffect` mit Korrelationsgruppe `"anlageklassen"`, je Anlageklasse ein Sub-Speicher oder Allokationsanteil
+  - [x] Portfolio = `Store` mit Lot-Semantik; Allokation/Rebalancing als eigener `ComputedEffect`
   - [ ] Cash-Bucket = eigener `Store` + `ComputedEffect` mit der Drei-Komponenten-Zielgröße aus 04 (Einkommensausfallpuffer, Nahsicht, Entnahmepuffer), phasenabhängige Notfallpuffer-Monate, Vorrang-Auffüllung vor Portfolio-Investition, spiegelbildliche Entnahme-Priorität (siehe 04)
 - [ ] **Epic 3.6 – Bausteine: Steuern** (`compute_to_ai.features.finance`)
   - [ ] Abgeltungsteuer, Sparerpauschbetrag, Vorabpauschale, Teilfreistellung, Bestandsschutz (Lot-Regelwerk-Version) als `ComputedEffect` auf Portfolio-Lots
