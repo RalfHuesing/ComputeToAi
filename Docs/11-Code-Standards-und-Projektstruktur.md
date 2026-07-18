@@ -43,6 +43,7 @@ Jedes nicht-triviale Feature (jede Funktion mit einer Fallunterscheidung, einer 
 ComputeToAi/
 ├── CLAUDE.md
 ├── Docs/                                  # bestehende Konzeptdokumente (unverändert)
+├── examples/                              # generisches Beispiel-Arbeitsverzeichnis inkl. Settings-Datei (siehe 02-Architektur-und-MCP.md)
 ├── pyproject.toml                         # Projekt-Metadaten und Dependencies
 ├── src/
 │   └── compute_to_ai/
@@ -57,7 +58,8 @@ ComputeToAi/
 │       │   ├── finance/                   # Feature Finanzen (ab Meilenstein 2)
 │       │   └── calculations/              # Feature Berechnungen (ab Meilenstein 3)
 │       └── mcp/                           # MCP-Server-Adapter
-│           ├── server.py                  # Server-Bootstrap
+│           ├── server.py                  # Server-Bootstrap, stdio-Transport, Logging-Konfiguration
+│           ├── settings.py                # Settings-Datei laden (TOML → Pydantic), siehe 02-Architektur-und-MCP.md
 │           └── tools/
 │               ├── core_tools.py           # Kern-Tools (Plan/Store/Effect/Simulation)
 │               ├── finance_tools.py        # Finanzen-Tools (ab Meilenstein 2)

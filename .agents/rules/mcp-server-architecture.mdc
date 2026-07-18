@@ -1,0 +1,17 @@
+---
+description: MCP-Server-Architektur - Transport, Selbstbeschreibung, Settings, Arbeitsverzeichnis, Logging (ab Meilenstein 1)
+globs: ["src/compute_to_ai/mcp/**", "examples/**"]
+alwaysApply: false
+---
+
+# MCP-Server-Architektur
+
+Vollständige, verbindliche Fassung: `Docs/02-Architektur-und-MCP.md`. Kurzfassung:
+
+- **Transport**: stdio (Standard-Transport des MCP-Python-SDK), kein Netzwerkport, keine Authentifizierung.
+- **Selbstbeschreibung**: Tools/Parameter beschreiben sich über ihr Pydantic-Schema selbst; zusätzlich stellt der Server `Docs/` als MCP-Resources bereit – keine zweite, separat gepflegte Doku für den Agenten (siehe `living-documentation.mdc`).
+- **Settings-Datei**: TOML, verweist u. a. auf das Arbeitsverzeichnis und das Logging-Level; Pfad standardmäßig plattformüblich, überschreibbar per Umgebungsvariable/Startargument. Generisches Beispiel unter `examples/`.
+- **Arbeitsverzeichnis**: Wurzel mit einem Unterordner je Plan (kopierbare Pläne, siehe `Docs/00-Vision.md`), nicht ein einzelner Plan-Ordner. Agent greift nie direkt auf diese Dateien zu, nur über Tools.
+- **Logging**: immer aktiv, gestuft – INFO ohne sensible Finanzwerte, DEBUG (nicht standardmäßig aktiv) mit vollständigen Tool-Parametern/-Ergebnissen. Ziel: `<Arbeitsverzeichnis>/logs/`, plattformüblicher Fallback vor dem Laden der Settings-Datei. Python-Standardbibliothek `logging` mit rotierenden Dateien, keine Zusatzpakete.
+
+Bei Widerspruch zwischen dieser Kurzfassung und `Docs/02` gilt `Docs/02`.

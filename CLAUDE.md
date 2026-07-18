@@ -15,6 +15,7 @@ Dieses Repo wird **vollagentisch** entwickelt – bewusst mit mehreren Agenten (
 @.agents/rules/sources-and-concept.mdc
 @.agents/rules/living-documentation.mdc
 @.agents/rules/code-standards.mdc
+@.agents/rules/mcp-server-architecture.mdc
 @.agents/rules/testing.mdc
 @.agents/rules/git-workflow.mdc
 @.agents/rules/environment.mdc

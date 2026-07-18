@@ -4,7 +4,7 @@ Konzeptdokumentation für eine generische Simulations-Engine (Speicher/Effekt/Ze
 
 1. [00-Vision.md](00-Vision.md) – Grundidee, Architekturprinzip Kern+Feature, Abgrenzung
 2. [01-Kern-Domaenenmodell.md](01-Kern-Domaenenmodell.md) – Generische Begriffe: Speicher, Effekt, Korrelation, Zeitstrahl, Phase, Zielbedingung, Plan
-3. [02-Architektur-und-MCP.md](02-Architektur-und-MCP.md) – Technische Grundsatzentscheidungen: Python, MCP-only, lokale Datenhaltung, Baustein-Katalog, Regelwerk-Templates
+3. [02-Architektur-und-MCP.md](02-Architektur-und-MCP.md) – Technische Grundsatzentscheidungen: Python, MCP-only über stdio, Settings-Datei, Arbeitsverzeichnis mit mehreren Plänen, Logging, Baustein-Katalog, Regelwerk-Templates
 4. [03-Feature-Finanzen-Domaenenmodell.md](03-Feature-Finanzen-Domaenenmodell.md) – Finanz-Begriffe als Instanzen des Kerns
 5. [04-Feature-Finanzen-Methodik.md](04-Feature-Finanzen-Methodik.md) – Wie die Finanz-Simulation abläuft
 6. [05-Feature-Finanzen-Parameter.md](05-Feature-Finanzen-Parameter.md) – Konfigurierbare Parameter des Finanz-Features
