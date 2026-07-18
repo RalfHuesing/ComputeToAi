@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "compute-to-ai": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "compute_to_ai.mcp.server"],
+      "env": {
+        "COMPUTE_TO_AI_SETTINGS": "examples/settings.toml"
+      }
+    }
+  }
+}

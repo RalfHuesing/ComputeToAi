@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ComputeToAi: real settings file (copy of examples/settings.example.toml,
+# see Docs/02-Architektur-und-MCP.md); the .example template stays tracked.
+examples/settings.toml
+# ComputeToAi: runtime logs and per-plan files created under a working
+# directory (see Docs/02-Architektur-und-MCP.md, "Logging").
+examples/logs/
+examples/*/plan.json
+examples/*/result.json

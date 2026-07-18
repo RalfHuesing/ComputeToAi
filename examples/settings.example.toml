@@ -1,7 +1,9 @@
 # Example settings file. Copy to settings.toml and adjust working_directory.
-# See Docs/02-Architektur-und-MCP.md ("Settings-Datei").
+# See Docs/02-Architektur-und-MCP.md ("Settings-Datei"). Relative paths
+# resolve against this file's own directory, so "." here means "the
+# examples/ folder this file lives in".
 
-working_directory = "./examples"
+working_directory = "."
 
 [logging]
 level = "INFO"
