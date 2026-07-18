@@ -10,21 +10,50 @@ from mcp.server.fastmcp import FastMCP
 
 from compute_to_ai.features.calculations.dates import age_in_years, years_between
 from compute_to_ai.features.calculations.growth import (
+    adjust_for_inflation,
+    cagr,
     future_value_lump_sum,
     future_value_series,
+    periods_to_reach_future_value,
+    periods_until_depletion,
     present_value_annuity,
     present_value_lump_sum,
+    real_rate_of_return,
+    required_payment_for_future_value,
+    sustainable_withdrawal_for_depletion,
 )
-from compute_to_ai.features.calculations.loans import loan_monthly_payment, loan_total_interest
+from compute_to_ai.features.calculations.loans import (
+    loan_amortization_schedule,
+    loan_monthly_payment,
+    loan_remaining_balance,
+    loan_total_interest,
+)
 
 
 def register_calculation_tools(mcp: FastMCP) -> None:
     """Register the deterministic calculation tools."""
     mcp.tool(name="calculations_years_between")(years_between)
     mcp.tool(name="calculations_age_in_years")(age_in_years)
+
     mcp.tool(name="calculations_future_value_lump_sum")(future_value_lump_sum)
     mcp.tool(name="calculations_present_value_lump_sum")(present_value_lump_sum)
+    mcp.tool(name="calculations_cagr")(cagr)
+    mcp.tool(name="calculations_real_rate_of_return")(real_rate_of_return)
+    mcp.tool(name="calculations_adjust_for_inflation")(adjust_for_inflation)
+
     mcp.tool(name="calculations_future_value_series")(future_value_series)
+    mcp.tool(name="calculations_required_payment_for_future_value")(
+        required_payment_for_future_value
+    )
+    mcp.tool(name="calculations_periods_to_reach_future_value")(periods_to_reach_future_value)
+
     mcp.tool(name="calculations_present_value_annuity")(present_value_annuity)
+    mcp.tool(name="calculations_sustainable_withdrawal_for_depletion")(
+        sustainable_withdrawal_for_depletion
+    )
+    mcp.tool(name="calculations_periods_until_depletion")(periods_until_depletion)
+
     mcp.tool(name="calculations_loan_monthly_payment")(loan_monthly_payment)
     mcp.tool(name="calculations_loan_total_interest")(loan_total_interest)
+    mcp.tool(name="calculations_loan_remaining_balance")(loan_remaining_balance)
+    mcp.tool(name="calculations_loan_amortization_schedule")(loan_amortization_schedule)
