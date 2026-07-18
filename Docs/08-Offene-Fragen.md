@@ -26,13 +26,9 @@ Dinge, die im weiteren Konzeptgespräch noch geklärt werden müssen.
 
 **Mehrgeräte-/Mehrsitzungs-Konsistenz**: Die lokale JSON-Datei als einzige Quelle der Wahrheit funktioniert für Einzelnutzung auf einem Gerät gut. Was passiert bei parallelen Schreibzugriffen (mehrere Agenten-Sitzungen, mehrere Geräte über Cloud-Sync)? Reicht ein einfacher Zeitstempel-/Versionscheck, oder braucht es mehr?
 
-**Konkrete Tool-Kategorisierung**: Die Anforderung „modular und hierarchisch" steht fest (siehe 07-Anforderungen.md); die konkrete Aufteilung und Benennung der MCP-Tool-Kategorien ist noch offen.
-
 **Performance interaktiver Ad-hoc-Anfragen**: Eine Chat-eingebettete Frage wie „kann ich mir das jetzt leisten?" sollte spürbar schneller beantwortbar sein als eine volle Batch-Simulation mit tausenden Läufen. Reicht eine reduzierte Laufzahl für solche Anfragen, eine Wiederverwendung des letzten Batch-Ergebnisses mit einem schnellen Differenz-Check, oder braucht es einen eigenen, leichteren Rechenweg?
 
-## Fragen zum Feature „Berechnungen"
-
-Eine konkrete Liste der Rechenbausteine (Zinseszins, Alters-/Datumsarithmetik, Leasing vs. Kauf, Kreditvergleich, Rentenbarwert o. Ä.) ist noch offen (siehe 06-Feature-Berechnungen.md und 10-Roadmap.md).
+**Ablageort von Prompt-/Workflow-Dateien**: 00-Vision.md sieht vor, dass ein Agent über Prompts/Workflow-Dateien (Markdown) weiß, welche Rolle er gerade einnimmt (z. B. „du bist mein Finanzberater"). Wo im Repo liegen solche Dateien, in welchem Format/welcher Konvention, und wie unterscheiden sie sich von den `.agents/rules/*.mdc`-Dateien (die Entwicklungsregeln für Coding-Agenten sind, keine fachlichen Nutzer-Workflows)?
 
 ## Detailfragen zur Besteuerung (Feature Finanzen)
 

@@ -24,7 +24,7 @@ Das Programm sollte mehrere Pläne nebeneinander abbilden und vergleichen könne
 
 ## Feature „Berechnungen"
 
-Das Programm muss einzelne, deterministische Rechenwerkzeuge außerhalb der Monte-Carlo-Simulation bereitstellen (z. B. Datums-/Alters-Arithmetik, Zinseszins, Vergleichsrechnungen wie Leasing vs. Kauf), die sowohl eigenständig als auch zur Plausibilitätsprüfung eines Simulationsergebnisses durch den Agenten genutzt werden können. Eine konkrete Liste ist nicht Teil dieser Anforderungen (siehe 06-Feature-Berechnungen.md und 08-Offene-Fragen.md).
+Das Programm muss einzelne, deterministische Rechenwerkzeuge außerhalb der Monte-Carlo-Simulation bereitstellen (Datums-/Alters-Arithmetik, Zinseszins/Diskontierung, Kreditvergleich), die sowohl eigenständig als auch zur Plausibilitätsprüfung eines Simulationsergebnisses durch den Agenten genutzt werden können. Die konkrete Liste der Bausteine steht in 06-Feature-Berechnungen.md.
 
 ## Nicht-funktionale Erwartungen
 
@@ -32,4 +32,4 @@ Parameter sollen ohne Programmieraufwand änderbar sein. Die Anzahl der Simulati
 
 ## Nicht Teil dieser Anforderungen (vorerst)
 
-Mehrfach-Depot-Strukturen mit unterschiedlicher steuerlicher Behandlung, Abbildung von Trennung oder Tod eines Partners, eine konkrete Liste der Berechnungen-Bausteine, sowie jede über die in 02-Architektur-und-MCP.md getroffenen Grundsatzentscheidungen hinausgehende Aussage zu Technologie oder Architektur. Die Kapitalertragsbesteuerung selbst ist dagegen vollständig Teil des Konzepts. Offene Detailfragen stehen in 08-Offene-Fragen.md.
+Mehrfach-Depot-Strukturen mit unterschiedlicher steuerlicher Behandlung, Abbildung von Trennung oder Tod eines Partners, sowie jede über die in 02-Architektur-und-MCP.md getroffenen Grundsatzentscheidungen hinausgehende Aussage zu Technologie oder Architektur. Die Kapitalertragsbesteuerung selbst ist dagegen vollständig Teil des Konzepts. Offene Detailfragen stehen in 08-Offene-Fragen.md.
