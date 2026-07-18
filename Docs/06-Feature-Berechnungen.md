@@ -14,16 +14,17 @@ Wie in 02-Architektur-und-MCP.md festgehalten, gibt es kein eigenes „Verifikat
 
 ## Umfang
 
-21 deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` angeboten (siehe 02-Architektur-und-MCP.md), gegliedert in sechs Gruppen. Viele Gruppen enthalten neben der direkten Formel auch deren Umkehrung(en) – gerade bei der Ruhestandsplanung ist meist die umgekehrte Frage die eigentlich interessante („wie viel muss ich sparen", nicht „was ergibt sich aus dieser Sparrate"):
+24 deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` angeboten (siehe 02-Architektur-und-MCP.md), gegliedert in sechs Gruppen. Viele Gruppen enthalten neben der direkten Formel auch deren Umkehrung(en) – gerade bei der Ruhestandsplanung ist meist die umgekehrte Frage die eigentlich interessante („wie viel muss ich sparen", nicht „was ergibt sich aus dieser Sparrate"):
 
 **Datums-/Altersarithmetik** (`compute_to_ai.features.calculations.dates`):
 - Jahre (fraktional) zwischen zwei Datumswerten
 - Alter (in ganzen Jahren) zu einem Stichtag
+- Umrechnung zwischen dem 0-basierten Simulationsschritt eines Plans und dem Alter, das ein Mensch tatsächlich nennt (Schritt 0 = aktuelles Alter, ein Schritt = ein Jahr, siehe 04-Feature-Finanzen-Methodik.md), und deren Umkehrung
 
 **Einmalbeträge, Wachstumsraten & Inflation** (`compute_to_ai.features.calculations.growth`):
 - Endwert einer Einmalanlage bei fester jährlicher Rendite, und deren Umkehrung: Barwert eines künftigen Einmalbetrags
 - Durchschnittliche jährliche Wachstumsrate (CAGR) zwischen einem Anfangs- und Endwert (Umkehrung der Einmalanlage nach dem Zinssatz aufgelöst)
-- Reale (inflationsbereinigte) Rendite aus einer nominalen Rendite (Fisher-Gleichung)
+- Reale (inflationsbereinigte) Rendite aus einer nominalen Rendite (Fisher-Gleichung), sowie eine Variante zusätzlich nach einem frei übergebenen Steuersatz und optionaler Teilfreistellung (kein eingebauter deutscher Steuersatz – der bleibt Feature Finanzen vorbehalten, siehe unten)
 - Kaufkraft eines künftigen nominalen Betrags in heutigem Geld
 
 **Sparpläne** (ebenfalls `growth`):

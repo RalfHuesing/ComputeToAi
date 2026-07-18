@@ -6,6 +6,7 @@ from compute_to_ai.features.calculations.growth import (
     future_value_lump_sum,
     future_value_series,
     inflation_adjusted_withdrawal_for_depletion,
+    net_real_return,
     periods_to_reach_future_value,
     periods_until_depletion,
     present_value_annuity,
@@ -50,6 +51,33 @@ def test_real_rate_of_return_is_zero_when_nominal_equals_inflation() -> None:
 
 def test_real_rate_of_return_equals_nominal_when_inflation_is_zero() -> None:
     assert real_rate_of_return(0.1, 0.0) == pytest.approx(0.1)
+
+
+def test_net_real_return_applies_flat_tax_with_no_exemption_or_inflation() -> None:
+    assert net_real_return(0.08, 0.0, tax_rate=0.25) == pytest.approx(0.06)
+
+
+def test_net_real_return_applies_partial_exemption_to_the_tax_rate() -> None:
+    # 30% tax on a 50%-exempt gain -> effective 15% tax, no inflation.
+    assert net_real_return(0.10, 0.0, tax_rate=0.30, partial_exemption_rate=0.5) == pytest.approx(
+        0.085
+    )
+
+
+def test_net_real_return_composes_with_real_rate_of_return_when_untaxed() -> None:
+    assert net_real_return(0.05, 0.02, tax_rate=0.0) == pytest.approx(
+        real_rate_of_return(0.05, 0.02)
+    )
+
+
+def test_net_real_return_rejects_tax_rate_outside_unit_interval() -> None:
+    with pytest.raises(ValueError, match="tax_rate"):
+        net_real_return(0.05, 0.02, tax_rate=1.5)
+
+
+def test_net_real_return_rejects_partial_exemption_rate_outside_unit_interval() -> None:
+    with pytest.raises(ValueError, match="partial_exemption_rate"):
+        net_real_return(0.05, 0.02, tax_rate=0.25, partial_exemption_rate=-0.1)
 
 
 def test_adjust_for_inflation_matches_present_value_lump_sum() -> None:

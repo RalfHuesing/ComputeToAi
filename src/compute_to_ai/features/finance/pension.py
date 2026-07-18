@@ -8,23 +8,23 @@ from compute_to_ai.engine.plan import Plan
 
 
 def calculate_pension_adjustment_factor(
-    regular_retirement_step: int,
-    actual_retirement_step: int,
+    months_early: float = 0.0,
+    months_late: float = 0.0,
     early_reduction_rate_per_month: float = 0.003,
     early_reduction_cap: float = 0.144,
     late_bonus_rate_per_month: float = 0.005,
 ) -> float:
     """Calculate the one-time Rentenabschlag/-zuschlag adjustment factor.
 
-    One step is one year (12 months), matching the yearly simulation step
-    (Docs/04-Feature-Finanzen-Methodik.md). Claiming early reduces the
-    pension by `early_reduction_rate_per_month` per month, capped at
-    `early_reduction_cap`; deferring increases it by
+    Claiming early reduces the pension by `early_reduction_rate_per_month`
+    per month, capped at `early_reduction_cap`; deferring increases it by
     `late_bonus_rate_per_month` per month, uncapped (Docs/05, sourced in
-    Docs/09-Quellen.md).
+    Docs/09-Quellen.md). Pass only one of months_early/months_late - a claim
+    can't be both early and late at once.
     """
-    months_early = max(0, regular_retirement_step - actual_retirement_step) * 12
-    months_late = max(0, actual_retirement_step - regular_retirement_step) * 12
+    if months_early > 0.0 and months_late > 0.0:
+        msg = "pass only one of months_early or months_late, not both"
+        raise ValueError(msg)
     reduction = min(early_reduction_cap, months_early * early_reduction_rate_per_month)
     bonus = months_late * late_bonus_rate_per_month
     return 1.0 - reduction + bonus
@@ -52,9 +52,13 @@ def add_statutory_pension(
     income stream (see Docs/01-Kern-Domaenenmodell.md, "Effekt-Arten"): a
     GrowingFixedEffect, only the base amount and start step differ.
     """
+    # One step is one year (12 months), matching the yearly simulation step
+    # (Docs/04-Feature-Finanzen-Methodik.md).
+    months_early = max(0, regular_retirement_step - actual_retirement_step) * 12
+    months_late = max(0, actual_retirement_step - regular_retirement_step) * 12
     adjustment_factor = calculate_pension_adjustment_factor(
-        regular_retirement_step=regular_retirement_step,
-        actual_retirement_step=actual_retirement_step,
+        months_early=months_early,
+        months_late=months_late,
         early_reduction_rate_per_month=early_reduction_rate_per_month,
         early_reduction_cap=early_reduction_cap,
         late_bonus_rate_per_month=late_bonus_rate_per_month,

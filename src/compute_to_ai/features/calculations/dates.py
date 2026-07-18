@@ -20,3 +20,21 @@ def age_in_years(birth_date: date, as_of: date) -> int:
     years = as_of.year - birth_date.year
     had_birthday_this_year = (as_of.month, as_of.day) >= (birth_date.month, birth_date.day)
     return years if had_birthday_this_year else years - 1
+
+
+def step_to_age(step: int, current_age: int) -> int:
+    """Age at a given simulation step, given step 0 == current_age and one
+    step == one year (see Docs/04-Feature-Finanzen-Methodik.md) - translates
+    a Plan's 0-based step index into the age a human thinks in."""
+    if step < 0:
+        msg = f"step must be >= 0, got {step}"
+        raise ValueError(msg)
+    return current_age + step
+
+
+def age_to_step(age: int, current_age: int) -> int:
+    """Inverse of step_to_age: the step at which a given age is reached."""
+    if age < current_age:
+        msg = f"age {age} is before current_age {current_age}"
+        raise ValueError(msg)
+    return age - current_age

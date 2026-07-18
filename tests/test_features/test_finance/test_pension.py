@@ -12,35 +12,32 @@ from compute_to_ai.features.finance.pension import (
 from compute_to_ai.features.finance.phases import build_standard_life_phases
 
 
-def test_adjustment_factor_is_one_at_regular_retirement_age() -> None:
-    factor = calculate_pension_adjustment_factor(
-        regular_retirement_step=47, actual_retirement_step=47
-    )
+def test_adjustment_factor_is_one_with_no_early_or_late_months() -> None:
+    factor = calculate_pension_adjustment_factor()
     assert factor == 1.0
 
 
 def test_adjustment_factor_reduces_for_early_claiming() -> None:
     # 4 years early = 48 months * 0.3%/month = 14.4% reduction.
-    factor = calculate_pension_adjustment_factor(
-        regular_retirement_step=47, actual_retirement_step=43
-    )
+    factor = calculate_pension_adjustment_factor(months_early=48)
     assert pytest.approx(factor) == 0.856
 
 
 def test_adjustment_factor_caps_the_early_reduction() -> None:
     # 5 years early would be 18% uncapped; the 14.4% cap applies instead.
-    factor = calculate_pension_adjustment_factor(
-        regular_retirement_step=47, actual_retirement_step=42
-    )
+    factor = calculate_pension_adjustment_factor(months_early=60)
     assert pytest.approx(factor) == 0.856
 
 
 def test_adjustment_factor_increases_for_deferred_claiming() -> None:
     # 2 years late = 24 months * 0.5%/month = 12% bonus, uncapped.
-    factor = calculate_pension_adjustment_factor(
-        regular_retirement_step=47, actual_retirement_step=49
-    )
+    factor = calculate_pension_adjustment_factor(months_late=24)
     assert pytest.approx(factor) == 1.12
+
+
+def test_adjustment_factor_rejects_both_early_and_late_months() -> None:
+    with pytest.raises(ValueError, match="only one"):
+        calculate_pension_adjustment_factor(months_early=12, months_late=12)
 
 
 def test_add_statutory_pension_applies_adjustment_and_starts_on_time() -> None:

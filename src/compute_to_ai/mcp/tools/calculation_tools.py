@@ -9,13 +9,19 @@ reference (no working_directory to inject via a closure).
 from mcp.server.fastmcp import FastMCP
 
 from compute_to_ai.features.calculations.cashflows import effective_annual_rate, xirr
-from compute_to_ai.features.calculations.dates import age_in_years, years_between
+from compute_to_ai.features.calculations.dates import (
+    age_in_years,
+    age_to_step,
+    step_to_age,
+    years_between,
+)
 from compute_to_ai.features.calculations.growth import (
     adjust_for_inflation,
     cagr,
     future_value_lump_sum,
     future_value_series,
     inflation_adjusted_withdrawal_for_depletion,
+    net_real_return,
     periods_to_reach_future_value,
     periods_until_depletion,
     present_value_annuity,
@@ -37,11 +43,14 @@ def register_calculation_tools(mcp: FastMCP) -> None:
     """Register the deterministic calculation tools."""
     mcp.tool(name="calculations_years_between")(years_between)
     mcp.tool(name="calculations_age_in_years")(age_in_years)
+    mcp.tool(name="calculations_step_to_age")(step_to_age)
+    mcp.tool(name="calculations_age_to_step")(age_to_step)
 
     mcp.tool(name="calculations_future_value_lump_sum")(future_value_lump_sum)
     mcp.tool(name="calculations_present_value_lump_sum")(present_value_lump_sum)
     mcp.tool(name="calculations_cagr")(cagr)
     mcp.tool(name="calculations_real_rate_of_return")(real_rate_of_return)
+    mcp.tool(name="calculations_net_real_return")(net_real_return)
     mcp.tool(name="calculations_adjust_for_inflation")(adjust_for_inflation)
 
     mcp.tool(name="calculations_future_value_series")(future_value_series)

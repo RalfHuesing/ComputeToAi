@@ -39,6 +39,35 @@ def adjust_for_inflation(nominal_amount: float, inflation_rate: float, years: fl
     return present_value_lump_sum(nominal_amount, inflation_rate, years)
 
 
+def net_real_return(
+    nominal_return: float,
+    inflation_rate: float,
+    tax_rate: float,
+    partial_exemption_rate: float = 0.0,
+) -> float:
+    """Real rate of return after tax on the gain and inflation.
+
+    tax_rate and partial_exemption_rate are plain parameters, not built-in
+    German tax constants (German tax law belongs to Feature Finanzen, not
+    here - see Docs/06-Feature-Berechnungen.md); a caller wanting German
+    Abgeltungsteuer numbers supplies its rate explicitly. This treats the
+    full nominal gain as taxed in the year it accrues, which approximates
+    but doesn't replace the Vorabpauschale/realization-timing rules Feature
+    Finanzen's tax building block models precisely.
+    """
+    _validate_rate(nominal_return)
+    _validate_rate(inflation_rate)
+    if not 0.0 <= tax_rate <= 1.0:
+        msg = f"tax_rate must be within [0, 1], got {tax_rate}"
+        raise ValueError(msg)
+    if not 0.0 <= partial_exemption_rate <= 1.0:
+        msg = f"partial_exemption_rate must be within [0, 1], got {partial_exemption_rate}"
+        raise ValueError(msg)
+    effective_tax_rate = tax_rate * (1.0 - partial_exemption_rate)
+    net_nominal_return = nominal_return * (1.0 - effective_tax_rate)
+    return real_rate_of_return(net_nominal_return, inflation_rate)
+
+
 def future_value_series(payment_per_period: float, periodic_rate: float, periods: int) -> float:
     """Future value of equal contributions made at the end of each period
     (ordinary annuity), e.g. monthly savings compounding monthly."""

@@ -27,7 +27,10 @@ from compute_to_ai.features.finance.cashflow import (
     add_income_stream,
 )
 from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
-from compute_to_ai.features.finance.pension import add_statutory_pension
+from compute_to_ai.features.finance.pension import (
+    add_statutory_pension,
+    calculate_pension_adjustment_factor,
+)
 from compute_to_ai.features.finance.phases import build_standard_life_phases
 from compute_to_ai.features.finance.portfolio import (
     add_asset_class,
@@ -353,6 +356,29 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         save_plan(working_directory, plan)
         logger.info("finance_add_statutory_pension: plan=%r name=%r status=ok", plan_name, name)
         return f"added statutory pension {name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_calculate_pension_adjustment(  # pyright: ignore[reportUnusedFunction]
+        monthly_amount_at_regular_retirement_age: float,
+        months_early: float = 0.0,
+        months_late: float = 0.0,
+        early_reduction_rate_per_month: float = 0.003,
+        early_reduction_cap: float = 0.144,
+        late_bonus_rate_per_month: float = 0.005,
+    ) -> float:
+        """Adjusted monthly pension for claiming early/late (Rentenabschlag/-zuschlag),
+        without needing a Plan - the same calculation add_statutory_pension applies
+        internally, for a quick standalone check (e.g. "what if I retire 5 years early?").
+        """
+        factor = calculate_pension_adjustment_factor(
+            months_early=months_early,
+            months_late=months_late,
+            early_reduction_rate_per_month=early_reduction_rate_per_month,
+            early_reduction_cap=early_reduction_cap,
+            late_bonus_rate_per_month=late_bonus_rate_per_month,
+        )
+        logger.info("finance_calculate_pension_adjustment: status=ok")
+        return monthly_amount_at_regular_retirement_age * factor
 
 
 def _register_goal_and_monte_carlo_tools(mcp: FastMCP, working_directory: Path) -> None:

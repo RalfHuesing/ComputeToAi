@@ -257,3 +257,24 @@ async def test_finance_add_income_stream_on_unknown_plan_is_a_tool_error(
         )
 
     assert result.isError
+
+
+@pytest.mark.anyio
+async def test_finance_calculate_pension_adjustment_needs_no_plan(
+    server_params: StdioServerParameters,
+) -> None:
+    """A stateless quick-check for "what if I retire 5 years early?" -
+    4 years early (48 months) means the 14.4% cap applies (Docs/09)."""
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        result_text = await _call_ok(
+            session,
+            "finance_calculate_pension_adjustment",
+            monthly_amount_at_regular_retirement_age=1800.0,
+            months_early=48,
+        )
+
+    assert pytest.approx(float(result_text)) == 1800.0 * 0.856
