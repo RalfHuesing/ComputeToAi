@@ -14,22 +14,33 @@ Wie in 02-Architektur-und-MCP.md festgehalten, gibt es kein eigenes „Verifikat
 
 ## Umfang
 
-Acht deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` angeboten (siehe 02-Architektur-und-MCP.md), gegliedert in drei Gruppen:
+17 deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` angeboten (siehe 02-Architektur-und-MCP.md), gegliedert in vier Gruppen. Viele Gruppen enthalten neben der direkten Formel auch deren Umkehrung(en) – gerade bei der Ruhestandsplanung ist meist die umgekehrte Frage die eigentlich interessante („wie viel muss ich sparen", nicht „was ergibt sich aus dieser Sparrate"):
 
-**Datums-/Altersarithmetik**:
+**Datums-/Altersarithmetik** (`compute_to_ai.features.calculations.dates`):
 - Jahre (fraktional) zwischen zwei Datumswerten
 - Alter (in ganzen Jahren) zu einem Stichtag
 
-**Zinseszins & Diskontierung**:
-- Endwert einer Einmalanlage bei fester jährlicher Rendite
-- Barwert eines künftigen Einmalbetrags (Umkehrung der Einmalanlage)
+**Einmalbeträge, Wachstumsraten & Inflation** (`compute_to_ai.features.calculations.growth`):
+- Endwert einer Einmalanlage bei fester jährlicher Rendite, und deren Umkehrung: Barwert eines künftigen Einmalbetrags
+- Durchschnittliche jährliche Wachstumsrate (CAGR) zwischen einem Anfangs- und Endwert (Umkehrung der Einmalanlage nach dem Zinssatz aufgelöst)
+- Reale (inflationsbereinigte) Rendite aus einer nominalen Rendite (Fisher-Gleichung)
+- Kaufkraft eines künftigen nominalen Betrags in heutigem Geld
+
+**Sparpläne** (ebenfalls `growth`):
 - Endwert einer Serie gleichbleibender periodischer Sparraten – z. B. „100 €/Monat über 40 Jahre bei 5 % Rendite"
+- und deren zwei Umkehrungen: nötige Sparrate für ein Zielkapital, sowie nötige Anzahl an Perioden bis zum Zielkapital
+
+**Entnahmepläne / Rentenbarwert** (ebenfalls `growth`):
 - Rentenbarwert (Present Value einer Annuität) einer gleichbleibenden Auszahlungsreihe – z. B. „wie viel Kapital brauche ich für 2.000 €/Monat über 25 Jahre Ruhestand"
+- und deren zwei Umkehrungen: nachhaltige Entnahmehöhe, die ein Kapital über N Perioden exakt aufbraucht, sowie Anzahl an Perioden, bis eine gegebene Entnahmehöhe ein Kapital aufbraucht
 
-**Kreditvergleich**:
-- Monatliche Annuitätsrate eines Kredits fester Laufzeit
-- Gesamtzinsaufwand über die Kreditlaufzeit
+**Kreditvergleich** (`compute_to_ai.features.calculations.loans`):
+- Monatliche Annuitätsrate eines Kredits fester Laufzeit, Gesamtzinsaufwand über die Laufzeit
+- Restschuld nach einer bestimmten Anzahl geleisteter Raten
+- Vollständiger Tilgungsplan (Zins-/Tilgungsanteil je Periode)
 
-Keiner dieser Bausteine kennt Steuern, Inflation oder Korrelation – das bleibt dem Feature Finanzen vorbehalten (siehe 03–05).
+Keiner dieser Bausteine kennt Steuern oder Korrelation zwischen Anlageklassen – das bleibt dem Feature Finanzen vorbehalten (siehe 03–05); Inflation dagegen ist als eigenständige, von der Finanzen-Domäne unabhängige Größe bewusst Teil dieses Features.
 
 **Bewusst kein eigener Baustein „Leasing vs. Kauf"**: Ein solcher Vergleich ist keine eigenständige Formel, sondern eine Komposition der obigen Bausteine (Kreditrate, Endwert des alternativ investierten Eigenkapitals, Barwert eines Restwerts). Ein dediziertes Tool würde Annahmen (Restwert, Anlagerendite des Eigenkapitals) fest verdrahten und wäre damit weniger granular und komponierbar, als es „Rolle bei der Plausibilitätsprüfung" oben verlangt – ein solcher Vergleich entsteht stattdessen, indem der Agent die granularen Bausteine selbst kombiniert.
+
+**Bewusst (noch) nicht enthalten**: deutsche Steuerformeln (Abgeltungsteuer, Vorabpauschale, nachgelagerte Rentenbesteuerung) und der Effekt einer Kredit-Sondertilgung – beides ist explizit Teil des Feature Finanzen (siehe 03-Feature-Finanzen-Domaenenmodell.md bzw. 10-Roadmap.md) und unterliegt zusätzlich der Quellentreue-Pflicht für Steuer-/Rentenrecht (siehe CLAUDE.md); Portfolio-Kennzahlen, die eine Korrelationsmatrix mehrerer Anlageklassen voraussetzen (z. B. erwartete Portfolio-Volatilität) – ebenfalls Feature-Finanzen-Scope (Anlageklassen-Korrelation, siehe 10-Roadmap.md).
