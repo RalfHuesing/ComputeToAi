@@ -8,12 +8,14 @@ reference (no working_directory to inject via a closure).
 
 from mcp.server.fastmcp import FastMCP
 
+from compute_to_ai.features.calculations.cashflows import effective_annual_rate, xirr
 from compute_to_ai.features.calculations.dates import age_in_years, years_between
 from compute_to_ai.features.calculations.growth import (
     adjust_for_inflation,
     cagr,
     future_value_lump_sum,
     future_value_series,
+    inflation_adjusted_withdrawal_for_depletion,
     periods_to_reach_future_value,
     periods_until_depletion,
     present_value_annuity,
@@ -24,6 +26,7 @@ from compute_to_ai.features.calculations.growth import (
 )
 from compute_to_ai.features.calculations.loans import (
     loan_amortization_schedule,
+    loan_amortization_schedule_with_extra_payments,
     loan_monthly_payment,
     loan_remaining_balance,
     loan_total_interest,
@@ -52,8 +55,17 @@ def register_calculation_tools(mcp: FastMCP) -> None:
         sustainable_withdrawal_for_depletion
     )
     mcp.tool(name="calculations_periods_until_depletion")(periods_until_depletion)
+    mcp.tool(name="calculations_inflation_adjusted_withdrawal_for_depletion")(
+        inflation_adjusted_withdrawal_for_depletion
+    )
 
     mcp.tool(name="calculations_loan_monthly_payment")(loan_monthly_payment)
     mcp.tool(name="calculations_loan_total_interest")(loan_total_interest)
     mcp.tool(name="calculations_loan_remaining_balance")(loan_remaining_balance)
     mcp.tool(name="calculations_loan_amortization_schedule")(loan_amortization_schedule)
+    mcp.tool(name="calculations_loan_amortization_schedule_with_extra_payments")(
+        loan_amortization_schedule_with_extra_payments
+    )
+
+    mcp.tool(name="calculations_xirr")(xirr)
+    mcp.tool(name="calculations_effective_annual_rate")(effective_annual_rate)

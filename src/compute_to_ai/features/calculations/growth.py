@@ -129,6 +129,24 @@ def periods_until_depletion(
     return -math.log(remaining_share) / math.log(1 + periodic_rate)
 
 
+def inflation_adjusted_withdrawal_for_depletion(
+    available_capital: float, nominal_rate: float, inflation_rate: float, periods: int
+) -> float:
+    """Starting withdrawal that exactly depletes available_capital over
+    `periods` periods when the withdrawal itself grows by inflation_rate
+    every subsequent period, keeping it level in real (purchasing-power)
+    terms - the inflation-indexed sibling of
+    sustainable_withdrawal_for_depletion, which assumes a flat, non-
+    growing withdrawal instead."""
+    _validate_rate(nominal_rate)
+    _validate_rate(inflation_rate)
+    _validate_positive(periods, "periods")
+    if nominal_rate == inflation_rate:
+        return available_capital / periods
+    real_growth_ratio = (1 + inflation_rate) / (1 + nominal_rate)
+    return available_capital * (nominal_rate - inflation_rate) / (1 - real_growth_ratio**periods)
+
+
 def _validate_rate(rate: float) -> None:
     if rate <= -1:
         msg = f"rate must be > -1 (a loss of 100% or more), got {rate}"

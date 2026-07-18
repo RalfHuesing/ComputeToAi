@@ -5,6 +5,7 @@ from compute_to_ai.features.calculations.growth import (
     cagr,
     future_value_lump_sum,
     future_value_series,
+    inflation_adjusted_withdrawal_for_depletion,
     periods_to_reach_future_value,
     periods_until_depletion,
     present_value_annuity,
@@ -133,3 +134,14 @@ def test_periods_until_depletion_rejects_a_withdrawal_that_never_depletes_capita
     never catches up."""
     with pytest.raises(ValueError, match="never depletes"):
         periods_until_depletion(1000.0, 0.10, 50.0)
+
+
+def test_inflation_adjusted_withdrawal_matches_flat_withdrawal_without_inflation() -> None:
+    flat = sustainable_withdrawal_for_depletion(10_000.0, 0.05, 20)
+    inflation_indexed = inflation_adjusted_withdrawal_for_depletion(10_000.0, 0.05, 0.0, 20)
+
+    assert inflation_indexed == pytest.approx(flat)
+
+
+def test_inflation_adjusted_withdrawal_at_equal_nominal_and_inflation_rate() -> None:
+    assert inflation_adjusted_withdrawal_for_depletion(1200.0, 0.03, 0.03, 12) == 100.0
