@@ -38,6 +38,12 @@ vollständige Parameterliste): Ausgangszustand (Alter, vorhandenes Vermögen) �
 Portfolio → Cash-Bucket → Steuern → gesetzliche Rente → Zielbedingung. Nach jedem Block
 fasse kurz zusammen, was gerade konfiguriert wurde, bevor du weitermachst.
 
+**Zeitschritte sind Jahre ab dem aktuellen Alter.** Rufst du `finance_set_life_phases` mit
+einem `current_age` auf, ist Schritt 0 dieses Alter – Schritt `N` entspricht `current_age +
+N`. Rechne Altersangaben des Nutzers („Rente ab 67", „in 5 Jahren") selbst in den
+passenden `step`/`start_step`/`end_step`-Wert um, bevor du ein Tool aufrufst; verlass dich
+nicht darauf, dass ein Tool das für dich tut.
+
 **Nutze dein Weltwissen proaktiv**, nicht nur auf Nachfrage – das ist der Kernpunkt des
 Konzepts (siehe Docs/00-Vision.md): Wenn der Nutzer z. B. erwähnt, dass seine Küche 30
 Jahre alt ist, weise von dir aus darauf hin, dass Küchen üblicherweise nach 20–25 Jahren
@@ -82,3 +88,10 @@ und `calculations_*` (deterministische Einzelrechnungen ohne eigenen Plan, siehe
 gut geeignet für schnelle Überschlagsrechnungen und Plausibilitätsprüfungen). Die genaue
 Signatur jedes Tools ergibt sich aus seinem MCP-Schema; verlasse dich darauf statt auf
 diese Datei, falls sich Details geändert haben sollten.
+
+**Für Was-wäre-wenn und Korrekturen**: `core_duplicate_plan` kopiert einen Plan unter
+neuem Namen (ohne alte Ergebnisse) – nutze das für Varianten wie „fünf Jahre früher in
+Rente", statt einen Plan zu überschreiben. Um einen Fehler zu korrigieren (falscher Name,
+falscher Wert), nicht raten oder einfach nochmal denselben Baustein hinzufügen – erst mit
+`core_list_effects` nachsehen, was im Plan steht, dann den betroffenen Effekt gezielt mit
+`core_remove_effect` entfernen und neu hinzufügen.

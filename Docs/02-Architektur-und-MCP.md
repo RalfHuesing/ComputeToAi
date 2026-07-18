@@ -20,7 +20,7 @@ Anders als eine reine, unverbindliche Frühphasen-Idee sind die folgenden Punkte
 
 Damit ein Agent nicht mit einer sehr großen Zahl flacher Funktionen überfordert wird, sind die MCP-Tools in Kategorien gegliedert, angelehnt an die Struktur dieses Konzepts:
 
-- **Kern-Tools**: Plan anlegen/kopieren/löschen, Speicher/Effekt hinzufügen oder ändern, Simulation starten, Ergebnis abfragen.
+- **Kern-Tools**: Plan anlegen/kopieren/umbenennen/löschen, Speicher/Effekt hinzufügen, auflisten, gezielt entfernen (`core_list_stores`/`core_list_effects`/`core_remove_effect`), Simulation starten, Ergebnis abfragen. „Ändern" ist bewusst kein implizites Upsert-by-Name beim erneuten Hinzufügen – zwei absichtlich gleichnamige Effekte sollen nicht überraschend kollidieren –, sondern entfernen und neu hinzufügen, gestützt auf die Auflistungs-Tools.
 - **Feature-Tools je aktiviertem Modul**: z. B. Finanzen-Tools (Haushalt/Person anlegen, Einkommensstrom hinzufügen, Baustein „Korrelierte Anlageklassen" aktivieren), Berechnungen-Tools (siehe 06-Feature-Berechnungen.md).
 - **Verwaltungs-Tools**: Profile/Beispielvorlagen laden, Regelwerk-Templates einspielen, Schema-Selbstbeschreibung abfragen.
 
