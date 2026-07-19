@@ -189,6 +189,13 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
   - [ ] **Finance-Erweiterung (`compute_to_ai.features.finance`)**: `add_expense` / `finance_add_expense` (sowie `add_income_stream`) unterstützen den Parameter `frequency` (`"monthly"`, `"quarterly"`, `"yearly"`, `"every_n_years"`) inklusive automatischer Umrechnung von Monatsbeträgen auf die Jahres-Schrittweite der Simulation.
   - [ ] **Wachstums- & Inflationskopplung**: Wahlmöglichkeit zwischen eigener Steigerungsrate (z. B. KFZ-Versicherungsindex) oder dynamischer Anbindung an die allgemeine Plan-Inflation.
   - [ ] **Unit- & E2E-Tests**: Abdeckung von monatlichen Dauerläufern sowie mehrjährigen Turnusausgaben (z. B. 3-Jahres-Takt) inklusive Pfad-Audit-Klassifikation.
+- [ ] **Epic 4.12 – Refactoring & Plan-Audit-Bereinigungen (Code-Review-Erkenntnisse)**
+  - [ ] **Phasenübergang Renteneintritt (Step 20)**: Off-by-one im Plan-Audit prüfen und bereinigen, da im Übergangsjahr "Gehalt Netto" und "Gesetzliche Rente Netto" gleichzeitig greifen.
+  - [ ] **Rentenlücken-Komponente**: Dokumentieren bzw. klarstellen, dass die Komponente nur wiederkehrende Cashflows (Grundausgaben vs. Rente) berücksichtigt, nicht aber Einmalposten (z. B. Autokäufe) und Steuern.
+  - [ ] **Timeline vs. Phasen-Ende**: Harmonisierung von Timeline (läuft bis Step 49) und Lebensphasen-Ende (Step 43 / Alter 90); Entgegenwirken des Effekts, dass nach Step 43 mangels aktiver Phase der Notgroschen des Cash-Buckets auf 0 fällt und ins Depot umgeschichtet wird.
+  - [ ] **Veralteter Rebalancing-Effekt**: Überprüfen und Entfernen des ungenutzten "BIP Portfolio Rebalancing (50/35/15)"-Effekts, der auf leere Alt-Platzhalter-Stores zielt.
+  - [ ] **Unberührte Speicher bereinigen**: Überprüfung der von keinem Effekt berührten Speicher (Girokonto, Bargeld, Smartbroker+ sowie vier leere Asset-Klassen-Platzhalter) – Konsolidierung oder explizite Dokumentation als bewusste Platzhalter.
+
 
 
 ## Meilenstein 5 – Benutzerprofil-Speicher & Prompt-Restrukturierung (Lebensberater)
