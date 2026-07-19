@@ -154,8 +154,8 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 - [x] **Epic 4.2 – Wertpapier-Metadaten je Speicher, persistiert neben dem Plan** (`compute_to_ai.features.finance`)
   - [x] Neues, ausschließlich Finance-seitiges Modell (z. B. `PositionMetadata`: ISIN/WKN, Stückzahl, Börsenplatz, Zeitstempel der letzten Kurs-Aktualisierung), je Speicher-Name in einer eigenen JSON-Datei neben `plan.json` gehalten – über den bereits vorhandenen generischen `save_result`/`load_result`-Mechanismus (`plan_storage.py`), ohne den domänenneutralen `Store`/`Plan` im Kern um finanzspezifische Felder zu erweitern.
   - [x] Ein Speicher ohne hinterlegte Metadaten bleibt unverändert rein manuell geführt (kein Zwang, jede Anlageklasse/Position darüber zu pflegen).
-- [ ] **Epic 4.3 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
-  - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, store_name, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Marktwert (`shares * price`) berechnet, den Startwert des Speichers setzt und den Metadaten-Eintrag aus Epic 4.2 anlegt.
+- [x] **Epic 4.3 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
+  - [x] Neues MCP-Tool `finance_set_asset_shares(plan_name, store_name, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Marktwert (`shares * price`) berechnet, den Startwert des Speichers setzt und den Metadaten-Eintrag aus Epic 4.2 anlegt.
 - [ ] **Epic 4.4 – Manueller Update-Check (`finance_update_plan_prices`)**
   - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das für jeden Speicher mit hinterlegten Metadaten (Epic 4.2) den aktuellen Kurs abfragt, den Saldo neu berechnet (`shares * aktueller Kurs`) und den Plan speichert (löst das Problem des „Alterns von Plänen" teil-automatisiert, siehe 08-Offene-Fragen.md).
   - [ ] Ausschließlich auf expliziten Aufruf hin – **nicht** Teil von `core_run_simulation` oder `finance_run_monte_carlo`, damit ein Simulationslauf reproduzierbar bleibt und nicht heimlich mit aktualisierten Kursen rechnet.

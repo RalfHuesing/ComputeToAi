@@ -47,6 +47,7 @@ from compute_to_ai.features.finance.portfolio import (
     add_portfolio_rebalancing,
     set_correlation_matrix,
 )
+from compute_to_ai.features.finance.position import PositionMetadata, set_position_balance
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 from compute_to_ai.mcp.tools.plan_storage import (
     PATH_AUDIT_RESULT_FILENAME,
@@ -56,6 +57,7 @@ from compute_to_ai.mcp.tools.plan_storage import (
     save_plan,
     save_result,
 )
+from compute_to_ai.mcp.tools.position_storage import load_position_registry, save_position_registry
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,7 @@ _MONTE_CARLO_RESULT_FILENAME = "monte_carlo_result.json"
 
 def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     """Register the finance building-block, goal-condition, and Monte-Carlo tools."""
-    _register_live_price_tools(mcp)
+    _register_live_price_tools(mcp, working_directory)
     _register_phase_tools(mcp, working_directory)
     _register_cashflow_tools(mcp, working_directory)
     _register_liability_tools(mcp, working_directory)
@@ -74,7 +76,7 @@ def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     _register_path_audit_tools(mcp, working_directory)
 
 
-def _register_live_price_tools(mcp: FastMCP) -> None:
+def _register_live_price_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_get_live_price(  # pyright: ignore[reportUnusedFunction]
         isin_or_wkn: str, exchange: str = "Xetra"
@@ -92,6 +94,58 @@ def _register_live_price_tools(mcp: FastMCP) -> None:
         )
         logger.debug("finance_get_live_price result: %s", result.model_dump())
         return result
+
+    @mcp.tool()
+    def finance_set_asset_shares(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        store_name: str,
+        shares: float,
+        isin_or_wkn: str,
+        exchange: str = "Xetra",
+    ) -> str:
+        """Initialize/replace a position's balance from a live-quoted share count.
+
+        Fully replaces the store's balance/lots on every call - `shares` is
+        always the current total share count, not a delta (see
+        Docs/03-Feature-Finanzen-Domaenenmodell.md, "Position (ETF-/Fondsanteil,
+        Konto)"). The target store must already exist in the plan (e.g. via
+        finance_add_asset_class).
+        """
+        plan = load_plan(working_directory, plan_name)
+        if store_name not in {store.name for store in plan.stores}:
+            msg = (
+                f"no store named {store_name!r} in plan {plan_name!r}; "
+                "add it first with finance_add_asset_class"
+            )
+            raise ValueError(msg)
+
+        price_info = get_live_price(isin_or_wkn, exchange)
+        set_position_balance(plan.store(store_name), shares, price_info.price)
+        save_plan(working_directory, plan)
+
+        registry = load_position_registry(working_directory, plan_name)
+        registry.positions[store_name] = PositionMetadata(
+            isin_or_wkn=isin_or_wkn,
+            shares=shares,
+            exchange=exchange,
+            last_updated=price_info.queried_at,
+        )
+        save_position_registry(working_directory, plan_name, registry)
+
+        logger.info(
+            "finance_set_asset_shares: plan=%r store=%r status=ok", plan_name, store_name
+        )
+        logger.debug(
+            "finance_set_asset_shares: shares=%s price=%s market_value=%s",
+            shares,
+            price_info.price,
+            shares * price_info.price,
+        )
+        return (
+            f"set {store_name!r} in plan {plan_name!r} to {shares} shares of {isin_or_wkn!r} "
+            f"at {price_info.price} {price_info.currency} "
+            f"(market value {shares * price_info.price:.2f} {price_info.currency})"
+        )
 
 
 def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:
