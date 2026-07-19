@@ -31,9 +31,7 @@ def test_growing_fixed_effect_compounds_growth() -> None:
         name="growing-fixed",
         timeline=Timeline(step_count=2),
         stores=[Store(name="cash", balance=0.0)],
-        effects=[
-            GrowingFixedEffect(store_name="cash", amount_per_step=100.0, growth_rate=0.1)
-        ],
+        effects=[GrowingFixedEffect(store_name="cash", amount_per_step=100.0, growth_rate=0.1)],
     )
 
     result = run_simulation(plan)
@@ -147,12 +145,8 @@ def test_effects_limited_by_phases() -> None:
             Phase(name="PhaseB", start_step=1, end_step=3),
         ],
         effects=[
-            GrowingFixedEffect(
-                store_name="cash", amount_per_step=10.0, active_phases=["PhaseA"]
-            ),
-            GrowingFixedEffect(
-                store_name="cash", amount_per_step=20.0, active_phases=["PhaseB"]
-            ),
+            GrowingFixedEffect(store_name="cash", amount_per_step=10.0, active_phases=["PhaseA"]),
+            GrowingFixedEffect(store_name="cash", amount_per_step=20.0, active_phases=["PhaseB"]),
         ],
     )
 
@@ -586,3 +580,25 @@ def test_run_path_audit_produces_instrumented_percentile_and_deterministic_paths
     assert audit.paths["deterministic"].final_balances == pytest.approx(
         det_reference.final_balances
     )
+
+
+def test_simulation_is_thread_safe() -> None:
+    import concurrent.futures
+
+    plan = Plan(
+        name="thread-safe-test",
+        timeline=Timeline(step_count=10),
+        stores=[Store(name="cash", balance=100.0)],
+        effects=[GrowingFixedEffect(store_name="cash", amount_per_step=10.0)],
+    )
+
+    def run_one(_: int) -> float:
+        result = run_simulation(plan)
+        return result.final_balances["cash"]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(run_one, range(20)))
+
+    # All runs must produce the correct results (100 + 10 * 10 = 200)
+    for res in results:
+        assert res == 200.0

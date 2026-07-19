@@ -8,7 +8,14 @@ import copy
 
 import numpy as np
 
-from compute_to_ai.engine.effect import Effect
+from compute_to_ai.engine.effect import (
+    ComputedEffect,
+    CorrelatedReturnEffect,
+    Effect,
+    GrowingFixedEffect,
+    PercentageGrowthEffect,
+    TransferEffect,
+)
 from compute_to_ai.engine.plan import CorrelationGroup, Plan
 from compute_to_ai.engine.result import (
     ComputedEffectFinalState,
@@ -29,7 +36,7 @@ def _ledger_entry(
         step=t,
         effect_name=effect.name if effect.name is not None else eff_type,
         effect_type=eff_type,
-        function_name=getattr(effect, "function_name", None),
+        function_name=effect.function_name if isinstance(effect, ComputedEffect) else None,
         store_name=store_name,
         delta=delta,
     )
@@ -54,24 +61,77 @@ def _record_ledger_entry(
 
 
 def _apply_transfer_effect(
-    effect: Effect,
+    effect: TransferEffect,
     t: int,
     fixed_additions: dict[str, float],
     ledger: list[LedgerEntry] | None = None,
 ) -> None:
     """Add a TransferEffect's per-step contribution to `fixed_additions` in place."""
-    from_name = getattr(effect, "from_store_name", None)
-    amount = getattr(effect, "amount_per_step", 0.0)
-    rate = getattr(effect, "growth_rate", 0.0)
+    from_name = effect.from_store_name
+    amount = effect.amount_per_step
+    rate = effect.growth_rate
     val = amount * ((1.0 + rate) ** t)
-    if isinstance(from_name, str) and from_name in fixed_additions:
+    if from_name in fixed_additions:
         fixed_additions[from_name] -= val
         _record_ledger_entry(ledger, effect, "transfer", t, from_name, -val)
-    for to_name, weight in getattr(effect, "to_store_weights", {}).items():
+    for to_name, weight in effect.to_store_weights.items():
         if to_name in fixed_additions:
             contribution = val * weight
             fixed_additions[to_name] += contribution
             _record_ledger_entry(ledger, effect, "transfer", t, to_name, contribution)
+
+
+def _apply_phase1_effect(
+    effect: Effect,
+    t: int,
+    drawn_rates: dict[str, np.ndarray] | None,
+    store_balances: dict[str, float],
+    fixed_additions: dict[str, float],
+    total_growth_rates: dict[str, float],
+    ledger: list[LedgerEntry] | None = None,
+) -> None:
+    """Apply a single Phase 1 effect's changes to additions and growth rates."""
+    if isinstance(effect, TransferEffect):
+        _apply_transfer_effect(effect, t, fixed_additions, ledger)
+        return
+
+    if isinstance(effect, GrowingFixedEffect):
+        store_name = effect.store_name
+        if store_name in fixed_additions:
+            amount = effect.amount_per_step
+            rate = effect.growth_rate
+            val = amount * ((1.0 + rate) ** t)
+            fixed_additions[store_name] += val
+            _record_ledger_entry(ledger, effect, "growing_fixed", t, store_name, val)
+    elif isinstance(effect, PercentageGrowthEffect):
+        store_name = effect.store_name
+        if store_name in fixed_additions:
+            rate = effect.growth_rate
+            total_growth_rates[store_name] += rate
+            _record_ledger_entry(
+                ledger,
+                effect,
+                "percentage_growth",
+                t,
+                store_name,
+                store_balances.get(store_name, 0.0) * rate,
+            )
+    elif isinstance(effect, CorrelatedReturnEffect):
+        store_name = effect.store_name
+        if store_name in fixed_additions:
+            if drawn_rates is not None and store_name in drawn_rates:
+                rate = float(drawn_rates[store_name][t])
+            else:
+                rate = effect.expected_return
+            total_growth_rates[store_name] += rate
+            _record_ledger_entry(
+                ledger,
+                effect,
+                "correlated_return",
+                t,
+                store_name,
+                store_balances.get(store_name, 0.0) * rate,
+            )
 
 
 def _calculate_phase1_updates(
@@ -90,37 +150,15 @@ def _calculate_phase1_updates(
     for effect in effects:
         if not effect.is_active(t, active_phase):
             continue
-
-        eff_type = getattr(effect, "type", None)
-        if eff_type == "transfer":
-            _apply_transfer_effect(effect, t, fixed_additions, ledger)
-            continue
-
-        store_name = getattr(effect, "store_name", None)
-        if not isinstance(store_name, str) or store_name not in fixed_additions:
-            continue
-
-        if eff_type == "growing_fixed":
-            amount = getattr(effect, "amount_per_step", 0.0)
-            rate = getattr(effect, "growth_rate", 0.0)
-            val = amount * ((1.0 + rate) ** t)
-            fixed_additions[store_name] += val
-            _record_ledger_entry(ledger, effect, eff_type, t, store_name, val)
-        elif eff_type == "percentage_growth":
-            rate = getattr(effect, "growth_rate", 0.0)
-            total_growth_rates[store_name] += rate
-            _record_ledger_entry(
-                ledger, effect, eff_type, t, store_name, store_balances.get(store_name, 0.0) * rate
-            )
-        elif eff_type == "correlated_return":
-            if drawn_rates is not None and store_name in drawn_rates:
-                rate = float(drawn_rates[store_name][t])
-            else:
-                rate = getattr(effect, "expected_return", 0.0)
-            total_growth_rates[store_name] += rate
-            _record_ledger_entry(
-                ledger, effect, eff_type, t, store_name, store_balances.get(store_name, 0.0) * rate
-            )
+        _apply_phase1_effect(
+            effect,
+            t,
+            drawn_rates,
+            store_balances,
+            fixed_additions,
+            total_growth_rates,
+            ledger,
+        )
 
     return fixed_additions, total_growth_rates
 
@@ -151,12 +189,12 @@ def _default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
     """
     referenced: dict[str, list[str]] = {}
     for effect in plan.effects:
-        if getattr(effect, "type", None) != "correlated_return":
+        if not isinstance(effect, CorrelatedReturnEffect):
             continue
-        group_name = getattr(effect, "correlation_group", "")
+        group_name = effect.correlation_group
         if group_name in plan.correlation_groups:
             continue
-        store_name = getattr(effect, "store_name", "")
+        store_name = effect.store_name
         stores = referenced.setdefault(group_name, [])
         if store_name not in stores:
             stores.append(store_name)
@@ -190,16 +228,16 @@ def _pre_draw_correlated_returns(
             effect = None
             for eff in plan.effects:
                 if (
-                    getattr(eff, "type", None) == "correlated_return"
-                    and getattr(eff, "store_name", None) == store_name
-                    and getattr(eff, "correlation_group", None) == group_name
+                    isinstance(eff, CorrelatedReturnEffect)
+                    and eff.store_name == store_name
+                    and eff.correlation_group == group_name
                 ):
                     effect = eff
                     break
 
             if effect is not None:
-                means[idx] = getattr(effect, "expected_return", 0.0)
-                vols[idx] = getattr(effect, "volatility", 0.0)
+                means[idx] = effect.expected_return
+                vols[idx] = effect.volatility
             else:
                 msg = (
                     f"Store {store_name!r} in correlation group {group_name!r} "
@@ -233,11 +271,11 @@ def _execute_computed_effects(
 ) -> None:
     """Execute computed effects (sorted by `order`) and update balances/lots in sim_stores."""
     current_balances = {name: store.balance for name, store in sim_stores.items()}
-    computed = [e for e in effects if getattr(e, "type", None) == "computed"]
-    for effect in sorted(computed, key=lambda e: getattr(e, "order", 0)):
+    computed = [e for e in effects if isinstance(e, ComputedEffect)]
+    for effect in sorted(computed, key=lambda e: e.order):
         if effect.is_active(t, active_phase):
-            func_name = getattr(effect, "function_name", "")
-            params = getattr(effect, "parameters", {})
+            func_name = effect.function_name
+            params = effect.parameters
 
             from compute_to_ai.engine.effect import COMPUTED_EFFECT_REGISTRY
 
@@ -301,14 +339,14 @@ def _collect_computed_effect_final_states(effects: list[Effect]) -> list[Compute
     """
     states: list[ComputedEffectFinalState] = []
     for effect in effects:
-        if getattr(effect, "type", None) != "computed":
+        if not isinstance(effect, ComputedEffect):
             continue
-        func_name = getattr(effect, "function_name", "")
+        func_name = effect.function_name
         states.append(
             ComputedEffectFinalState(
                 effect_name=effect.name if effect.name is not None else func_name,
                 function_name=func_name,
-                parameters=dict(getattr(effect, "parameters", {})),
+                parameters=dict(effect.parameters),
             )
         )
     return states
@@ -341,65 +379,58 @@ def _run_single_simulation(
         computed_effect_final_states: post-run `parameters` state of every
             ComputedEffect, populated only if `record_ledger` is True
     """
-    sim_stores = {store.name: copy.deepcopy(store) for store in plan.stores}
+    sim_plan = copy.deepcopy(plan)
+    sim_stores = {store.name: store for store in sim_plan.stores}
     time_series: list[dict[str, float]] = []
     ledger: list[LedgerEntry] = []
     ruin_step: int | None = None
     ruin_shortfall: float | None = None
     store_names = list(sim_stores.keys())
 
-    # Temporarily substitute simulation-cloned stores and effects into the plan.
-    # Effects are cloned too because a ComputedEffect may use its own `parameters`
-    # dict as run-scoped state (e.g. a one-time trigger flag) - without a deep
-    # copy, that state would leak into every subsequent Monte-Carlo run.
-    original_stores = plan.stores
-    original_effects = plan.effects
-    plan.stores = list(sim_stores.values())
-    plan.effects = copy.deepcopy(plan.effects)
+    for t in range(sim_plan.timeline.step_count):
+        active_phase = sim_plan.get_active_phase_name(t)
+        for store in sim_stores.values():
+            store.withdrawn_lots_this_step = []
 
-    try:
-        for t in range(plan.timeline.step_count):
-            active_phase = plan.get_active_phase_name(t)
-            for store in sim_stores.values():
-                store.withdrawn_lots_this_step = []
-
-            # Phase 1: Growth and fixed additive effects
-            store_balances_before = {name: store.balance for name, store in sim_stores.items()}
-            fixed_additions, total_growth_rates = _calculate_phase1_updates(
-                plan.effects,
-                t,
-                active_phase,
-                drawn_rates,
-                store_names,
-                store_balances_before,
-                ledger if record_ledger else None,
-            )
-
-            # Apply Phase 1 updates to simulated stores
-            for name, store in sim_stores.items():
-                if total_growth_rates[name] != 0.0:
-                    store.apply_percentage_growth(total_growth_rates[name])
-                if fixed_additions[name] != 0.0:
-                    store.add_amount(fixed_additions[name], t)
-
-            # Phase 2: Computed effects (registered python functions)
-            _execute_computed_effects(
-                plan.effects, sim_stores, t, active_phase, plan, ledger if record_ledger else None
-            )
-
-            # Check for ruin (against pre-cap balances), then cap balances at 0
-            ruin_step, ruin_shortfall = _cap_and_check_ruin(
-                sim_stores, plan, t, ruin_step, ruin_shortfall
-            )
-
-            time_series.append({name: store.balance for name, store in sim_stores.items()})
-
-        computed_effect_final_states = (
-            _collect_computed_effect_final_states(plan.effects) if record_ledger else []
+        # Phase 1: Growth and fixed additive effects
+        store_balances_before = {name: store.balance for name, store in sim_stores.items()}
+        fixed_additions, total_growth_rates = _calculate_phase1_updates(
+            sim_plan.effects,
+            t,
+            active_phase,
+            drawn_rates,
+            store_names,
+            store_balances_before,
+            ledger if record_ledger else None,
         )
-    finally:
-        plan.stores = original_stores
-        plan.effects = original_effects
+
+        # Apply Phase 1 updates to simulated stores
+        for name, store in sim_stores.items():
+            if total_growth_rates[name] != 0.0:
+                store.apply_percentage_growth(total_growth_rates[name])
+            if fixed_additions[name] != 0.0:
+                store.add_amount(fixed_additions[name], t)
+
+        # Phase 2: Computed effects (registered python functions)
+        _execute_computed_effects(
+            sim_plan.effects,
+            sim_stores,
+            t,
+            active_phase,
+            sim_plan,
+            ledger if record_ledger else None,
+        )
+
+        # Check for ruin (against pre-cap balances), then cap balances at 0
+        ruin_step, ruin_shortfall = _cap_and_check_ruin(
+            sim_stores, sim_plan, t, ruin_step, ruin_shortfall
+        )
+
+        time_series.append({name: store.balance for name, store in sim_stores.items()})
+
+    computed_effect_final_states = (
+        _collect_computed_effect_final_states(sim_plan.effects) if record_ledger else []
+    )
 
     final_balances = {name: store.balance for name, store in sim_stores.items()}
     return (
@@ -418,8 +449,8 @@ def run_simulation(plan: Plan, record_ledger: bool = False) -> SimulationResult:
     `record_ledger=True` additionally instruments the run with a per-step
     ledger and computed-effect final states (see Docs/01, "Ledger").
     """
-    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = (
-        _run_single_simulation(plan, None, record_ledger)
+    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = _run_single_simulation(
+        plan, None, record_ledger
     )
     return SimulationResult(
         final_balances=final_balances,
@@ -536,8 +567,8 @@ def run_monte_carlo_path(
     group_draws = _pre_draw_correlated_returns(plan, all_groups, num_runs, rng)
     run_drawn_rates = _drawn_rates_for_run(all_groups, group_draws, run_idx)
 
-    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = (
-        _run_single_simulation(plan, run_drawn_rates, record_ledger=True)
+    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = _run_single_simulation(
+        plan, run_drawn_rates, record_ledger=True
     )
     return SimulationResult(
         final_balances=final_balances,
