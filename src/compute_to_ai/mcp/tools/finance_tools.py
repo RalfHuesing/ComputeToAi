@@ -38,6 +38,7 @@ from compute_to_ai.features.finance.pension import (
     calculate_pension_adjustment_factor,
 )
 from compute_to_ai.features.finance.phases import build_standard_life_phases
+from compute_to_ai.features.finance.compare import compare_plans
 from compute_to_ai.features.finance.portfolio import (
     add_asset_class,
     add_cash_bucket,
@@ -551,3 +552,29 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
             len(findings),
         )
         return {"findings": [finding.model_dump() for finding in findings]}
+
+    @mcp.tool()
+    def finance_compare_plans(  # pyright: ignore[reportUnusedFunction]
+        plan_name_a: str, plan_name_b: str
+    ) -> dict[str, Any]:
+        """Compare two plans, identifying configuration changes and simulation outcome deltas.
+
+        Returns a detailed diff of stores, effects, phases, and (if simulations
+        have been run) Monte Carlo probability and balance deltas.
+        """
+        plan_a = load_plan(working_directory, plan_name_a)
+        plan_b = load_plan(working_directory, plan_name_b)
+
+        try:
+            result_a = load_result(working_directory, plan_name_a, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult)
+        except Exception:
+            result_a = None
+
+        try:
+            result_b = load_result(working_directory, plan_name_b, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult)
+        except Exception:
+            result_b = None
+
+        comparison = compare_plans(plan_a, result_a, plan_b, result_b)
+        logger.info("finance_compare_plans: plan_a=%r plan_b=%r status=ok", plan_name_a, plan_name_b)
+        return comparison
