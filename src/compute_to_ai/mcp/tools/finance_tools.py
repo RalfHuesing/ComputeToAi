@@ -14,6 +14,7 @@ carry the full arguments/results (see "Logging" in Docs/02 and
 
 import logging
 import urllib.error
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -22,6 +23,7 @@ from mcp.server.fastmcp import FastMCP
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.result import MonteCarloResult, PathAuditResult, SimulationResult
 from compute_to_ai.engine.simulation import run_monte_carlo
+from compute_to_ai.features.calculations.holdings import ShareTransaction, shares_from_transactions
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
     add_fixed_acquisition,
@@ -51,8 +53,13 @@ from compute_to_ai.features.finance.portfolio import (
 from compute_to_ai.features.finance.position import (
     PositionMetadata,
     PositionPriceUpdate,
+    PositionTransaction,
     PriceUpdateResult,
+    add_position,
     apply_price_update,
+    apply_transaction_history,
+    list_positions,
+    remove_position,
     set_position_balance,
 )
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
@@ -74,6 +81,7 @@ _MONTE_CARLO_RESULT_FILENAME = "monte_carlo_result.json"
 def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     """Register the finance building-block, goal-condition, and Monte-Carlo tools."""
     _register_live_price_tools(mcp, working_directory)
+    _register_position_tools(mcp, working_directory)
     _register_phase_tools(mcp, working_directory)
     _register_cashflow_tools(mcp, working_directory)
     _register_liability_tools(mcp, working_directory)
@@ -206,6 +214,138 @@ def _register_live_price_tools(mcp: FastMCP, working_directory: Path) -> None:
         )
         logger.debug("finance_update_plan_prices result: %s", result.model_dump())
         return result
+
+
+def _register_position_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_add_position(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        asset_class_store_name: str,
+        store_name: str,
+        description: str | None = None,
+    ) -> str:
+        """Add a new, still-unvalued position (store) to an existing asset class.
+
+        Only creates the store and links it into the asset class's shared
+        CorrelatedReturnEffect - it starts out at a zero balance. Follow up
+        with finance_set_asset_shares or finance_set_position_from_transactions
+        to actually value it, and (once available) a tool to mark it active
+        for savings-rate priority.
+        """
+        plan = load_plan(working_directory, plan_name)
+        add_position(plan, asset_class_store_name, store_name, description)
+        save_plan(working_directory, plan)
+
+        logger.info(
+            "finance_add_position: plan=%r asset_class=%r store=%r status=ok",
+            plan_name,
+            asset_class_store_name,
+            store_name,
+        )
+        return (
+            f"added position {store_name!r} to asset class {asset_class_store_name!r} "
+            f"in plan {plan_name!r}"
+        )
+
+    @mcp.tool()
+    def finance_list_positions(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, asset_class_store_name: str
+    ) -> dict[str, Any]:
+        """List every position (store) of one asset class with its current balance.
+
+        `active_store_name`/`sell_threshold` surface the position currently
+        marked active for savings-rate priority and its configured sell
+        threshold, if a positions-rebalancing effect for this asset class
+        exists yet - both are None until that effect type is added.
+        """
+        plan = load_plan(working_directory, plan_name)
+        result = list_positions(plan, asset_class_store_name)
+
+        logger.info(
+            "finance_list_positions: plan=%r asset_class=%r positions=%d status=ok",
+            plan_name,
+            asset_class_store_name,
+            len(result["positions"]),
+        )
+        return result
+
+    @mcp.tool()
+    def finance_remove_position(plan_name: str, store_name: str) -> str:  # pyright: ignore[reportUnusedFunction]
+        """Remove one position (store) from its asset class.
+
+        Refuses to remove the last remaining position of an asset class -
+        that would delete the whole asset class rather than one position;
+        use core_remove_effect and manual cleanup for that instead. Also
+        refuses to remove a position currently marked active for
+        savings-rate priority - designate a new active position first
+        rather than silently picking one or leaving the plan inconsistent.
+        """
+        plan = load_plan(working_directory, plan_name)
+        remove_position(plan, store_name)
+        save_plan(working_directory, plan)
+
+        registry = load_position_registry(working_directory, plan_name)
+        if store_name in registry.positions:
+            del registry.positions[store_name]
+            save_position_registry(working_directory, plan_name, registry)
+
+        logger.info("finance_remove_position: plan=%r store=%r status=ok", plan_name, store_name)
+        return f"removed position {store_name!r} from plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_set_position_from_transactions(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        store_name: str,
+        transactions: list[PositionTransaction],
+        isin_or_wkn: str,
+        exchange: str = "Xetra",
+    ) -> str:
+        """Rebuild a position's lots from a priced buy/sell transaction history.
+
+        Builds lots at cost basis (what was actually paid), not today's
+        market value - this stays deterministic/offline by not fetching a
+        live price itself, unlike finance_set_asset_shares. Follow up with
+        finance_update_plan_prices to pull the current live price and
+        revalue to market value instead of duplicating that fetch logic here.
+        """
+        plan = load_plan(working_directory, plan_name)
+        if store_name not in {store.name for store in plan.stores}:
+            msg = (
+                f"no store named {store_name!r} in plan {plan_name!r}; "
+                "add it first with finance_add_position"
+            )
+            raise ValueError(msg)
+
+        apply_transaction_history(plan.store(store_name), transactions)
+        total_shares = shares_from_transactions(
+            [ShareTransaction(date=t.date, shares=t.shares) for t in transactions]
+        )
+        save_plan(working_directory, plan)
+
+        registry = load_position_registry(working_directory, plan_name)
+        registry.positions[store_name] = PositionMetadata(
+            isin_or_wkn=isin_or_wkn,
+            shares=total_shares,
+            exchange=exchange,
+            last_updated=datetime.now(UTC).isoformat(),
+        )
+        save_position_registry(working_directory, plan_name, registry)
+
+        logger.info(
+            "finance_set_position_from_transactions: plan=%r store=%r status=ok",
+            plan_name,
+            store_name,
+        )
+        logger.debug(
+            "finance_set_position_from_transactions: total_shares=%s cost_basis_balance=%s",
+            total_shares,
+            plan.store(store_name).balance,
+        )
+        return (
+            f"rebuilt position {store_name!r} in plan {plan_name!r} from "
+            f"{len(transactions)} transactions ({total_shares} shares at cost basis); "
+            "a price refresh via finance_update_plan_prices is still needed"
+        )
 
 
 def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:
