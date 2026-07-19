@@ -185,21 +185,47 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
   - [ ] Einzelverkaufs-Steuerschätzer: neues MCP-Tool, das für eine konkrete Position (oder eine angegebene Verkaufssumme) die anfallende Steuer bei einem gedachten Verkauf heute schätzt – Komposition der bereits vorhandenen Steuer-Bausteine (Abgeltungsteuer, Teilfreistellung, Sparerpauschbetrag, Bestandsschutz, siehe 03-Feature-Finanzen-Domaenenmodell.md) auf den aktuellen Lot-Bestand der Position, ohne einen Simulationslauf zu benötigen.
   - [ ] Plan-Ist-Vergleich: neues MCP-Tool, das den heutigen tatsächlichen Gesamtwert (Positionen + Cash-Bucket) dem Wert an derselben Stelle (Alter/Schritt) der zuvor berechneten p10/p50/p90-Kurven aus `finance_get_percentile_curves` gegenüberstellt – ein einzelner Stichtagsvergleich („bin ich noch im Plan?"), keine Nachbildung eines historischen Ist-Verlaufs über die Zeit (dafür fehlt eine fortlaufende Kurs-Historie, siehe 08-Offene-Fragen.md).
 
-## Meilenstein 5 – Baustein-Katalog & Regelwerk-Templates
+## Meilenstein 5 – Benutzerprofil-Speicher & Prompt-Restrukturierung (Lebensberater)
+
+**Ziel**: Einführung eines plan-spezifischen Benutzerprofil-Speichers (Fact-Store), der es dem Agenten erlaubt, ein detailliertes Profil über den Nutzer (und ggf. weitere Haushaltsmitglieder) aufzubauen. Das Profil wird automatisch bei Was-wäre-wenn-Kopien mitgenommen. Zudem wird die zunehmende Komplexität der System-Prompts durch eine modulare Neustrukturierung gelöst und der Grundstein für die Rolle des "Lebensberaters" gelegt.
+
+- [ ] **Epic 5.1 – Benutzerprofil-Modell & Dateiverwaltung (`profile.json`)**
+  - [ ] Definition des Pydantic-Modells `UserProfile` (mit Feld `owner: str` zur Personenzuordnung) und `ProfileFact` (mit `key`, `value`, `category`, `description`, `source`, `timestamp`).
+  - [ ] Speicherung als eigenständige Datei `profile.json` im jeweiligen Plan-Ordner.
+  - [ ] Erweiterung von `core_duplicate_plan` in `core_tools.py` um das Kopieren der `profile.json` (falls vorhanden).
+- [ ] **Epic 5.2 – MCP-Tools zur Profilverwaltung**
+  - [ ] Implementierung von Tools mit Präfix `profile_`:
+    - [ ] `profile_list_facts(plan_name: str)`: Gibt das Profil und alle gespeicherten Fakten zurück.
+    - [ ] `profile_set_fact(plan_name: str, key: str, value: Any, category: str | None = None, description: str | None = None)`: Fügt einen Fakt hinzu oder aktualisiert ihn (inkl. Timestamp-Generierung).
+    - [ ] `profile_remove_fact(plan_name: str, key: str)`: Löscht einen Fakt anhand seines Keys.
+- [ ] **Epic 5.3 – Prompt-Restrukturierung & Modul-Aufteilung**
+  - [ ] Aufteilung des großen System-Prompts (`finanzberater.md`) in modular ladbare Teilbereiche oder Hierarchien, um die Komplexität ("Brockhaus"-Problem) zu reduzieren.
+  - [ ] Definition eines strukturierten "Profiling-Leitfadens" im Prompt, der das LLM anleitet, wie es bei einem leeren Profil Schritt für Schritt (Demografie -> Einnahmen -> Vermögen -> Lebensziele) Daten abfragt.
+  - [ ] Hinterlegung von Regeln zur transparenten, vollautomatischen Aktualisierung im Hintergrund (z. B. *"Ich habe mir gemerkt, dass..."* im Chat erwähnen).
+- [ ] **Epic 5.4 – Vorbereitung der Rolle "Lebensberater"**
+  - [ ] Integration eines neuen (oder modular abgetrennten) Prompts für die Rolle "Lebensberater".
+  - [ ] Verankerung der Leitprinzipien: Unabhängigkeit, absolute Wissenschaftlichkeit/Seriosität, Freiheit von Interessenkonflikten.
+  - [ ] Verknüpfung des Lebensberater-Prompts mit dem Benutzerprofil-Speicher zur proaktiven Herleitung von Simulations-Effekten (z. B. Instandhaltungs-Rücklagen bei Immobilienbesitz, Altersvorsorge-Bedarfe je nach Lebensstil).
+- [ ] **Epic 5.5 – Tests & E2E-Verifikation**
+  - [ ] Unit-Tests für `UserProfile` Serialisierung/Deserialisierung.
+  - [ ] Integrationstests für die MCP-Tools (`profile_*`).
+  - [ ] E2E-Test: Duplizieren eines Plans mit Profil kopiert das Profil erfolgreich unter den neuen Plan-Namen.
+
+## Meilenstein 6 – Baustein-Katalog & Regelwerk-Templates
 
 **Ziel**: Der Mechanismus für versionierte Regelwerk-Templates (z. B. jährliche Steuerrechtsänderungen) ist umgesetzt, inklusive Bestandsschutz-Handling und einem Vertrauensmodell für extern geladene Templates.
 
-- [ ] Epic 5.1 – Regelwerk-Template-Format und Ladeprozess
-- [ ] Epic 5.2 – Bestandsschutz-Konsistenz bei Regelwerk-Wechsel
-- [ ] Epic 5.3 – Vertrauens-/Prüfmechanismus für Templates (Testfälle, Diff-Vorschau)
+- [ ] Epic 6.1 – Regelwerk-Template-Format und Ladeprozess
+- [ ] Epic 6.2 – Bestandsschutz-Konsistenz bei Regelwerk-Wechsel
+- [ ] Epic 6.3 – Vertrauens-/Prüfmechanismus für Templates (Testfälle, Diff-Vorschau)
 
-## Meilenstein 6 – Generizitäts-Probe an einer zweiten Domäne
+## Meilenstein 7 – Generizitäts-Probe an einer zweiten Domäne
 
 **Ziel**: Testweise Umsetzung eines zweiten, deutlich andersartigen Anwendungsfalls (z. B. Ausdauersport- oder Startup-Runway-Simulation) auf demselben Kern, um zu prüfen, ob die generische Architektur trägt.
 
-- [ ] Epic 6.1 – Zweite Domäne auswählen und Speicher/Effekte modellieren
-- [ ] Epic 6.2 – Kern-Anpassungen dokumentieren, falls die Domäne finanzspezifische Annahmen im Kern aufdeckt
+- [ ] Epic 7.1 – Zweite Domäne auswählen und Speicher/Effekte modellieren
+- [ ] Epic 7.2 – Kern-Anpassungen dokumentieren, falls die Domäne finanzspezifische Annahmen im Kern aufdeckt
 
-## Meilenstein 7 – Weitere Ausbaustufen (später, unverbindlich)
+## Meilenstein 8 – Weitere Ausbaustufen (später, unverbindlich)
 
 Regimeabhängige Korrelationsmodelle, Mehrgeräte-/Mehrsitzungs-Konsistenz der lokalen Speicherung, weitere Feature-Module, Vertiefung der in 08-Offene-Fragen.md verbliebenen fachlichen Detailfragen. Denkbar auch: proaktive, marktsignalgetriebene Portfolio-Verkäufe zur Cash-Bucket-Auffüllung (z. B. bei Allzeithochs oder nach überdurchschnittlichen Renditephasen) statt nur regelbasiert nach Zielgröße - **ausdrücklich mit dem Vorbehalt, dass kurzfristiges Markttiming empirisch nicht robust vorhersagbar ist** (Effizienzmarkthypothese); eine mögliche Umsetzung müsste diesen Vorbehalt im Nutzer-Prompt/Ergebnis transparent machen, statt als empfohlene Standardstrategie zu erscheinen.
