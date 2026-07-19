@@ -29,6 +29,7 @@ from compute_to_ai.features.finance.cashflow import (
 )
 from compute_to_ai.features.finance.compare import compare_plans
 from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
+from compute_to_ai.features.finance.live_price import LivePrice, get_live_price
 from compute_to_ai.features.finance.path_audit import (
     audit_plan,
     build_event_log,
@@ -63,6 +64,7 @@ _MONTE_CARLO_RESULT_FILENAME = "monte_carlo_result.json"
 
 def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     """Register the finance building-block, goal-condition, and Monte-Carlo tools."""
+    _register_live_price_tools(mcp)
     _register_phase_tools(mcp, working_directory)
     _register_cashflow_tools(mcp, working_directory)
     _register_liability_tools(mcp, working_directory)
@@ -70,6 +72,26 @@ def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     _register_tax_and_pension_tools(mcp, working_directory)
     _register_goal_and_monte_carlo_tools(mcp, working_directory)
     _register_path_audit_tools(mcp, working_directory)
+
+
+def _register_live_price_tools(mcp: FastMCP) -> None:
+    @mcp.tool()
+    def finance_get_live_price(  # pyright: ignore[reportUnusedFunction]
+        isin_or_wkn: str, exchange: str = "Xetra"
+    ) -> LivePrice:
+        """Look up an ETF's/fund's current price on Ariva.de by ISIN or WKN.
+
+        Stateless, without needing a Plan - usable directly for any
+        instrument, e.g. to check a price before deciding on a purchase.
+        """
+        result = get_live_price(isin_or_wkn, exchange)
+        logger.info(
+            "finance_get_live_price: isin_or_wkn=%r exchange=%r status=ok",
+            isin_or_wkn,
+            exchange,
+        )
+        logger.debug("finance_get_live_price result: %s", result.model_dump())
+        return result
 
 
 def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:

@@ -146,11 +146,11 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 
 ### Teilstrecke A – Live-Kurs-Abfrage und manuelles Depot-Update
 
-- [ ] **Epic 4.1 – Zustandsloses Live-Kurs-Tool (`finance_get_live_price`)**
-  - [ ] Implementierung der zweistufigen HTTP-Abfrage (Redirect auflösen -> URL mit `boerse_id` abfragen).
-  - [ ] Robustes Parsen des HTML-Header-Preises (`class="instrument-header-quote"`), der Währung (z. B. `EUR`) und des Zeitstempels (`class="instrument-header-last-time"`).
-  - [ ] Rückgabe eines strukturierten JSON-Objekts mit Name, ISIN, WKN, Kurs, Währung, Börse und Abfrage-Zeitstempel.
-  - [ ] Funktioniert unabhängig von einem Plan – direkt für beliebige Kursabfragen des Nutzers nutzbar, nicht nur für den Depot-Kontext.
+- [x] **Epic 4.1 – Zustandsloses Live-Kurs-Tool (`finance_get_live_price`)**
+  - [x] Implementierung der zweistufigen HTTP-Abfrage (Redirect auflösen -> URL mit `boerse_id` abfragen).
+  - [x] Robustes Parsen des HTML-Header-Preises (`class="instrument-header-quote"`), der Währung (z. B. `EUR`) und des Zeitstempels (`class="instrument-header-last-time"`).
+  - [x] Rückgabe eines strukturierten JSON-Objekts mit Name, ISIN, WKN, Kurs, Währung, Börse und Abfrage-Zeitstempel.
+  - [x] Funktioniert unabhängig von einem Plan – direkt für beliebige Kursabfragen des Nutzers nutzbar, nicht nur für den Depot-Kontext.
 - [ ] **Epic 4.2 – Wertpapier-Metadaten je Speicher, persistiert neben dem Plan** (`compute_to_ai.features.finance`)
   - [ ] Neues, ausschließlich Finance-seitiges Modell (z. B. `PositionMetadata`: ISIN/WKN, Stückzahl, Börsenplatz, Zeitstempel der letzten Kurs-Aktualisierung), je Speicher-Name in einer eigenen JSON-Datei neben `plan.json` gehalten – über den bereits vorhandenen generischen `save_result`/`load_result`-Mechanismus (`plan_storage.py`), ohne den domänenneutralen `Store`/`Plan` im Kern um finanzspezifische Felder zu erweitern.
   - [ ] Ein Speicher ohne hinterlegte Metadaten bleibt unverändert rein manuell geführt (kein Zwang, jede Anlageklasse/Position darüber zu pflegen).
