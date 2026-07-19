@@ -32,6 +32,14 @@ Dieses Dokument sammelt externe Fakten (v. a. deutsches Steuer- und Rentenrecht 
 | KVdR (Krankenversicherung der Rentner): allgemeiner Beitragssatz 14,6 % + Ø Zusatzbeitrag 2,9 %, jeweils hälftig von der Rentenversicherung subventioniert | 2026 | [KVdR 2026 – buerger-geld.org](https://www.buerger-geld.org/news/finanzen/kvdr-2026-beitragssatz-bleibt-gleich-belastung-fuer-rentner-steigt/) | 2026-07-18 |
 | Pflegeversicherung Rentner: 3,6 % (4,2 % für Kinderlose ab 23 Jahren), vollständig vom Rentner getragen, kein Zuschuss | 2026 | [Kranken- und Pflegeversicherung der Rentner – Deutsche Rentenversicherung](https://www.deutsche-rentenversicherung.de/DRV/DE/Rente/In-der-Rente/Kranken-und-Pflegeversicherung-der-Rentner/kranken-und-pflegeversicherung-der-rentner.html) | 2026-07-18 |
 
+## Kapitalmarkt-Korrelationen (Anlageklassen-Korrelationsmatrix)
+
+| Aussage | Stand | Quelle | Abgerufen |
+|---|---|---|---|
+| Rollierende 3-Jahres-Korrelation MSCI World / MSCI Emerging Markets lag während der 2010er-Jahre überwiegend über 0,8, fiel bis Ende Mai 2025 auf unter 0,45 (niedrigster Stand seit 5 Jahren) – Korrelationen zwischen den Regionen sind also erheblich zeitvariabel, kein stabiler Einzelwert | Datenstand Mai 2025 | [Emerging vs. Developed Markets – LongtermTrends](https://www.longtermtrends.com/emerging-vs-developed-markets/) | 2026-07-20 |
+| Entwickelte Märkte (z. B. Europa/Nordamerika) gelten wegen enger Handelsbeziehungen und integrierter Finanzsysteme als grundsätzlich hoch korreliert; Korrelationen zwischen allen Aktienregionen steigen tendenziell in Krisenphasen zusätzlich an | qualitative Marktbeobachtung, kein fixes Datum | [MSCI Research & Insights, diverse Artikel zu Marktkorrelation](https://www.msci.com/research-and-insights) | 2026-07-20 |
+| Für den Plan „ralf" daraus abgeleitete, bewusst konservative Arbeitsannahme (kein einzelner exakt zitierter Tabellenwert, sondern eine aus obigen Bandbreiten hergeleitete Schätzung für eine Simulation über 40+ Jahre): MSCI World–MSCI Emerging Markets 0,70; MSCI World–MSCI Europe Small Cap 0,75; MSCI Emerging Markets–MSCI Europe Small Cap 0,65; alle drei Aktienklassen–Geldmarkt 0,05 (Geldmarkt/kurzlaufende Anlagen gelten als praktisch unkorreliert zu Aktien) | angewendet 2026-07-20 | eigene Herleitung aus den beiden Quellen oben | 2026-07-20 |
+
 ## Architektur-Vorbilder (generischer Kern)
 
 | Aussage | Quelle | Abgerufen |

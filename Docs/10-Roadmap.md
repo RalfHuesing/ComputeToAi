@@ -203,6 +203,20 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
   - [ ] Für den Cash-Bucket-Manager (`portfolio.py::cash_bucket_manager_func`) existiert dieser Mechanismus noch nicht: `emergency_buffer_months` und die Entnahmepuffer-Komponente hängen ausschließlich von der aktuell aktiven Phase ab (`CashBucketParameters`) und springen an der Phasengrenze (z. B. Erwerbsphase → Rentenphase) unvermittelt auf ihren vollen Zielwert. Vorschlag: ein neuer, optionaler Parameter (Vorlauf in Schritten vor dem Phasenübergang), ab dem linear zwischen dem aktuellen und dem zukünftigen Zielwert interpoliert wird – nach demselben Fraction-Muster wie in `flexible_acquisition_func`, nur bezogen auf eine sich verändernde Zielgröße statt auf einen fixen Betrag.
   - [ ] Beide Fälle sind eine Instanz desselben generischen Prinzips („graduelle De-Risking-Rampe vor einer bekannten künftigen Entnahme") – zu prüfen, ob sich daraus ein gemeinsamer, wiederverwendbarer Kern-Baustein statt zweier separater Spezialimplementierungen ableiten lässt (siehe Leitprinzip in Meilenstein 3: wenige generische Effekt-Arten statt fachspezifischer Sonderfälle).
   - [ ] Golden-Test: Cash-Bucket-Zielgröße wächst nachweisbar linear statt sprunghaft über die letzten Schritte vor einem Phasenübergang.
+- [ ] **Epic 4.14 – Zentrale Parameter- & Raten-Registry (Single Source of Truth & Referenz-System)**
+
+  **Warum**: Im aktuellen Plan-Modell (siehe `examples/ralf/plan.json`) sind Inflations- und Steigerungsraten (`growth_rate`, `inflation_rate`) sowie Zinssätze starr an vielen einzelnen Effekten als Zahlen-Literale hinterlegt (z. B. 20–30-mal `0.02`). Ändert sich eine makroökonomische Annahme (z. B. Inflationserwartung von 2,0 % auf 2,5 % oder der Geldmarktzins/€STR), müssen derzeit Dutzende Effekte einzeln angepasst werden.
+
+  **Ziel**: Einführung einer zentralen Parameter-Registry auf Plan-Ebene (`plan.parameters` / `plan.rates`), auf die Effekte per Referenz verweisen können.
+
+  - [ ] **Kern- & Modell-Erweiterung (`compute_to_ai.engine`)**: `Plan` erhält eine zentrale `parameters: dict[str, float]` Map (z. B. `{"inflation_general": 0.02, "inflation_kfz": 0.035, "gehalt_growth": 0.02, "zins_geldmarkt": 0.025}`).
+  - [ ] **Referenzierung in Effekten**: Effekte (`GrowingFixedEffect`, `PercentageGrowthEffect` etc.) akzeptieren bei Raten entweder ein Float-Literal (z. B. `0.02`) oder einen Referenz-Key (z. B. `"ref:inflation_general"`). Die Simulation löst Referenzen zur Laufzeit dynamisch auf.
+  - [ ] **MCP-Tools zur Parameterpflege**: Neue Tools (z. B. `finance_set_plan_parameter(plan_name, key, value)`) zur zentralen Aktualisierung von Makro-Parametern, die sich per Ein-Klick-Änderung sofort auf alle verknüpften Effekte in der Simulation auswirken.
+  - [ ] **Diskussionsgrundlage & Fragen für die spätere Umsetzung**:
+    - *Frage 1 (Standard-Fallback & Hierarchie)*: Soll `inflation_general` als automatischer Fallback für Ausgaben greifen, sofern keine spezifische Rate (z. B. `inflation_kfz`) angegeben ist?
+    - *Frage 2 (Reichweite & Abgrenzung stochastischer Effekte)*: Welche Parameter gehören in die Registry? (Festverzinsliche Raten, Kreditzinsen, Inflationen, Gehaltssteigerungen vs. stochastische Aktien-Renditen/Vola, die bereits über `CorrelatedReturnEffect` und Korrelationsmatrizen modelliert werden).
+    - *Frage 3 (Zeitvariabilität & Staffelung)*: Reichen statische Werte über die Laufzeit oder soll die Registry auch zeitvariable Raten-Pfade unterstützen (z. B. "Jahre 0–3: 4,0 %, danach 2,0 %")?
+
 
 
 
