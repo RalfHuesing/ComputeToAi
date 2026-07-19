@@ -30,6 +30,7 @@ from compute_to_ai.features.calculations.growth import (
     required_payment_for_future_value,
     sustainable_withdrawal_for_depletion,
 )
+from compute_to_ai.features.calculations.holdings import market_value, shares_from_transactions
 from compute_to_ai.features.calculations.loans import (
     loan_amortization_schedule,
     loan_amortization_schedule_with_extra_payments,
@@ -78,3 +79,6 @@ def register_calculation_tools(mcp: FastMCP) -> None:
 
     mcp.tool(name="calculations_xirr")(xirr)
     mcp.tool(name="calculations_effective_annual_rate")(effective_annual_rate)
+
+    mcp.tool(name="calculations_shares_from_transactions")(shares_from_transactions)
+    mcp.tool(name="calculations_market_value")(market_value)
