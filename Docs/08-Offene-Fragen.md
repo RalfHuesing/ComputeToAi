@@ -101,3 +101,55 @@ Wenn ein Simulationsplan (z. B. erstellt im Jahr 2026) nach mehreren Jahren (z. 
 **Warum:**
 Dieser Ansatz hält den Kern der Simulations-Engine schlank und verzichtet auf eine hochkomplexe Historisierung von Ist-Daten im Simulations-Code. Da sich Lebensumstände in mehreren Jahren meist grundlegend und unvorhersehbar ändern (z. B. durch Jobwechsel, Erbschaften, Markt-Crashs), ist eine automatische Fortschreibung ohnehin unrealistisch. Die menschlich-agentische Schnittstelle kann diese Anpassungen flexibler und präziser interaktiv lösen.
 
+## Optionale Freitext-Beschreibungen für Modell-Entitäten (Absichts-Metadaten)
+
+**Intention:**
+Ein Effekt (z. B. `"Lebenshaltung"`) oder ein Store (z. B. `"cash"`) hat bisher nur einen Namen. Ohne Zusatzkontext ist unklar, welche konkreten Posten (z. B. Miete, Strom, Lebensmittel) in einer Pauschale enthalten sind. Dem LLM-Agenten fehlt dadurch die Brücke, um fachliche Fragen des Nutzers (z. B. *"Habe ich die Stromkosten bedacht?"*) direkt mit der Simulationsstruktur abzugleichen.
+
+**Vorgeschlagene Lösung:**
+Einführung eines optionalen Freitextfeldes `description: str | None = None` auf Ebene der Basisklassen (für `Plan`, `Store`, `BaseEffect`, `Phase`). Diese Beschreibungen werden bei MCP-Listenabfragen (z. B. `core_list_effects`, `core_list_stores`) in den JSON-Payloads mitgeliefert, sodass das LLM sie lesen und interpretieren kann.
+
+**Warum & Mehrwert:**
+Das LLM-Weltwissen kann dadurch die Intention des Nutzers verstehen und logisch verknüpfen. Fragt der Nutzer nach einer Detail-Ausgabe, kann der Agent die Beschreibungen scannen und bestätigen, ob der Wert in einer Pauschale enthalten ist oder separat angelegt werden muss.
+
+## Kaufkraftbereinigung im Export (Option `real_in_today_money`)
+
+**Intention:**
+Simulationsergebnisse werden nominal ausgegeben. Zukünftige nominale Werte (z. B. im Jahr 2069) sind durch die Inflation schwer zu plausibilisieren. Der Agent muss heute jeden Zeitschritt einzeln über Hilfstools abdiskontieren, um dem Nutzer reale Kaufkraftwerte nennen zu können.
+
+**Vorgeschlagene Lösung:**
+Erweiterung von `finance_get_path_category_series` um einen Parameter `adjust_for_inflation: bool = False` (oder `real_in_today_money`). 
+* **Edge Case / Entscheidung:** Um stochastische Verläufe korrekt abzubilden, muss die Engine bei der Pfadhistorisierung (Ledger) den kumulierten, pfadspezifisch simulierten Inflationsfaktor mitprotokollieren. Die Werte werden dann pfadspezifisch dividiert, anstatt pauschal mit einem statischen Zinssatz abzuzinsen.
+
+**Warum & Mehrwert:**
+Der Agent erhält direkt kaufkraftbereinigte Zeitreihen und kann dem Nutzer unmittelbar verständliche monatliche Durchschnittsbudgets präsentieren, was die Ergonomie und Interpretierbarkeit massiv erhöht.
+
+## Plan-Vergleichs-Schnittstelle (`finance_compare_plans`)
+
+**Intention:**
+Das Herzstück der Finanzplanung sind "Was-wäre-wenn"-Vergleiche (z. B. Renteneintritt mit 63 vs. 65). Bisher muss der Agent beide Pläne getrennt simulieren, die Ergebnisse einzeln laden und die Differenzen manuell berechnen.
+
+**Vorgeschlagene Lösung:**
+Ein neues MCP-Tool `finance_compare_plans(plan_name_a: str, plan_name_b: str)` vergleicht zwei berechnete Pläne.
+* **Umfang:** Das Tool liefert:
+  1. Statistischen Vergleich: Differenz der Ruinwahrscheinlichkeit und der Endvermögens-Perzentile (p10, p50, p90).
+  2. Konfigurations-Delta: Liste der geänderten, hinzugefügten oder gelöschten Effekte/Parameter.
+* **Edge Cases:** Pläne können unterschiedliche Timeline-Längen haben (z. B. 40 vs. 50 Jahre). Das Tool muss die Vergleiche auf die jeweils gemeinsame Schnittmenge normieren (z. B. Vergleich zum Ende der kürzeren Timeline) oder klare Warnungen ausgeben, da ein direkter Endvermögens-Vergleich sonst mathematisch hinkt.
+
+**Warum & Mehrwert:**
+Das Tool liefert dem Agenten ein fokussiertes Datenpaket. Das LLM kann daraus eine fachlich hervorragende Gegenüberstellung formulieren, ohne redundante MCP-Runden drehen zu müssen.
+
+## Optimierter Export von Perzentil-Kurven (`finance_get_percentile_curves`)
+
+**Intention:**
+Für die Erstellung von Vermögensverläufen (Charts) muss der Agent aktuell die kompletten Kategorienserien für mehrere Pfade (`p10`, `p50`, `p90`) separat abfragen, was zu sehr großen JSON-Antworten und hohem Token-Verbrauch führt.
+
+**Vorgeschlagene Lösung:**
+Ein neues MCP-Tool `finance_get_percentile_curves(plan_name: str)` gibt eine kompakte Zeitreihe zurück, die pro Schritt die aggregierten Salden für die Perzentile (10, 50, 90) liefert.
+* **Aggregationsebene & Edge Cases:** Es sollten zwei Saldenwerte pro Schritt/Perzentil ausgegeben werden: `liquid_balance` (Summe aller Cash-Buckets) und `invested_balance` (Summe aller ETF-Portfolios), sowie `liabilities` (Summe aller Restschulden). 
+* **Warum Liquiditätsklassen statt nur einer Summenkurve:** Eine reine Summenkurve kaschiert gefährliche Liquiditätsengpässe (z. B. hohes ETF-Vermögen, aber leeres Cash-Konto, was kurzfristig zum Ruin führen kann). Kreditschulden müssen getrennt ausgewiesen werden, damit das Netto-Vermögen korrekt berechnet wird.
+
+**Warum & Mehrwert:**
+Maximale Token-Effizienz und schnelle Datenbereitstellung für Visualisierungen bei gleichzeitiger Beibehaltung der wichtigsten Liquiditätsunterscheidungen.
+
+
