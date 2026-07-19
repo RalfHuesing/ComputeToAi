@@ -198,6 +198,13 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
         return {"effects": [effect.model_dump() for effect in plan.effects]}
 
     @mcp.tool()
+    def core_list_phases(plan_name: str) -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]
+        """List every Phase in a Plan, including its name, step boundaries and description."""
+        plan = _load_plan(working_directory, plan_name)
+        logger.info("core_list_phases: plan=%r status=ok", plan_name)
+        return {"phases": [phase.model_dump() for phase in plan.phases]}
+
+    @mcp.tool()
     def core_remove_effect(plan_name: str, effect_name: str) -> str:  # pyright: ignore[reportUnusedFunction]
         """Remove the Effect with this exact name from a Plan.
 

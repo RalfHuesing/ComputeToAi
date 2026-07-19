@@ -191,19 +191,31 @@ def test_compare_simulation_delta_with_results() -> None:
     assert diff < 0, f"Expected plan_b to have lower ruin probability, diff={diff}"
 
 
-def test_compare_description_field_in_stores_and_effects() -> None:
-    """Descriptions on stores/effects should be reflected in the config delta."""
+def test_compare_description_field_in_stores_effects_and_phases() -> None:
+    """Descriptions on stores, effects, and phases should be reflected in the config delta."""
     plan_a = _make_simple_plan("a")
     plan_a.stores[0].description = "Girokonto DKB"
+    plan_a.phases[0].description = "Phase A"
     
     plan_b = _make_simple_plan("b")
-    plan_b.stores[0].description = "Girokonto Sparkasse"  # changed description
+    plan_b.stores[0].description = "Girokonto Sparkasse"  # changed store description
+    plan_b.phases[0].description = "Phase B"  # changed phase description
 
     result = compare_plans(plan_a, None, plan_b, None)
 
-    modified = result["config_delta"]["stores"]["modified"]
-    cash_change = next((m for m in modified if m["name"] == "cash"), None)
+    # 1. Store description check
+    modified_stores = result["config_delta"]["stores"]["modified"]
+    cash_change = next((m for m in modified_stores if m["name"] == "cash"), None)
     assert cash_change is not None
     assert "description" in cash_change["changes"]
     assert cash_change["changes"]["description"]["from"] == "Girokonto DKB"
     assert cash_change["changes"]["description"]["to"] == "Girokonto Sparkasse"
+
+    # 2. Phase description check
+    modified_phases = result["config_delta"]["phases"]["modified"]
+    phase_change = next((p for p in modified_phases if p["name"] == "Erwerbsphase"), None)
+    assert phase_change is not None
+    assert "description" in phase_change["changes"]
+    assert phase_change["changes"]["description"]["from"] == "Phase A"
+    assert phase_change["changes"]["description"]["to"] == "Phase B"
+

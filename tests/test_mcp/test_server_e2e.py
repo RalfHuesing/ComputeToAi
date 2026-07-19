@@ -321,3 +321,50 @@ async def test_core_add_transfer_rejects_weights_not_summing_to_one(
         )
 
     assert result.isError
+
+
+@pytest.mark.anyio
+async def test_core_list_phases(server_params: StdioServerParameters) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="phases-list-test", step_count=100)
+        
+        # Initially empty
+        phases_text = await _call_ok(session, "core_list_phases", plan_name="phases-list-test")
+        payload = json.loads(phases_text)
+        assert payload["phases"] == []
+
+        # Add phases
+        await _call_ok(
+            session,
+            "finance_set_life_phases",
+            plan_name="phases-list-test",
+            current_age=30,
+            employment_end_age=60,
+            statutory_pension_start_age=67,
+            life_expectancy_age=90,
+        )
+
+        phases_text = await _call_ok(session, "core_list_phases", plan_name="phases-list-test")
+        payload = json.loads(phases_text)
+        phases = payload["phases"]
+        
+        assert len(phases) == 3
+        # Employment, Early retirement gap, Pension
+        assert phases[0]["name"] == "Erwerbsphase"
+        assert phases[0]["start_step"] == 0
+        assert phases[0]["end_step"] == 30
+        assert phases[0]["description"] is None
+
+        assert phases[1]["name"] == "Frühruhestandslücke"
+        assert phases[1]["start_step"] == 30
+        assert phases[1]["end_step"] == 37
+
+        assert phases[2]["name"] == "Rentenphase"
+        assert phases[2]["start_step"] == 37
+        assert phases[2]["end_step"] == 60
+
