@@ -14,6 +14,12 @@ from compute_to_ai.engine.effect import (
 )
 from compute_to_ai.engine.plan import CorrelationGroup, Plan
 from compute_to_ai.engine.store import Lot, Store
+from compute_to_ai.features.calculations.holdings import ContributionBucket, contribution_allocation
+from compute_to_ai.features.finance.position import (
+    find_asset_class_effect,
+    find_positions_rebalancing_effect,
+)
+from compute_to_ai.features.finance.positions_rebalancing import PositionsRebalancingParameters
 
 
 class PortfolioRebalancingParameters(BaseModel):
@@ -107,6 +113,134 @@ def add_portfolio_rebalancing(
         description=description,
     )
     plan.effects.append(effect)
+
+
+class ContributionSuggestion(BaseModel):
+    """One asset class's suggested share of a new contribution - purely
+    informational, see `suggest_contribution_allocation`."""
+
+    store_name: str
+    current_value: float
+    target_weight: float
+    suggested_contribution: float
+    warning: str | None = None
+
+
+def _resolve_asset_class_effect(
+    plan: Plan, store_name: str
+) -> CorrelatedReturnEffect | None:
+    """The CorrelatedReturnEffect `store_name` belongs to, or None if it isn't
+    part of any tracked asset class."""
+    try:
+        return find_asset_class_effect(plan, store_name)
+    except ValueError:
+        return None
+
+
+def _bucket_current_value(
+    plan: Plan, store_name: str, asset_class_effect: CorrelatedReturnEffect | None
+) -> float:
+    """The whole asset class's current balance backing one weights-entry
+    (active position + every sibling sharing its CorrelatedReturnEffect), or
+    just the store's own balance if it isn't part of any tracked asset class."""
+    if asset_class_effect is None:
+        return plan.store(store_name).balance
+    return sum(plan.store(name).balance for name in asset_class_effect.store_names)
+
+
+def _active_position_warning(
+    plan: Plan, store_name: str, asset_class_effect: CorrelatedReturnEffect | None
+) -> str | None:
+    """Warn if `store_name` isn't the configured active position of its asset
+    class's positions_rebalancing effect (if any) - the suggested amount
+    still targets `store_name` exactly regardless of this mismatch."""
+    if asset_class_effect is None:
+        return None
+    rebalancing_effect = find_positions_rebalancing_effect(
+        plan, set(asset_class_effect.store_names)
+    )
+    if rebalancing_effect is None:
+        return None
+
+    active_params = PositionsRebalancingParameters.model_validate(rebalancing_effect.parameters)
+    if active_params.active_store_name == store_name:
+        return None
+    return (
+        f"weights entry {store_name!r} is not the configured active position of its "
+        f"asset class ({active_params.active_store_name!r} is); the suggested amount "
+        f"still targets {store_name!r} exactly"
+    )
+
+
+def suggest_contribution_allocation(
+    plan: Plan, new_amount: float
+) -> list[ContributionSuggestion]:
+    """Suggest how to split a new contribution across the plan's asset classes
+    to move each towards its target weight (see Docs/04-Feature-Finanzen-
+    Methodik.md and `compute_to_ai.features.calculations.holdings.
+    contribution_allocation`).
+
+    This is purely a recommendation for the user to act on manually at their
+    broker - it never changes the plan's simulated balances (that stays a
+    separate, manual step via finance_set_asset_shares/
+    finance_update_plan_prices once the user has actually invested for real).
+
+    Reads the plan's `portfolio_rebalancing` ComputedEffect for its target
+    weights, keyed by each asset class's active position store name (the
+    Epic 4.8 convention, see `compute_to_ai.features.finance.
+    positions_rebalancing`). For each entry, the bucket's `current_value` is
+    the whole asset class's current balance (active position + every sibling
+    position sharing its CorrelatedReturnEffect), not just the active
+    store's own balance - falls back to the store's own balance alone if it
+    isn't part of any tracked asset class (e.g. a plain cash-like bucket
+    referenced in the weights by mistake).
+
+    Each suggestion additionally carries a `warning` if the weights entry's
+    store name doesn't match its asset class's configured
+    `active_store_name` in a `positions_rebalancing` effect (if any) - the
+    weights dict and the intra-class active designation could in principle
+    disagree if someone misconfigured the plan; the suggested split always
+    targets the store named as the weights key itself, never the
+    (potentially different) configured active position.
+    """
+    rebalancing_effect = None
+    for effect in plan.effects:
+        if isinstance(effect, ComputedEffect) and effect.function_name == "portfolio_rebalancing":
+            rebalancing_effect = effect
+            break
+    if rebalancing_effect is None:
+        msg = (
+            f"plan {plan.name!r} has no portfolio_rebalancing effect configured; "
+            "add one first with finance_add_portfolio_rebalancing"
+        )
+        raise ValueError(msg)
+
+    params = PortfolioRebalancingParameters.model_validate(rebalancing_effect.parameters)
+
+    buckets: list[ContributionBucket] = []
+    warnings: dict[str, str | None] = {}
+    for store_name, target_weight in params.weights.items():
+        asset_class_effect = _resolve_asset_class_effect(plan, store_name)
+        current_value = _bucket_current_value(plan, store_name, asset_class_effect)
+        warnings[store_name] = _active_position_warning(plan, store_name, asset_class_effect)
+        buckets.append(
+            ContributionBucket(
+                name=store_name, current_value=current_value, target_weight=target_weight
+            )
+        )
+
+    allocation = contribution_allocation(buckets, new_amount)
+
+    return [
+        ContributionSuggestion(
+            store_name=bucket.name,
+            current_value=bucket.current_value,
+            target_weight=bucket.target_weight,
+            suggested_contribution=allocation[bucket.name],
+            warning=warnings[bucket.name],
+        )
+        for bucket in buckets
+    ]
 
 
 class CashBucketParameters(BaseModel):

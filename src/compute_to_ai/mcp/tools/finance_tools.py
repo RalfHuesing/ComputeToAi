@@ -49,6 +49,7 @@ from compute_to_ai.features.finance.portfolio import (
     add_cash_bucket,
     add_portfolio_rebalancing,
     set_correlation_matrix,
+    suggest_contribution_allocation,
 )
 from compute_to_ai.features.finance.position import (
     PositionMetadata,
@@ -87,6 +88,7 @@ def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     _register_cashflow_tools(mcp, working_directory)
     _register_liability_tools(mcp, working_directory)
     _register_portfolio_tools(mcp, working_directory)
+    _register_contribution_tools(mcp, working_directory)
     _register_tax_and_pension_tools(mcp, working_directory)
     _register_goal_and_monte_carlo_tools(mcp, working_directory)
     _register_path_audit_tools(mcp, working_directory)
@@ -649,6 +651,46 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         save_plan(working_directory, plan)
         logger.info("finance_add_cash_bucket: plan=%r status=ok", plan_name)
         return f"added cash bucket manager to plan {plan_name!r}"
+
+
+def _register_contribution_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_suggest_contribution_allocation(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, new_amount: float
+    ) -> dict[str, Any]:
+        """Suggest how to split a new contribution (e.g. this month's savings
+        rate) across the plan's asset classes, moving each towards its target
+        weight from finance_add_portfolio_rebalancing.
+
+        Purely a recommendation for the user to act on manually at their
+        broker - it never changes the plan's simulated balances (that stays
+        a separate, manual step via finance_set_asset_shares/
+        finance_update_plan_prices once the user has actually invested for
+        real). Answers "how much do I invest this month in which ETF"
+        without needing a full Monte-Carlo run.
+
+        Each entry's `current_value` is the whole asset class's current
+        balance (active position + siblings), not just the active store's
+        own balance. `warning` is set if the weights entry's store name
+        doesn't match its asset class's configured active position -
+        the suggested amount always targets the weights entry itself.
+        """
+        # Read-only: intentionally does not call save_plan, unlike every
+        # other tool in this file - this only ever reads the plan and never
+        # mutates it.
+        plan = load_plan(working_directory, plan_name)
+        suggestions = suggest_contribution_allocation(plan, new_amount)
+
+        logger.info(
+            "finance_suggest_contribution_allocation: plan=%r suggestions=%d status=ok",
+            plan_name,
+            len(suggestions),
+        )
+        logger.debug(
+            "finance_suggest_contribution_allocation result: %s",
+            [s.model_dump() for s in suggestions],
+        )
+        return {"suggestions": [s.model_dump() for s in suggestions]}
 
 
 def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> None:

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import pytest
 
+from compute_to_ai.engine.effect import ComputedEffect
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_monte_carlo, run_simulation
 from compute_to_ai.engine.store import Store
@@ -9,7 +12,11 @@ from compute_to_ai.features.finance.portfolio import (
     add_cash_bucket,
     add_portfolio_rebalancing,
     set_correlation_matrix,
+    suggest_contribution_allocation,
 )
+from compute_to_ai.features.finance.position import add_position
+from compute_to_ai.features.finance.positions_rebalancing import add_position_rebalancing
+from compute_to_ai.mcp.tools.plan_storage import load_plan, plan_file, save_plan
 
 
 def test_portfolio_rebalancing_deterministic() -> None:
@@ -373,3 +380,98 @@ def test_cash_bucket_entnahme_buffer_skips_unlisted_phase() -> None:
     assert pytest.approx(result.final_balances["cash"]) == 0.0
     assert pytest.approx(result.final_balances["equity"]) == 3300.0
     assert pytest.approx(result.final_balances["bond"]) == 1700.0
+
+
+def _plan_with_single_and_multi_position_asset_classes() -> Plan:
+    """One single-position asset class ("bond") and one multi-position asset
+    class ("equity_active" + sibling "equity_sibling"), both valued but
+    without a portfolio_rebalancing effect - callers add their own weights.
+    """
+    plan = Plan(name="contribution-allocation-test", timeline=Timeline(step_count=1), stores=[])
+
+    add_asset_class(plan, "equity_active", 700.0, 0.0, 0.0)
+    add_position(plan, "equity_active", "equity_sibling")
+    plan.store("equity_sibling").balance = 300.0
+    add_position_rebalancing(plan, ["equity_active", "equity_sibling"], "equity_active")
+
+    add_asset_class(plan, "bond", 1000.0, 0.0, 0.0)
+
+    return plan
+
+
+def test_suggest_contribution_allocation_is_group_aware() -> None:
+    plan = _plan_with_single_and_multi_position_asset_classes()
+    add_portfolio_rebalancing(
+        plan=plan,
+        name="Portfolio Rebalancing",
+        weights={"equity_active": 0.6, "bond": 0.4},
+    )
+
+    suggestions = suggest_contribution_allocation(plan, new_amount=1000.0)
+    by_store = {s.store_name: s for s in suggestions}
+
+    # equity_active's bucket uses the *whole group's* balance (700 + 300 = 1000),
+    # not just the active store's own 700.
+    assert by_store["equity_active"].current_value == pytest.approx(1000.0)
+    assert by_store["equity_active"].suggested_contribution == pytest.approx(800.0)
+    assert by_store["equity_active"].warning is None
+
+    assert by_store["bond"].current_value == pytest.approx(1000.0)
+    assert by_store["bond"].suggested_contribution == pytest.approx(200.0)
+    assert by_store["bond"].warning is None
+
+    total = sum(s.suggested_contribution for s in suggestions)
+    assert total == pytest.approx(1000.0)
+
+
+def test_suggest_contribution_allocation_is_genuinely_read_only(tmp_path: Path) -> None:
+    plan = _plan_with_single_and_multi_position_asset_classes()
+    add_portfolio_rebalancing(
+        plan=plan,
+        name="Portfolio Rebalancing",
+        weights={"equity_active": 0.6, "bond": 0.4},
+    )
+    save_plan(tmp_path, plan)
+    file = plan_file(tmp_path, plan.name)
+    before_bytes = file.read_bytes()
+
+    loaded_plan = load_plan(tmp_path, plan.name)
+    suggest_contribution_allocation(loaded_plan, new_amount=1000.0)
+
+    assert file.read_bytes() == before_bytes
+    assert loaded_plan.store("equity_active").balance == pytest.approx(700.0)
+    assert loaded_plan.store("equity_sibling").balance == pytest.approx(300.0)
+    assert loaded_plan.store("bond").balance == pytest.approx(1000.0)
+
+
+def test_suggest_contribution_allocation_requires_portfolio_rebalancing() -> None:
+    plan = Plan(name="no-rebalancing", timeline=Timeline(step_count=1), stores=[])
+    add_asset_class(plan, "equity", 1000.0, 0.0, 0.0)
+
+    with pytest.raises(ValueError, match="portfolio_rebalancing"):
+        suggest_contribution_allocation(plan, new_amount=100.0)
+
+
+def test_suggest_contribution_allocation_warns_on_active_position_mismatch() -> None:
+    plan = _plan_with_single_and_multi_position_asset_classes()
+    # Misconfigured on purpose: the weights key points at the sibling, not
+    # the position actually marked active by add_position_rebalancing above.
+    plan.effects = [
+        effect
+        for effect in plan.effects
+        if not (
+            isinstance(effect, ComputedEffect) and effect.function_name == "portfolio_rebalancing"
+        )
+    ]
+    add_portfolio_rebalancing(
+        plan=plan,
+        name="Portfolio Rebalancing",
+        weights={"equity_sibling": 0.6, "bond": 0.4},
+    )
+
+    suggestions = suggest_contribution_allocation(plan, new_amount=1000.0)
+    by_store = {s.store_name: s for s in suggestions}
+
+    assert by_store["equity_sibling"].warning is not None
+    assert "equity_active" in by_store["equity_sibling"].warning
+    assert by_store["bond"].warning is None
