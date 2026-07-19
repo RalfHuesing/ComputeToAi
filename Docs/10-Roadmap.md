@@ -129,9 +129,9 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
 
 
 
-## Meilenstein 4 – Live-Kurs-Integration (WKN/ISIN-Abfrage & Depot-Initialisierung)
+## Meilenstein 4 – Live-Kurs-Integration & Mehrfach-Positionen je Anlageklasse
 
-**Ziel**: Bereitstellung eines MCP-gestützten Live-Kurs-Abfragemechanismus zur automatisierten Initialisierung und Aktualisierung von Depotsalden im Plan-Datenmodell. Das System soll deutsche WKNs und internationale ISINs direkt auflösen und Kurse von deutschen Börsenplätzen beziehen, ohne dass der Nutzer diese manuell nachschlagen muss.
+**Ziel**: Bereitstellung eines MCP-gestützten Live-Kurs-Abfragemechanismus zur automatisierten Initialisierung und Aktualisierung von Depotsalden im Plan-Datenmodell. Das System soll deutsche WKNs und internationale ISINs direkt auflösen und Kurse von deutschen Börsenplätzen beziehen, ohne dass der Nutzer diese manuell nachschlagen muss. Zusätzlich wird das Domänenmodell auf **mehrere Positionen je Anlageklasse** erweitert (siehe „Position" in 03-Feature-Finanzen-Domaenenmodell.md) – der reale Fall, dass historisch/steuerlich bedingt mehrere ETFs denselben Index abbilden, statt nur eine einzelne Stückzahl je Anlageklasse zu erlauben.
 
 ### Technische Analyse (PoC-Erkenntnisse)
 * **Datenquelle**: `Ariva.de` dient als stabile, kostenlose und anmeldefreie Abfragequelle. Sie löst sowohl WKNs (z. B. `ETF018`, `A0RPWH`, `A2N6CW`, `DBX1AU`, `A12GVR`, `A111X9`, `ETF019`) als auch ISINs (z. B. `LU2572257124`, `IE00B4L5Y983`, `IE00BFY0GT14`, `LU0322253906`, `IE00BTJRMP35`, `IE00BKM4GZ66`, `LU2573966905`) per 302-Redirect auf die jeweilige Instrumenten-Detailseite auf.
@@ -146,12 +146,23 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [ ] Implementierung der zweistufigen HTTP-Abfrage (Redirect auflösen -> URL mit `boerse_id` abfragen).
   - [ ] Robustes Parsen des HTML-Header-Preises (`class="instrument-header-quote"`), der Währung (z. B. `EUR`) und des Zeitstempels (`class="instrument-header-last-time"`).
   - [ ] Rückgabe eines strukturierten JSON-Objekts mit Name, ISIN, WKN, Kurs, Währung, Börse und Abfrage-Zeitstempel.
-- [ ] **Epic 4.2 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
-  - [ ] Erweiterung des Plan-Datenmodells/Initialisierungstools um die Möglichkeit, Stückzahlen und WKN/ISIN je Anlageklasse zu hinterlegen (als optionale Konfigurations-Metadaten).
-  - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, asset_class, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Gesamtwert (`shares * price`) berechnet und den Startwert des Depot-Speichers setzt.
-- [ ] **Epic 4.3 – Automatisierter Update-Check (Altern-Check / Plan-Aktualisierung)**
-  - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das alle im Plan hinterlegten Wertpapiere und Stückzahlen abfragt, die aktuellen Marktwerte neu berechnet und die Depotsalden im Plan-Datenmodell aktualisiert (löst das Problem des "Alterns von Plänen" teil-automatisiert).
-- [ ] **Epic 4.4 – Golden-Tests & Fehlerbehandlung**
+- [ ] **Epic 4.2 – Kern-Erweiterung: Mehrfach-Speicher-Ziel für Wachstums-/Renditeeffekte** (`compute_to_ai.engine`)
+  - [ ] `PercentageGrowthEffect` und `CorrelatedReturnEffect` akzeptieren eine Liste von Speichernamen statt nur eines einzelnen (jeder referenzierte Speicher erhält dieselbe gezogene bzw. feste Rate) – rückwärtskompatibel, da ein einzelner Name weiterhin eine Liste der Länge 1 ist.
+  - [ ] Unit-Tests: mehrere Speicher derselben Gruppe erhalten in jedem Lauf identische Renditewerte.
+- [ ] **Epic 4.3 – Bausteine: Position als Anlageklassen-Mitglied** (`compute_to_ai.features.finance`)
+  - [ ] Neue Berechnungsbausteine `calculations_shares_from_transactions` und `calculations_market_value` (siehe 06-Feature-Berechnungen.md, Gruppe „Depot-Bestandsermittlung").
+  - [ ] `finance_add_asset_class` bzw. ein neues Tool erlaubt das Hinzufügen mehrerer Positionen (je ISIN/WKN, Anteile fest oder aus Transaktionshistorie, aktueller Kurs) zu derselben Anlageklasse; jede Position wird als eigener Speicher mit Lot-Semantik angelegt, alle Positionen einer Anlageklasse referenzieren denselben Rendite-Effekt (siehe Epic 4.2).
+  - [ ] Bei Herleitung aus der Transaktionshistorie werden die initialen Lots direkt aus den einzelnen Kauftransaktionen gebildet (Kaufdatum, Stückzahl, Einstandspreis), nicht aus einem pauschalen Startbetrag.
+  - [ ] Genau eine Position je Anlageklasse ist als aktiv markierbar (Kaufpriorität für neue Sparraten).
+- [ ] **Epic 4.4 – Baustein: Positions-Rebalancing innerhalb einer Anlageklasse** (`compute_to_ai.features.finance`)
+  - [ ] Neuer `ComputedEffect`, der bei Investition den Betrag vollständig der aktiven Position zuweist und bei Entnahme zuerst Positionen/Lots ohne Bestandsschutz-Vorteil abbaut (siehe 04-Feature-Finanzen-Methodik.md, Abschnitt „Positions-Rebalancing innerhalb einer Anlageklasse").
+  - [ ] Konfigurierbare Verkaufsschwelle (`sell_threshold`, Prozent-Abweichung vom Startgewicht einer Position innerhalb ihrer Anlageklasse; `None` = nie aktiv verkaufen, `0` = jede Abweichung sofort zurückführen).
+  - [ ] Unit-Tests für beide Schwellen-Extreme sowie einen Zwischenwert.
+- [ ] **Epic 4.5 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
+  - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, asset_class, position, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Marktwert (`shares * price`) berechnet und den Startwert der jeweiligen Position setzt.
+- [ ] **Epic 4.6 – Automatisierter Update-Check (Altern-Check / Plan-Aktualisierung)**
+  - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das alle im Plan hinterlegten Positionen (Wertpapiere und Stückzahlen) abfragt, die aktuellen Marktwerte neu berechnet und die Depotsalden im Plan-Datenmodell aktualisiert (löst das Problem des "Alterns von Plänen" teil-automatisiert).
+- [ ] **Epic 4.7 – Golden-Tests & Fehlerbehandlung**
   - [ ] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
   - [ ] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
 

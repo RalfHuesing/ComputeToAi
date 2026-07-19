@@ -81,17 +81,37 @@ Optional kann eine Verbindlichkeit mit Zinssatz > 0 % eine Sondertilgungsoption 
 
 ## Anlageklasse (Asset Class)
 
-Eine Kategorie von Finanzanlagen, z. B. Aktien-ETF, Anleihen-ETF, Tagesgeld. Jede Anlageklasse hat eine erwartete Rendite und eine Volatilität (bzw. Verteilungsannahme), aus der über den Baustein „Korrelierte Anlageklassen-Renditen" zufällige, untereinander korrelierte Jahresrenditen gezogen werden (siehe 04-Feature-Finanzen-Methodik.md). Für die steuerliche Behandlung hat jede Anlageklasse zudem einen Teilfreistellungssatz (Investmentsteuergesetz, siehe unten).
+Eine Kategorie von Finanzanlagen, z. B. Aktien-ETF (ggf. weiter unterteilt nach Region, siehe „BIP-Gewichtung" unten), Anleihen-ETF, Tagesgeld. Jede Anlageklasse hat eine erwartete Rendite und eine Volatilität (bzw. Verteilungsannahme), aus der über den Baustein „Korrelierte Anlageklassen-Renditen" zufällige, untereinander korrelierte Jahresrenditen gezogen werden (siehe 04-Feature-Finanzen-Methodik.md). Für die steuerliche Behandlung hat jede Anlageklasse zudem einen Teilfreistellungssatz (Investmentsteuergesetz, siehe unten).
+
+Eine Anlageklasse realisiert sich über **eine oder mehrere Positionen** (siehe unten), die alle dieselbe Rendite-/Volatilitätsannahme teilen. Der einfache Regelfall ist eine Anlageklasse mit genau einer Position; mehrere Positionen je Anlageklasse treten auf, wenn derselbe Index über mehrere Fondshüllen gehalten wird (siehe „Position" unten).
+
+### BIP-Gewichtung
+
+Eine verbreitete Zielallokation für den Aktienanteil eines Portfolios orientiert sich an der Verteilung der weltweiten Wirtschaftsleistung (Bruttoinlandsprodukt) statt an der Marktkapitalisierung – z. B. eine Aufteilung in Industrieländer (MSCI World), Schwellenländer (Emerging Markets) und einen gezielten Nebenwerte-Anteil (Small Caps), mit einer vom Marktkapitalisierungs-Gewicht abweichenden, bewusst gewählten Zielgewichtung je Region. Fachlich ist das keine eigenständige Anlageklasse, sondern lediglich eine bestimmte Wahl der Zielgewichte im Rebalancing-Baustein (siehe 04-Feature-Finanzen-Methodik.md) über mehrere regional unterschiedene Aktien-Anlageklassen.
+
+## Position (ETF-/Fondsanteil, Konto)
+
+Ein konkretes, real gehaltenes Finanzinstrument (ein ETF/Fonds über seine ISIN/WKN, oder z. B. ein einzelnes Tagesgeldkonto), das genau einer Anlageklasse zugeordnet ist – die Zuordnung ist für die gesamte Planlaufzeit fix, ein späterer Wechsel wird stattdessen als Verkauf der einen und Kauf einer neuen Position abgebildet. Eine Position ist selbst ein Speicher mit Lot-Semantik (siehe 01-Kern-Domaenenmodell.md); sie erhält dieselbe gezogene Rendite wie alle anderen Positionen ihrer Anlageklasse (siehe dort).
+
+Mehrere Positionen je Anlageklasse sind der Regelfall, sobald über die Zeit mehrere ETFs auf denselben Index angesammelt wurden – meist aus steuerlichen Gründen (Bestandsschutz einzelner Alt-Lots, aufgelaufene unrealisierte Gewinne), seltener rein historisch bedingt ohne bewussten Grund. Genau eine Position je Anlageklasse ist als **aktiv** markiert:
+
+- **Kaufpriorität**: neue Sparraten bzw. der nach Cash-Bucket-Auffüllung verbleibende Überschuss fließen ausschließlich in die aktive Position der jeweiligen Anlageklasse; nicht-aktive Positionen erhalten keine neuen Zuflüsse.
+- **Verkaufspriorität**: Bei einer Entnahme (Rebalancing-Bedarf oder Rentenlücke) wird zuerst aus Positionen bzw. Lots ohne Bestandsschutz-Vorteil verkauft; Bestandsschutz-Lots werden so lange wie möglich geschont.
+- **Verkaufsschwelle**: ein konfigurierbarer Parameter je Anlageklasse legt fest, ab welcher relativen Abweichung einer Position von ihrem (aus dem Startbestand fortgeschriebenen) Gewicht innerhalb der Anlageklasse aktiv verkauft wird, um die Gewichtung zwischen den Positionen zu korrigieren. Der Wert 0 bedeutet: bei jeder Abweichung sofort aktiv zurückführen; kein Wert (unbegrenzt) bedeutet: nie aktiv verkaufen, die Gewichtung zwischen den Positionen wird ausschließlich über die Kaufpriorität der Sparrate gesteuert und darf entsprechend driften. Das Zielgewicht **zwischen Anlageklassen** (z. B. die BIP-Gewichtung) ist davon unberührt und bleibt über den bestehenden Rebalancing-Mechanismus aktiv gesteuert (siehe 04-Feature-Finanzen-Methodik.md).
+
+### Anteile und Marktwert
+
+Eine Position hat zu jedem Zeitpunkt eine Stückzahl (Anteile) und einen Kurs; ihr Marktwert ergibt sich als Anteile × Kurs. Die Anteile stammen entweder aus einem vom Nutzer direkt angegebenen festen Wert, oder werden aus der vollständigen Transaktionshistorie hergeleitet (Summe der gekauften abzüglich der verkauften Anteile über alle Transaktionen). Anteile × Kurs bestimmt beim Planstart den Startsaldo der Position sowie – bei Herleitung aus der Transaktionshistorie – deren initiale Lots (Kaufdatum, Stückzahl und Einstandspreis je Transaktion, siehe „Ausgangszustand" unten); im weiteren Simulationsverlauf rechnet die Engine ausschließlich mit dem daraus resultierenden Geldsaldo, nicht mehr mit Stückzahlen.
 
 ## Besteuerung (deutsches Steuerrecht)
 
 Da es sich um einen deutschen Haushalt handelt, wird die Kapitalertragsbesteuerung vollständig nach deutschem Steuerrecht als Baustein abgebildet, nicht nur pauschal. Zentrale Bausteine: Abgeltungsteuer auf realisierte Kapitalerträge, der jährliche Sparerpauschbetrag als Freibetrag auf Kapitalerträge, die Vorabpauschale als jährliche Vorab-Besteuerung thesaurierender Fondsanteile, sowie die Teilfreistellung. Details und Formeln stehen in 04-Feature-Finanzen-Methodik.md, konkrete Sätze in 05-Feature-Finanzen-Parameter.md.
 
-Ein wichtiges Beispiel dafür, warum Steuer-Bausteine an Speicher-Lots statt global am Regelwerk hängen müssen (siehe 02-Architektur-und-MCP.md, Abschnitt „Regelwerk-Templates"): Aktien und Fondsanteile, die **vor dem 1.1.2009** (Einführung der Abgeltungsteuer) gekauft wurden, genießen dauerhaften Bestandsschutz – ihr Veräußerungsgewinn bleibt unbegrenzt steuerfrei, unabhängig vom tatsächlichen Verkaufsdatum, sogar über eine Vererbung hinweg. Ein Portfolio-Speicher muss sich also je Lot merken, unter welchem Steuerregime es entstanden ist, nicht nur, welches Regelwerk gerade aktuell gilt.
+Ein wichtiges Beispiel dafür, warum Steuer-Bausteine an Speicher-Lots statt global am Regelwerk hängen müssen (siehe 02-Architektur-und-MCP.md, Abschnitt „Regelwerk-Templates"): Aktien und Fondsanteile, die **vor dem 1.1.2009** (Einführung der Abgeltungsteuer) gekauft wurden, genießen dauerhaften Bestandsschutz – ihr Veräußerungsgewinn bleibt unbegrenzt steuerfrei, unabhängig vom tatsächlichen Verkaufsdatum, sogar über eine Vererbung hinweg. Eine Position muss sich also je Lot merken, unter welchem Steuerregime es entstanden ist, nicht nur, welches Regelwerk gerade aktuell gilt.
 
 ## Portfolio (Depot)
 
-Ein Speicher mit Lot-Semantik: eine Menge von Anlageklassen mit einer Allokation (z. B. 60 % Aktien / 40 % Anleihen) und einer Rebalancing-Regel. Ein Portfolio kann dem Haushalt gemeinsam oder einzelnen Personen zugeordnet sein (offene Frage, siehe 08-Offene-Fragen.md). In das Portfolio fließt die Sparquote; aus dem Portfolio werden im Ruhestand Entnahmen zur Deckung der Rentenlücke getätigt.
+Eine Menge von Anlageklassen mit einer Allokation (z. B. 60 % Aktien / 40 % Anleihen, ggf. weiter nach BIP-Gewichtung auf Regionen aufgeteilt) und einer Rebalancing-Regel; jede Anlageklasse wiederum realisiert sich über eine oder mehrere Positionen (siehe oben). Ein Portfolio kann dem Haushalt gemeinsam oder einzelnen Personen zugeordnet sein (offene Frage, siehe 08-Offene-Fragen.md). In das Portfolio fließt die Sparquote; aus dem Portfolio werden im Ruhestand Entnahmen zur Deckung der Rentenlücke getätigt.
 
 ## Cash-Bucket (Liquiditätspuffer)
 
@@ -108,7 +128,7 @@ Zusätzlich enthält der Cash-Bucket, unabhängig von der Lebensphase, eine rein
 
 ## Ausgangszustand (Startvermögen)
 
-Jeder Plan startet nicht bei null, sondern mit einem konkreten Ausgangszustand zum heutigen Tag: dem aktuellen Alter der Primärperson sowie dem bereits vorhandenen Vermögen, aufgeteilt auf den aktuellen Bestand je Anlageklasse (inkl. der Lot-Historie für Bestandsschutz-Fälle) und den aktuellen Bestand im Cash-Bucket. Erst ab diesem Ausgangspunkt schreibt die Simulation Jahr für Jahr fort. Konkrete Werte gehören in 05-Feature-Finanzen-Parameter.md.
+Jeder Plan startet nicht bei null, sondern mit einem konkreten Ausgangszustand zum heutigen Tag: dem aktuellen Alter der Primärperson sowie dem bereits vorhandenen Vermögen, aufgeteilt auf den aktuellen Bestand je Position (inkl. der Lot-Historie für Bestandsschutz-Fälle) und den aktuellen Bestand im Cash-Bucket. Der Bestand je Position ergibt sich aus Anteile × Kurs (siehe „Position" oben); bei Herleitung der Anteile aus der Transaktionshistorie entstehen die initialen Lots direkt aus den einzelnen Transaktionen, nicht aus einem einzigen pauschalen Startbetrag. Erst ab diesem Ausgangspunkt schreibt die Simulation Jahr für Jahr fort. Konkrete Werte gehören in 05-Feature-Finanzen-Parameter.md.
 
 ## Rentenlücke (Pension Gap)
 
@@ -135,6 +155,7 @@ Primärperson (1) ── hat ──> (0..n) Individuelle Ausgabe (Effekt)
 Primärperson (1) ── hat ──> Erwerbsende (separat von gesetzlichem Rentenbeginn)
 Primärperson (1) ── hat ──> (0..1) gesetzliche Rente (ab gesetzlichem Rentenbeginn)
 Portfolio (1)    ── besteht aus ──> (1..n) Anlageklasse (mit Allokation)
+Anlageklasse (1) ── realisiert durch ──> (1..n) Position (Speicher mit Lots, genau 1 davon aktiv)
 Plan (1)         ── referenziert ──> Haushalt + alle Parameter
 Plan (1)         ── erzeugt ──> (n) Simulationslauf ──> (1) Simulationsergebnis
 ```

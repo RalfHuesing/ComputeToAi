@@ -14,7 +14,7 @@ Wie in 02-Architektur-und-MCP.md festgehalten, gibt es kein eigenes „Verifikat
 
 ## Umfang
 
-24 deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` angeboten (siehe 02-Architektur-und-MCP.md), gegliedert in sechs Gruppen. Viele Gruppen enthalten neben der direkten Formel auch deren Umkehrung(en) – gerade bei der Ruhestandsplanung ist meist die umgekehrte Frage die eigentlich interessante („wie viel muss ich sparen", nicht „was ergibt sich aus dieser Sparrate"):
+Deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` angeboten (siehe 02-Architektur-und-MCP.md), gegliedert in sieben Gruppen. Viele Gruppen enthalten neben der direkten Formel auch deren Umkehrung(en) – gerade bei der Ruhestandsplanung ist meist die umgekehrte Frage die eigentlich interessante („wie viel muss ich sparen", nicht „was ergibt sich aus dieser Sparrate"):
 
 **Datums-/Altersarithmetik** (`compute_to_ai.features.calculations.dates`):
 - Jahre (fraktional) zwischen zwei Datumswerten
@@ -41,6 +41,12 @@ Wie in 02-Architektur-und-MCP.md festgehalten, gibt es kein eigenes „Verifikat
 - Restschuld nach einer bestimmten Anzahl geleisteter Raten
 - Vollständiger Tilgungsplan (Zins-/Tilgungsanteil je Periode)
 - Tilgungsplan mit einer oder mehreren Sondertilgungen zu festgelegten Zeitpunkten (Rate bleibt gleich, Restlaufzeit verkürzt sich) – ein reiner Was-wäre-wenn-Rechner mit vom Nutzer vorgegebenen Beträgen, keine Simulation einer dynamischen Sondertilgungs-Entscheidung innerhalb eines laufenden Plans (das bleibt Feature Finanzen vorbehalten)
+
+**Depot-Bestandsermittlung** (`compute_to_ai.features.calculations.holdings`):
+- Anteile aus einer Transaktionshistorie ableiten: Summe der gekauften abzüglich der verkauften Stückzahl über eine Liste datierter Kauf-/Verkaufstransaktionen
+- Marktwert einer Position: Anteile × Kurs
+
+Diese beiden Bausteine sind reine Arithmetik ohne Finance-spezifisches Steuer- oder Korrelationswissen und dienen vor allem der Ermittlung des Startbestands einer Position aus real gehaltenen Wertpapieren (siehe 03-Feature-Finanzen-Domaenenmodell.md, Abschnitt „Position").
 
 **Zahlungsstrom-Analyse** (`compute_to_ai.features.calculations.cashflows`, numerisches Root-Finding statt geschlossener Formel):
 - Interner Zinsfuß (XIRR) einer Reihe unregelmäßig datierter, unregelmäßig hoher Zahlungen – z. B. ein Depot mit unregelmäßigen Ein-/Auszahlungen
