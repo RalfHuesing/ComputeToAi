@@ -155,14 +155,24 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [ ] Bei Herleitung aus der Transaktionshistorie werden die initialen Lots direkt aus den einzelnen Kauftransaktionen gebildet (Kaufdatum, Stückzahl, Einstandspreis), nicht aus einem pauschalen Startbetrag.
   - [ ] Genau eine Position je Anlageklasse ist als aktiv markierbar (Kaufpriorität für neue Sparraten).
 - [ ] **Epic 4.4 – Baustein: Positions-Rebalancing innerhalb einer Anlageklasse** (`compute_to_ai.features.finance`)
-  - [ ] Neuer `ComputedEffect`, der bei Investition den Betrag vollständig der aktiven Position zuweist und bei Entnahme zuerst Positionen/Lots ohne Bestandsschutz-Vorteil abbaut (siehe 04-Feature-Finanzen-Methodik.md, Abschnitt „Positions-Rebalancing innerhalb einer Anlageklasse").
+  - [ ] Neuer `ComputedEffect`, der bei Investition den Betrag vollständig der aktiven Position zuweist und bei Entnahme zuerst die Position ohne Bestandsschutz-Vorteil mit dem geringsten unrealisierten Gewinn (in Prozent) abbaut, erst danach die mit dem nächsthöheren Gewinn, zuletzt Bestandsschutz-Positionen; innerhalb einer gewählten Position bleibt die Lot-FIFO-Verbrauchsfolge unangetastet (siehe 04-Feature-Finanzen-Methodik.md, Abschnitt „Positions-Rebalancing innerhalb einer Anlageklasse").
   - [ ] Konfigurierbare Verkaufsschwelle (`sell_threshold`, Prozent-Abweichung vom Startgewicht einer Position innerhalb ihrer Anlageklasse; `None` = nie aktiv verkaufen, `0` = jede Abweichung sofort zurückführen).
-  - [ ] Unit-Tests für beide Schwellen-Extreme sowie einen Zwischenwert.
-- [ ] **Epic 4.5 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
+  - [ ] Unit-Tests für beide Schwellen-Extreme sowie einen Zwischenwert, dazu ein Test, der bestätigt, dass bei mehreren nicht geschützten Positionen zuerst die mit dem geringsten Gewinn verkauft wird.
+- [ ] **Epic 4.5 – Baustein: Beitrags-Rechner für Sparraten-Verteilung**
+  - [ ] Neuer generischer Berechnungsbaustein `calculations_contribution_allocation` (`compute_to_ai.features.calculations.holdings`): nimmt je Bucket den aktuellen Wert und das Zielgewicht sowie einen neuen Gesamtbetrag entgegen und verteilt ihn so, dass die Abweichung vom Zielgewicht über alle Buckets minimiert wird – ohne Plan-Bezug, reine Arithmetik (siehe 06-Feature-Berechnungen.md).
+  - [ ] Finance-Wrapper-Tool, das diesen Baustein mit den tatsächlichen Anlageklassen-Zielgewichten und Positions-Marktwerten eines Plans füttert und das Ergebnis auf die aktive Position je Anlageklasse abbildet – beantwortet direkt „wie viel investiere ich diesen Monat in welchen ETF", ohne einen vollen Monte-Carlo-Lauf zu benötigen (löst den entsprechenden Punkt aus 08-Offene-Fragen.md, „Performance interaktiver Ad-hoc-Anfragen", für diesen konkreten Fall).
+- [ ] **Epic 4.6 – Auswertung: Ist/Soll-Drift- und Gewinn/Bestandsschutz-Report je Position**
+  - [ ] Neues MCP-Tool, das je Anlageklasse und Position die Ist-Gewichtung der Soll-Gewichtung (BIP-Zielallokation) gegenüberstellt.
+  - [ ] Ergänzend je Position: unrealisierter Gewinn/Verlust in Euro und Prozent, aufgeteilt in Bestandsschutz- und reguläre Lots.
+- [ ] **Epic 4.7 – Ad-hoc-Tool: Einzelverkaufs-Steuerschätzer**
+  - [ ] Neues MCP-Tool, das für eine konkrete Position (oder eine angegebene Verkaufssumme) die anfallende Steuer bei einem gedachten Verkauf heute schätzt – Komposition der bereits vorhandenen Steuer-Bausteine (Abgeltungsteuer, Teilfreistellung, Sparerpauschbetrag, Bestandsschutz, siehe 03-Feature-Finanzen-Domaenenmodell.md) auf den aktuellen Lot-Bestand der Position, ohne einen Simulationslauf zu benötigen.
+- [ ] **Epic 4.8 – Auswertung: Plan-Ist-Vergleich gegen Perzentilkurven**
+  - [ ] Neues MCP-Tool, das den heutigen tatsächlichen Gesamtwert (Positionen + Cash-Bucket) dem Wert an derselben Stelle (Alter/Schritt) der zuvor berechneten p10/p50/p90-Kurven aus `finance_get_percentile_curves` gegenüberstellt – ein einzelner Stichtagsvergleich („bin ich noch im Plan?"), keine Nachbildung eines historischen Ist-Verlaufs über die Zeit (dafür fehlt eine fortlaufende Kurs-Historie, siehe 08-Offene-Fragen.md).
+- [ ] **Epic 4.9 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
   - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, asset_class, position, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Marktwert (`shares * price`) berechnet und den Startwert der jeweiligen Position setzt.
-- [ ] **Epic 4.6 – Automatisierter Update-Check (Altern-Check / Plan-Aktualisierung)**
+- [ ] **Epic 4.10 – Automatisierter Update-Check (Altern-Check / Plan-Aktualisierung)**
   - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das alle im Plan hinterlegten Positionen (Wertpapiere und Stückzahlen) abfragt, die aktuellen Marktwerte neu berechnet und die Depotsalden im Plan-Datenmodell aktualisiert (löst das Problem des "Alterns von Plänen" teil-automatisiert).
-- [ ] **Epic 4.7 – Golden-Tests & Fehlerbehandlung**
+- [ ] **Epic 4.11 – Golden-Tests & Fehlerbehandlung**
   - [ ] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
   - [ ] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
 

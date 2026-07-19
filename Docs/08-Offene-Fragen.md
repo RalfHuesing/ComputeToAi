@@ -40,6 +40,10 @@ Wie wird der Referenzpfad konkret definiert – linear interpoliert oder nach ei
 
 Ein gemeinsames Portfolio für den Haushalt, oder getrennte Depots je Person mit ggf. unterschiedlicher Allokation und steuerlicher Behandlung?
 
+## Historische Kurs-Zeitreihe für den Ist-Depotverlauf
+
+Ein Plan-Ist-Vergleich gegen die simulierten Perzentilkurven (siehe 10-Roadmap.md, Meilenstein 4) ist mit den aktuell geplanten Bausteinen nur als einzelner Stichtagsvergleich möglich, nicht als durchgängiger historischer Verlauf – dafür müsste bei jeder Kurs-Abfrage der jeweilige Marktwert zeitlich mitgeschrieben und dauerhaft gespeichert werden. Lohnt sich eine solche fortlaufende Kurs-/Wert-Historie, oder reicht der Stichtagsvergleich?
+
 ## Detailfragen zu Verbindlichkeiten (Kredite, Unterhalt)
 
 Nach welcher konkreten Regel wird zwischen Sondertilgung und Investition entschieden? Sind Kreditzinsen steuerlich absetzbar (z. B. Werbungskosten bei vermieteter Immobilie)? Ist Unterhalt steuerlich relevant (Realsplitting, Kindesunterhalt)? Soll ein variabler Hauskreditzins (Anschlussfinanzierung) als unsichere Größe abgebildet werden?

@@ -42,11 +42,12 @@ Deterministische Rechenbausteine, als MCP-Tools mit dem Präfix `calculations_` 
 - Vollständiger Tilgungsplan (Zins-/Tilgungsanteil je Periode)
 - Tilgungsplan mit einer oder mehreren Sondertilgungen zu festgelegten Zeitpunkten (Rate bleibt gleich, Restlaufzeit verkürzt sich) – ein reiner Was-wäre-wenn-Rechner mit vom Nutzer vorgegebenen Beträgen, keine Simulation einer dynamischen Sondertilgungs-Entscheidung innerhalb eines laufenden Plans (das bleibt Feature Finanzen vorbehalten)
 
-**Depot-Bestandsermittlung** (`compute_to_ai.features.calculations.holdings`):
+**Depot-Bestand & Rebalancing-Rechner** (`compute_to_ai.features.calculations.holdings`):
 - Anteile aus einer Transaktionshistorie ableiten: Summe der gekauften abzüglich der verkauften Stückzahl über eine Liste datierter Kauf-/Verkaufstransaktionen
 - Marktwert einer Position: Anteile × Kurs
+- Verteilung eines neuen Beitrags auf mehrere Buckets, die jeweils einen aktuellen Wert und ein Zielgewicht haben, so dass die Abweichung vom Zielgewicht über alle Buckets minimiert wird
 
-Diese beiden Bausteine sind reine Arithmetik ohne Finance-spezifisches Steuer- oder Korrelationswissen und dienen vor allem der Ermittlung des Startbestands einer Position aus real gehaltenen Wertpapieren (siehe 03-Feature-Finanzen-Domaenenmodell.md, Abschnitt „Position").
+Diese Bausteine sind reine Arithmetik ohne Finance-spezifisches Steuer- oder Korrelationswissen. Die ersten beiden dienen vor allem der Ermittlung des Startbestands einer Position aus real gehaltenen Wertpapieren (siehe 03-Feature-Finanzen-Domaenenmodell.md, Abschnitt „Position"), der dritte beantwortet ad hoc „wie viel investiere ich diesen Monat wohin", ohne dass dafür ein Plan oder ein Simulationslauf nötig ist.
 
 **Zahlungsstrom-Analyse** (`compute_to_ai.features.calculations.cashflows`, numerisches Root-Finding statt geschlossener Formel):
 - Interner Zinsfuß (XIRR) einer Reihe unregelmäßig datierter, unregelmäßig hoher Zahlungen – z. B. ein Depot mit unregelmäßigen Ein-/Auszahlungen
