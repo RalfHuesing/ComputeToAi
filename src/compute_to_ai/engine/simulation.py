@@ -176,35 +176,51 @@ def _execute_computed_effects(
 
 
 def _cap_and_check_ruin(
-    sim_stores: dict[str, Store], plan: Plan, t: int, ruin_step: int | None
-) -> int | None:
-    """Cap negative balances at 0 and return updated ruin step if applicable."""
+    sim_stores: dict[str, Store],
+    plan: Plan,
+    t: int,
+    ruin_step: int | None,
+    ruin_shortfall: float | None,
+) -> tuple[int | None, float | None]:
+    """Check ruin against the pre-cap balances, then cap negative balances at 0.
+
+    The ruin-stores sum is evaluated before capping so that a
+    `ruin_threshold` of 0.0 (the default) can still detect a run that went
+    negative - capped balances are never below 0.0, so checking after
+    capping can never trigger ruin at the default threshold.
+    """
+    if plan.ruin_stores and ruin_step is None:
+        uncapped_sum = sum(
+            sim_stores[name].balance for name in plan.ruin_stores if name in sim_stores
+        )
+        if uncapped_sum < plan.ruin_threshold:
+            ruin_step = t
+            ruin_shortfall = plan.ruin_threshold - uncapped_sum
+
     for store in sim_stores.values():
         if store.balance < 0.0:
             store.balance = 0.0
             store.lots = []
 
-    if plan.ruin_stores:
-        ruin_sum = sum(sim_stores[name].balance for name in plan.ruin_stores if name in sim_stores)
-        if ruin_sum < plan.ruin_threshold and ruin_step is None:
-            return t
-
-    return ruin_step
+    return ruin_step, ruin_shortfall
 
 
 def _run_single_simulation(
     plan: Plan, drawn_rates: dict[str, np.ndarray] | None = None
-) -> tuple[dict[str, float], list[dict[str, float]], int | None]:
+) -> tuple[dict[str, float], list[dict[str, float]], int | None, float | None]:
     """Execute a single simulation run.
 
     Returns:
         final_balances: dict of store_name -> balance
         time_series: list of dict of store_name -> balance for each step
         ruin_step: the step index where ruin first occurred, or None
+        ruin_shortfall: how far below ruin_threshold the ruin-stores sum was
+            at ruin_step (pre-cap), or None if no ruin occurred
     """
     sim_stores = {store.name: copy.deepcopy(store) for store in plan.stores}
     time_series: list[dict[str, float]] = []
     ruin_step: int | None = None
+    ruin_shortfall: float | None = None
     store_names = list(sim_stores.keys())
 
     # Temporarily substitute simulation-cloned stores and effects into the plan.
@@ -237,8 +253,10 @@ def _run_single_simulation(
             # Phase 2: Computed effects (registered python functions)
             _execute_computed_effects(plan.effects, sim_stores, t, active_phase, plan)
 
-            # Cap balances at 0 and check for ruin
-            ruin_step = _cap_and_check_ruin(sim_stores, plan, t, ruin_step)
+            # Check for ruin (against pre-cap balances), then cap balances at 0
+            ruin_step, ruin_shortfall = _cap_and_check_ruin(
+                sim_stores, plan, t, ruin_step, ruin_shortfall
+            )
 
             time_series.append({name: store.balance for name, store in sim_stores.items()})
 
@@ -247,15 +265,27 @@ def _run_single_simulation(
         plan.effects = original_effects
 
     final_balances = {name: store.balance for name, store in sim_stores.items()}
-    return final_balances, time_series, ruin_step
+    return final_balances, time_series, ruin_step, ruin_shortfall
 
 
 def run_simulation(plan: Plan) -> SimulationResult:
     """Run a single deterministic simulation run."""
-    final_balances, time_series, ruin_step = _run_single_simulation(plan, None)
+    final_balances, time_series, ruin_step, ruin_shortfall = _run_single_simulation(plan, None)
     return SimulationResult(
-        final_balances=final_balances, time_series=time_series, ruin_step=ruin_step
+        final_balances=final_balances,
+        time_series=time_series,
+        ruin_step=ruin_step,
+        ruin_shortfall=ruin_shortfall,
     )
+
+
+def _percentile_triplet(vals: list[float]) -> dict[int, float]:
+    """Compute p10/p50/p90 of a non-empty list of values."""
+    return {
+        10: float(np.percentile(vals, 10)),
+        50: float(np.percentile(vals, 50)),
+        90: float(np.percentile(vals, 90)),
+    }
 
 
 def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> MonteCarloResult:
@@ -267,6 +297,7 @@ def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> Monte
     raw_final_balances: list[dict[str, float]] = []
     ruin_step_counts: dict[int, int] = {}
     ruin_count = 0
+    ruin_shortfalls: list[float] = []
     store_final_balances: dict[str, list[float]] = {store.name: [] for store in plan.stores}
 
     for run_idx in range(num_runs):
@@ -276,7 +307,7 @@ def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> Monte
             for idx, store_name in enumerate(group_config.store_names):
                 run_drawn_rates[store_name] = draws[run_idx, :, idx]
 
-        final_bal, _, r_step = _run_single_simulation(plan, run_drawn_rates)
+        final_bal, _, r_step, r_shortfall = _run_single_simulation(plan, run_drawn_rates)
         raw_final_balances.append(final_bal)
 
         for name, bal in final_bal.items():
@@ -286,18 +317,16 @@ def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> Monte
         if r_step is not None:
             ruin_count += 1
             ruin_step_counts[r_step] = ruin_step_counts.get(r_step, 0) + 1
+            if r_shortfall is not None:
+                ruin_shortfalls.append(r_shortfall)
 
     ruin_prob = ruin_count / num_runs if num_runs > 0 else 0.0
+    ruin_shortfall_percentiles = _percentile_triplet(ruin_shortfalls) if ruin_shortfalls else {}
 
-    final_percentiles: dict[str, dict[int, float]] = {}
-    for store_name, vals in store_final_balances.items():
-        if vals:
-            p10 = float(np.percentile(vals, 10))
-            p50 = float(np.percentile(vals, 50))
-            p90 = float(np.percentile(vals, 90))
-            final_percentiles[store_name] = {10: p10, 50: p50, 90: p90}
-        else:
-            final_percentiles[store_name] = {10: 0.0, 50: 0.0, 90: 0.0}
+    final_percentiles: dict[str, dict[int, float]] = {
+        store_name: _percentile_triplet(vals) if vals else {10: 0.0, 50: 0.0, 90: 0.0}
+        for store_name, vals in store_final_balances.items()
+    }
 
     return MonteCarloResult(
         num_runs=num_runs,
@@ -305,4 +334,5 @@ def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> Monte
         ruin_step_distribution=ruin_step_counts,
         final_balances_percentiles=final_percentiles,
         raw_final_balances=raw_final_balances,
+        ruin_shortfall_percentiles=ruin_shortfall_percentiles,
     )

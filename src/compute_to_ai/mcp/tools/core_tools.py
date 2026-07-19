@@ -190,7 +190,11 @@ def _register_simulation_tools(mcp: FastMCP, working_directory: Path) -> None:
         payload = (
             result.model_dump()
             if include_time_series
-            else {"final_balances": result.final_balances}
+            else {
+                "final_balances": result.final_balances,
+                "ruin_step": result.ruin_step,
+                "ruin_shortfall": result.ruin_shortfall,
+            }
         )
         logger.debug("core_get_result payload: %s", payload)
         return payload

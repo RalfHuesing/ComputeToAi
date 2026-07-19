@@ -49,7 +49,7 @@ Der **Name** einer Phase ist ein frei wählbares Label ohne feste Bedeutung für
 
 Eine Zielbedingung definiert, wann ein Simulationslauf als Erfolg bzw. als „Ruin" gilt – meist: der Saldo eines oder mehrerer Speicher darf zu keinem Zeitpunkt eine kritische Schwelle (üblicherweise 0) unterschreiten. Das ist strukturell identisch mit der Ruinwahrscheinlichkeit der Versicherungsmathematik und wird bei einem Monte-Carlo-Lauf über viele Wiederholungen zu einer Erfolgswahrscheinlichkeit aggregiert.
 
-Ein Simulationslauf **läuft nach Eintritt eines Ruins weiter** statt abzubrechen (der betroffene Speicher wird auf 0 gedeckelt, nicht negativ fortgeschrieben) – so hält das Simulationsergebnis sowohl den Zeitpunkt als auch das Ausmaß eines Ruins fest, statt nur ein binäres Ereignis.
+Ein Simulationslauf **läuft nach Eintritt eines Ruins weiter** statt abzubrechen (der betroffene Speicher wird auf 0 gedeckelt, nicht negativ fortgeschrieben) – so hält das Simulationsergebnis sowohl den Zeitpunkt als auch das Ausmaß eines Ruins fest, statt nur ein binäres Ereignis. Der Vergleich gegen die Schwelle erfolgt dabei auf dem *ungedeckelten* Saldo je Zeitschritt, nicht erst nach dem 0-Deckel – sonst wäre ein Ruin bei der üblichen Schwelle 0 nie feststellbar, da ein gedeckelter Saldo nie negativ wird. Das Ausmaß eines Ruins (wie weit der ungedeckelte Saldo unter der Schwelle lag) steht als eigener Wert im Ergebnis, getrennt vom reinen Zeitpunkt.
 
 ## Plan
 

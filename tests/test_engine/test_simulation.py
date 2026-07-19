@@ -175,6 +175,68 @@ def test_ruin_checking() -> None:
     result = run_simulation(plan)
     assert result.final_balances["cash"] == 0.0
     assert result.ruin_step == 2
+    assert pytest.approx(result.ruin_shortfall) == 15.0
+
+
+def test_ruin_checking_fires_at_default_zero_threshold() -> None:
+    # Regression test: with the default ruin_threshold=0.0, a post-cap balance
+    # is never negative, so ruin used to be undetectable. The check must run
+    # against the pre-cap balance instead.
+    plan = Plan(
+        name="ruin-zero-threshold-test",
+        timeline=Timeline(step_count=3),
+        stores=[Store(name="cash", balance=50.0)],
+        effects=[GrowingFixedEffect(store_name="cash", amount_per_step=-20.0)],
+        ruin_stores=["cash"],
+    )
+
+    result = run_simulation(plan)
+    assert result.final_balances["cash"] == 0.0
+    assert result.ruin_step == 2
+    assert pytest.approx(result.ruin_shortfall) == 10.0
+
+
+def test_ruin_checking_reports_no_shortfall_when_no_ruin_occurs() -> None:
+    plan = Plan(
+        name="no-ruin-test",
+        timeline=Timeline(step_count=3),
+        stores=[Store(name="cash", balance=50.0)],
+        effects=[GrowingFixedEffect(store_name="cash", amount_per_step=10.0)],
+        ruin_stores=["cash"],
+    )
+
+    result = run_simulation(plan)
+    assert result.ruin_step is None
+    assert result.ruin_shortfall is None
+
+
+def test_monte_carlo_ruin_shortfall_percentiles_populated_only_on_ruin() -> None:
+    # No stochastic effects: every run is identical and ruins the same way.
+    plan = Plan(
+        name="mc-ruin-shortfall-test",
+        timeline=Timeline(step_count=3),
+        stores=[Store(name="cash", balance=50.0)],
+        effects=[GrowingFixedEffect(store_name="cash", amount_per_step=-20.0)],
+        ruin_stores=["cash"],
+    )
+
+    result = run_monte_carlo(plan, num_runs=5, seed=1)
+    assert result.ruin_probability == 1.0
+    assert result.ruin_shortfall_percentiles == {10: 10.0, 50: 10.0, 90: 10.0}
+
+
+def test_monte_carlo_ruin_shortfall_percentiles_empty_without_ruin() -> None:
+    plan = Plan(
+        name="mc-no-ruin-shortfall-test",
+        timeline=Timeline(step_count=3),
+        stores=[Store(name="cash", balance=50.0)],
+        effects=[GrowingFixedEffect(store_name="cash", amount_per_step=10.0)],
+        ruin_stores=["cash"],
+    )
+
+    result = run_monte_carlo(plan, num_runs=5, seed=1)
+    assert result.ruin_probability == 0.0
+    assert result.ruin_shortfall_percentiles == {}
 
 
 def test_correlated_returns_monte_carlo() -> None:

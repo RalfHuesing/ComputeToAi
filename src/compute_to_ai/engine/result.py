@@ -15,6 +15,7 @@ class SimulationResult(BaseModel):
     final_balances: dict[str, float]
     time_series: list[dict[str, float]] = []
     ruin_step: int | None = None
+    ruin_shortfall: float | None = None
 
 
 class MonteCarloResult(BaseModel):
@@ -25,3 +26,5 @@ class MonteCarloResult(BaseModel):
     ruin_step_distribution: dict[int, int]  # maps step -> count of ruins occurring at that step
     final_balances_percentiles: dict[str, dict[int, float]]  # store_name -> percentile_key -> value
     raw_final_balances: list[dict[str, float]] = []
+    # percentile_key -> value, over runs that ruined; {} if none did
+    ruin_shortfall_percentiles: dict[int, float] = {}
