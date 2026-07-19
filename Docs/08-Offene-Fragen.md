@@ -87,3 +87,17 @@ Woher stammen Referenzwerte zu typischen Nutzungsdauern/Kostenrahmen (Küche, Au
 ## Konkrete Werte für Cash-Bucket-Parameter
 
 Welche konkreten Werte sind für Notfallpuffer-Monate und Entnahmehorizont sinnvoll (siehe Wertebeispiele in 05-Feature-Finanzen-Parameter.md), und sollte der Entnahmehorizont selbst mit dem Alter variieren?
+
+## Altern von Plänen und zeitlicher Verlauf
+
+**Intention:**
+Wenn ein Simulationsplan (z. B. erstellt im Jahr 2026) nach mehreren Jahren (z. B. 2031) unverändert geladen wird, stimmen das relative Startalter der Personen und die hinterlegten Anfangssalden der Speicher nicht mehr mit der Realität überein. Es muss verhindert werden, dass veraltete Pläne stillschweigend mit veraltetem Zeitbezug simuliert werden, was zu verfälschten Ergebnissen führt.
+
+**Vorgeschlagene Lösung:**
+1. **Zentraler Zeit-Anker:** Die `timeline` erhält ein explizites `start_year`, und Personen werden über ihr Geburtsjahr statt eines statischen Alters definiert, damit das Alter in jedem Zeitschritt dynamisch berechnet werden kann.
+2. **Validierung in der Engine:** Die Simulations-Engine vergleicht beim Start das `start_year` des Plans mit dem aktuellen Kalenderjahr des ausführenden Systems. Liegt das Startjahr in der Vergangenheit, bricht die Engine mit einer strukturierten Fehlermeldung ab (`PlanOutdatedError`).
+3. **Interaktive Agenten-Aktualisierung:** Der LLM-Agent fängt diesen Fehler ab, analysiert den Plan auf betroffene Elemente (z. B. abgelaufene Einmaleffekte oder verschobene Phasen) und bittet den Nutzer gezielt um die Eingabe der aktuellen Kontostände und Lebensdaten. Danach aktualisiert der Agent das `start_year` und die Salden im JSON-Plan und startet die Simulation neu.
+
+**Warum:**
+Dieser Ansatz hält den Kern der Simulations-Engine schlank und verzichtet auf eine hochkomplexe Historisierung von Ist-Daten im Simulations-Code. Da sich Lebensumstände in mehreren Jahren meist grundlegend und unvorhersehbar ändern (z. B. durch Jobwechsel, Erbschaften, Markt-Crashs), ist eine automatische Fortschreibung ohnehin unrealistisch. Die menschlich-agentische Schnittstelle kann diese Anpassungen flexibler und präziser interaktiv lösen.
+
