@@ -44,6 +44,7 @@ def add_asset_class(
     expected_return: float,
     volatility: float,
     correlation_group: str = "portfolio",
+    description: str | None = None,
 ) -> None:
     """Add an asset class with a correlated return effect to the plan."""
     # Ensure the store exists and has lot tracking enabled
@@ -64,6 +65,7 @@ def add_asset_class(
                         cost_basis=initial_balance,
                     )
                 ],
+                description=description,
             )
         )
 
@@ -74,6 +76,7 @@ def add_asset_class(
         expected_return=expected_return,
         volatility=volatility,
         correlation_group=correlation_group,
+        description=description,
     )
     plan.effects.append(effect)
 
@@ -93,6 +96,7 @@ def add_portfolio_rebalancing(
     weights: dict[str, float],
     start_step: int = 0,
     end_step: int | None = None,
+    description: str | None = None,
 ) -> None:
     """Add a computed rebalancing effect to the plan."""
     params = PortfolioRebalancingParameters(weights=weights)
@@ -102,6 +106,7 @@ def add_portfolio_rebalancing(
         start_step=start_step,
         end_step=end_step,
         parameters=params.model_dump(),
+        description=description,
     )
     plan.effects.append(effect)
 
@@ -254,6 +259,7 @@ def add_cash_bucket(
     cash_store_name: str = "cash",
     withdrawal_phase_names: list[str] | None = None,
     max_target_cash: float | None = None,
+    description: str | None = None,
 ) -> None:
     """Add a computed cash bucket manager to the plan.
 
@@ -273,7 +279,7 @@ def add_cash_bucket(
             store_exists = True
             break
     if not store_exists:
-        plan.stores.append(Store(name=cash_store_name, balance=0.0))
+        plan.stores.append(Store(name=cash_store_name, balance=0.0, description=description))
 
     params = CashBucketParameters(
         cash_store_name=cash_store_name,
@@ -292,5 +298,6 @@ def add_cash_bucket(
         function_name="cash_bucket_manager",
         order=0,  # runs between pension tax (-10) and capital gains tax (10), see tax.py
         parameters=params.model_dump(),
+        description=description,
     )
     plan.effects.append(effect)

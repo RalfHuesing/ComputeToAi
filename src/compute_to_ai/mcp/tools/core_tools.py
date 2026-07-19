@@ -41,9 +41,9 @@ def register_core_tools(mcp: FastMCP, working_directory: Path) -> None:
 
 def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
-    def core_create_plan(plan_name: str, step_count: int) -> str:  # pyright: ignore[reportUnusedFunction]
+    def core_create_plan(plan_name: str, step_count: int, description: str | None = None) -> str:  # pyright: ignore[reportUnusedFunction]
         """Create a new Plan with an empty Timeline of step_count steps."""
-        plan = Plan(name=plan_name, timeline=Timeline(step_count=step_count))
+        plan = Plan(name=plan_name, timeline=Timeline(step_count=step_count), description=description)
         _save_plan(working_directory, plan)
         logger.info("core_create_plan: plan=%r status=ok", plan_name)
         logger.debug("core_create_plan args: step_count=%d", step_count)
@@ -118,11 +118,11 @@ def _validate_transfer_targets(
 def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def core_add_store(  # pyright: ignore[reportUnusedFunction]
-        plan_name: str, store_name: str, initial_balance: float = 0.0
+        plan_name: str, store_name: str, initial_balance: float = 0.0, description: str | None = None
     ) -> str:
         """Add a Store (a tracked balance) to an existing Plan."""
         plan = _load_plan(working_directory, plan_name)
-        plan.stores.append(Store(name=store_name, balance=initial_balance))
+        plan.stores.append(Store(name=store_name, balance=initial_balance, description=description))
         _save_plan(working_directory, plan)
         logger.info("core_add_store: plan=%r store=%r status=ok", plan_name, store_name)
         logger.debug("core_add_store args: initial_balance=%s", initial_balance)
@@ -130,13 +130,13 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
 
     @mcp.tool()
     def core_add_effect(  # pyright: ignore[reportUnusedFunction]
-        plan_name: str, store_name: str, amount_per_step: float
+        plan_name: str, store_name: str, amount_per_step: float, description: str | None = None
     ) -> str:
         """Add a fixed per-step Effect on a Store in an existing Plan."""
         plan = _load_plan(working_directory, plan_name)
         plan.store(store_name)  # raises KeyError if store_name is unknown
         plan.effects.append(
-            GrowingFixedEffect(store_name=store_name, amount_per_step=amount_per_step)
+            GrowingFixedEffect(store_name=store_name, amount_per_step=amount_per_step, description=description)
         )
         _save_plan(working_directory, plan)
         logger.info("core_add_effect: plan=%r store=%r status=ok", plan_name, store_name)
@@ -153,6 +153,7 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
         active_phases: list[str] | None = None,
         start_step: int | None = None,
         end_step: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Add a per-step Transfer effect between Stores in an existing Plan.
 
@@ -173,6 +174,7 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
                 active_phases=active_phases,
                 start_step=start_step,
                 end_step=end_step,
+                description=description,
             )
         )
         _save_plan(working_directory, plan)

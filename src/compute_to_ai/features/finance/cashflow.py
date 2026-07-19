@@ -24,6 +24,7 @@ def add_income_stream(
     active_phases: list[str] | None = None,
     start_step: int | None = None,
     end_step: int | None = None,
+    description: str | None = None,
 ) -> None:
     """Add a growing fixed income stream (positive cashflow) to the plan."""
     plan.validate_active_phases(active_phases)
@@ -35,6 +36,7 @@ def add_income_stream(
         active_phases=active_phases,
         start_step=start_step,
         end_step=end_step,
+        description=description,
     )
     plan.effects.append(effect)
 
@@ -48,6 +50,7 @@ def add_expense(
     active_phases: list[str] | None = None,
     start_step: int | None = None,
     end_step: int | None = None,
+    description: str | None = None,
 ) -> None:
     """Add an inflation-adjusted expense (negative cashflow) to the plan."""
     plan.validate_active_phases(active_phases)
@@ -59,6 +62,7 @@ def add_expense(
         active_phases=active_phases,
         start_step=start_step,
         end_step=end_step,
+        description=description,
     )
     plan.effects.append(effect)
 
@@ -70,6 +74,7 @@ def add_fixed_acquisition(
     amount: float,
     step: int,
     inflation_rate: float = 0.0,
+    description: str | None = None,
 ) -> None:
     """Add a one-time fixed acquisition (outflow) in exactly one step.
 
@@ -86,6 +91,7 @@ def add_fixed_acquisition(
         growth_rate=inflation_rate,
         start_step=step,
         end_step=step,
+        description=description,
     )
     plan.effects.append(effect)
 

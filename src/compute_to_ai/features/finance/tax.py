@@ -238,6 +238,7 @@ def add_tax_manager(
     retirement_step: int = 47,
     start_year: int = 2026,
     asset_classes: dict[str, AssetClassTaxConfig] | None = None,
+    description: str | None = None,
 ) -> None:
     """Add a computed tax manager to the plan."""
     params = TaxManagerParameters(
@@ -269,6 +270,7 @@ def add_tax_manager(
             function_name="pension_income_tax_manager",
             order=-10,
             parameters=params.model_dump(),
+            description=description,
         )
     )
     plan.effects.append(
@@ -277,5 +279,6 @@ def add_tax_manager(
             function_name="capital_gains_tax_manager",
             order=10,
             parameters=params.model_dump(),
+            description=description,
         )
     )

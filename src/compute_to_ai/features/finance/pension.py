@@ -43,6 +43,7 @@ def add_statutory_pension(
     late_bonus_rate_per_month: float = 0.005,
     active_phases: list[str] | None = None,
     end_step: int | None = None,
+    description: str | None = None,
 ) -> None:
     """Add the statutory pension (gesetzliche Rente) as a growing income effect.
 
@@ -72,5 +73,6 @@ def add_statutory_pension(
         active_phases=active_phases,
         start_step=actual_retirement_step,
         end_step=end_step,
+        description=description,
     )
     plan.effects.append(effect)

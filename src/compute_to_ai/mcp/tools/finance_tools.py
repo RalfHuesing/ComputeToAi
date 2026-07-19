@@ -105,11 +105,12 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         active_phases: list[str] | None = None,
         start_step: int | None = None,
         end_step: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Add a growing income stream (positive cashflow) to the plan."""
         plan = load_plan(working_directory, plan_name)
         add_income_stream(
-            plan, name, store_name, amount, growth_rate, active_phases, start_step, end_step
+            plan, name, store_name, amount, growth_rate, active_phases, start_step, end_step, description
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_income_stream: plan=%r name=%r status=ok", plan_name, name)
@@ -125,11 +126,12 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         active_phases: list[str] | None = None,
         start_step: int | None = None,
         end_step: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Add an inflation-adjusted expense (negative cashflow) to the plan."""
         plan = load_plan(working_directory, plan_name)
         add_expense(
-            plan, name, store_name, amount, inflation_rate, active_phases, start_step, end_step
+            plan, name, store_name, amount, inflation_rate, active_phases, start_step, end_step, description
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_expense: plan=%r name=%r status=ok", plan_name, name)
@@ -143,6 +145,7 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         amount: float,
         step: int,
         inflation_rate: float = 0.0,
+        description: str | None = None,
     ) -> str:
         """Add a one-time fixed acquisition (always an outflow, magnitude only).
 
@@ -152,7 +155,7 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         (see Docs/03-Feature-Finanzen-Domaenenmodell.md, "Anschaffung").
         """
         plan = load_plan(working_directory, plan_name)
-        add_fixed_acquisition(plan, name, store_name, amount, step, inflation_rate)
+        add_fixed_acquisition(plan, name, store_name, amount, step, inflation_rate, description)
         save_plan(working_directory, plan)
         logger.info("finance_add_fixed_acquisition: plan=%r name=%r status=ok", plan_name, name)
         return f"added fixed acquisition {name!r} to plan {plan_name!r}"
@@ -168,6 +171,7 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         safe_store_name: str,
         glidepath_start_step: int,
         inflation_rate: float = 0.0,
+        description: str | None = None,
     ) -> str:
         """Add a flexible acquisition with reference-path trigger and glidepath de-risking."""
         plan = load_plan(working_directory, plan_name)
@@ -181,6 +185,7 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
             safe_store_name,
             glidepath_start_step,
             inflation_rate,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_flexible_acquisition: plan=%r name=%r status=ok", plan_name, name)
@@ -203,6 +208,7 @@ def _register_liability_tools(mcp: FastMCP, working_directory: Path) -> None:
         extra_payment_threshold_rate: float | None = None,
         extra_payment_min_cash: float = 0.0,
         extra_payments: list[ScheduledExtraPayment] | None = None,
+        description: str | None = None,
     ) -> str:
         """Add a liability (loan/mortgage) with regular payments and optional Sondertilgung."""
         plan = load_plan(working_directory, plan_name)
@@ -220,6 +226,7 @@ def _register_liability_tools(mcp: FastMCP, working_directory: Path) -> None:
             extra_payment_threshold_rate,
             extra_payment_min_cash,
             extra_payments,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_liability: plan=%r name=%r status=ok", plan_name, name)
@@ -235,11 +242,12 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         expected_return: float,
         volatility: float,
         correlation_group: str = "portfolio",
+        description: str | None = None,
     ) -> str:
         """Add an asset class with a correlated stochastic return effect to the plan."""
         plan = load_plan(working_directory, plan_name)
         add_asset_class(
-            plan, store_name, initial_balance, expected_return, volatility, correlation_group
+            plan, store_name, initial_balance, expected_return, volatility, correlation_group, description
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_asset_class: plan=%r store=%r status=ok", plan_name, store_name)
@@ -265,10 +273,11 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         weights: dict[str, float],
         start_step: int = 0,
         end_step: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Add a computed rebalancing effect that keeps asset classes at target weights."""
         plan = load_plan(working_directory, plan_name)
-        add_portfolio_rebalancing(plan, name, weights, start_step, end_step)
+        add_portfolio_rebalancing(plan, name, weights, start_step, end_step, description)
         save_plan(working_directory, plan)
         logger.info("finance_add_portfolio_rebalancing: plan=%r name=%r status=ok", plan_name, name)
         return f"added portfolio rebalancing {name!r} to plan {plan_name!r}"
@@ -285,6 +294,7 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         cash_store_name: str = "cash",
         withdrawal_phase_names: list[str] | None = None,
         max_target_cash: float | None = None,
+        description: str | None = None,
     ) -> str:
         """Add the Cash-Bucket manager (liquidity buffer sizing and rebalancing).
 
@@ -304,6 +314,7 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
             cash_store_name,
             withdrawal_phase_names,
             max_target_cash,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_cash_bucket: plan=%r status=ok", plan_name)
@@ -326,6 +337,7 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         retirement_step: int = 47,
         start_year: int = 2026,
         asset_classes: dict[str, AssetClassTaxConfig] | None = None,
+        description: str | None = None,
     ) -> str:
         """Add the German tax manager (Abgeltungsteuer, Vorabpauschale, Rentenbesteuerung)."""
         plan = load_plan(working_directory, plan_name)
@@ -343,6 +355,7 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
             retirement_step,
             start_year,
             asset_classes,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_tax_manager: plan=%r status=ok", plan_name)
@@ -362,6 +375,7 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         late_bonus_rate_per_month: float = 0.005,
         active_phases: list[str] | None = None,
         end_step: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Add the statutory pension (gesetzliche Rente) including Rentenabschlag/-zuschlag.
 
@@ -383,6 +397,7 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
             late_bonus_rate_per_month,
             active_phases,
             end_step,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_statutory_pension: plan=%r name=%r status=ok", plan_name, name)

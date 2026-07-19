@@ -119,6 +119,7 @@ def add_liability(
     extra_payment_threshold_rate: float | None = None,
     extra_payment_min_cash: float = 0.0,
     extra_payments: list[ScheduledExtraPayment] | None = None,
+    description: str | None = None,
 ) -> None:
     """Add a liability to the plan with regular payments and optional extra payments."""
     # Ensure the liability store is registered
@@ -128,7 +129,7 @@ def add_liability(
             store_exists = True
             break
     if not store_exists:
-        plan.stores.append(Store(name=liability_store_name, balance=principal))
+        plan.stores.append(Store(name=liability_store_name, balance=principal, description=description))
 
     # Zins (PercentageGrowthEffect on liability store)
     plan.effects.append(
@@ -138,6 +139,7 @@ def add_liability(
             growth_rate=interest_rate,
             start_step=start_step,
             end_step=end_step,
+            description=description,
         )
     )
 
@@ -150,6 +152,7 @@ def add_liability(
             growth_rate=0.0,
             start_step=start_step,
             end_step=end_step,
+            description=description,
         )
     )
 
@@ -162,6 +165,7 @@ def add_liability(
             growth_rate=0.0,
             start_step=start_step,
             end_step=end_step,
+            description=description,
         )
     )
 
@@ -183,5 +187,6 @@ def add_liability(
             start_step=start_step,
             end_step=end_step,
             parameters=params.model_dump(),
+            description=description,
         )
     )
