@@ -159,9 +159,9 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 - [x] **Epic 4.4 – Manueller Update-Check (`finance_update_plan_prices`)**
   - [x] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das für jeden Speicher mit hinterlegten Metadaten (Epic 4.2) den aktuellen Kurs abfragt, den Saldo neu berechnet (`shares * aktueller Kurs`) und den Plan speichert (löst das Problem des „Alterns von Plänen" teil-automatisiert, siehe 08-Offene-Fragen.md).
   - [x] Ausschließlich auf expliziten Aufruf hin – **nicht** Teil von `core_run_simulation` oder `finance_run_monte_carlo`, damit ein Simulationslauf reproduzierbar bleibt und nicht heimlich mit aktualisierten Kursen rechnet.
-- [ ] **Epic 4.5 – Golden-Tests & Fehlerbehandlung (Teilstrecke A)**
-  - [ ] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
-  - [ ] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
+- [x] **Epic 4.5 – Golden-Tests & Fehlerbehandlung (Teilstrecke A)**
+  - [x] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
+  - [x] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
 
 ### Teilstrecke B – Mehrfach-Positionen je Anlageklasse
 
