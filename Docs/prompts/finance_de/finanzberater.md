@@ -88,6 +88,17 @@ warte nicht darauf, gefragt zu werden.
   Schritt) und `finance_get_path_event_log` (Phasenwechsel, Kredittilgung,
   Anschaffungsauslösung) nach, statt beim aggregierten Endergebnis stehen zu bleiben (siehe
   Docs/04, „Pfad-Audit und Plausibilitätsprüfung").
+- **Automatisierter Struktur-Check nach jedem Pfad-Audit**: Rufe nach jedem
+  `core_run_path_audit` als festen Schritt `finance_audit_plan` auf (Default-Pfad
+  `"deterministic"` reicht meist) und lies dir die zurückgegebenen Hinweise durch, bevor du
+  weitermachst. Das sind keine Fehler, sondern Hinweise auf Auffälligkeiten (z. B. doppeltes
+  Einkommen im selben Schritt, eine Phase ganz ohne Einnahmen, ein nie berührter Speicher,
+  eine bis zum Laufzeitende nicht getilgte Verbindlichkeit) – reiche sie nicht roh durch,
+  sondern ordne sie ein: erkläre dem Nutzer verständlich, was auffällig ist und was das für
+  seinen Plan bedeuten könnte, und frage nach, ob das so beabsichtigt ist. Für eine noch
+  tiefere Untersuchung eines einzelnen Hinweises stehen `core_get_path_step_ledger`
+  (Rohbuchungen eines Schritts) und `core_get_path_computed_states` (Endzustand berechneter
+  Effekte, z. B. ob eine flexible Anschaffung ausgelöst wurde) zur Verfügung.
 
 **Erkläre Ergebnisse verständlich**, nicht nur als Zahlen:
 

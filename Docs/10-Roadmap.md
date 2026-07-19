@@ -100,7 +100,7 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] `core_run_path_audit`: führt eine Monte-Carlo-Simulation aus und instrumentiert anschließend nur wenige repräsentative Pfade (Perzentil-Treffer plus deterministischer Referenzlauf) statt jeden Lauf
   - [x] Finanz-Interpretation des Ledgers (`compute_to_ai.features.finance.path_audit`): Klassifikation in sechs Kategorien (Einnahmen, Ausgaben, Steuern, Rendite, Umschichtungen, Saldo) und ein Event-Log (Phasenübergang, Verbindlichkeit getilgt, Anschaffung ausgelöst) – siehe 04-Feature-Finanzen-Methodik.md, „Pfad-Audit und Plausibilitätsprüfung"
   - [x] Tools `finance_get_path_category_series` und `finance_get_path_event_log`
-- [ ] **Epic 3.10 – Automatisierte Plausibilitäts-Hinweise (`finance_audit_plan`) & Pfad-Audit-Detailabfragen**
+- [x] **Epic 3.10 – Automatisierte Plausibilitäts-Hinweise (`finance_audit_plan`) & Pfad-Audit-Detailabfragen**
 
   Ergänzt Epic 3.9 um zwei Dinge: (a) automatisiert erkannte, aber nicht hart fehlerhafte Auffälligkeiten in einem Plan, und (b) zwei Drill-down-Tools, die beim manuellen Auditieren eines konkreten Plans fehlten (siehe e2e-Test-Notizen, in denen ein doppelt gezahltes Einkommen im Übergangsjahr Erwerbsphase → Rente nur durch Python-Code auf der Kommandozeile statt per MCP-Tool gefunden werden konnte).
 
@@ -115,7 +115,7 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
     - Eine Verbindlichkeit, deren Speicher-Saldo bis zum Ende des Zeitstrahls nicht 0 erreicht
   - [x] `core_get_path_step_ledger(plan_name, path, step)`: liefert die rohen `LedgerEntry`-Einträge (Effekt, Speicher, Delta) eines einzelnen Zeitschritts eines instrumentierten Pfads – Drill-down-Ergänzung zu `finance_get_path_category_series`, wenn eine Kategoriesumme selbst erklärungsbedürftig ist (z. B. warum „Einnahmen" in einem bestimmten Schritt ungewöhnlich hoch ausfällt). `core_*`-Präfix statt des ursprünglich skizzierten `finance_*` – das rohe Ledger selbst ist wie `computed_effect_final_states` ein domänenneutrales Kern-Konzept (siehe 01-Kern-Domaenenmodell.md, „Ledger"), die Finanz-Interpretation liefert erst `finance_get_path_category_series`.
   - [x] `core_get_path_computed_states(plan_name, path)`: liefert `computed_effect_final_states` (die nach Laufende verbliebenen Parameter-Zustände jedes berechneten Effekts, z. B. ob eine flexible Anschaffung ausgelöst wurde) eines instrumentierten Pfads – bislang nur intern von `compute_category_series`/`build_event_log` genutzt, nicht direkt per MCP abrufbar.
-  - [ ] Ein Prompt-Hinweis in `Docs/prompts/finance_de/finanzberater.md`, `finance_audit_plan` nach jedem `core_run_path_audit` als festen Schritt auszuführen und die zurückgegebenen Hinweise dem Nutzer verständlich vorzulegen (nicht nur roh durchzureichen)
+  - [x] Ein Prompt-Hinweis in `Docs/prompts/finance_de/finanzberater.md`, `finance_audit_plan` nach jedem `core_run_path_audit` als festen Schritt auszuführen und die zurückgegebenen Hinweise dem Nutzer verständlich vorzulegen (nicht nur roh durchzureichen)
 
 ## Meilenstein 4 – Baustein-Katalog & Regelwerk-Templates
 
