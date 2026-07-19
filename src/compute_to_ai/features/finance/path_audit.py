@@ -508,7 +508,10 @@ def get_percentile_curves(plan: Plan, audit: PathAuditResult) -> dict[str, list[
     """Classify all plan stores and return aggregated balance curves for each audited path."""
     liability_stores = _liability_store_names(plan)
     invested_stores = {
-        eff.store_name for eff in plan.effects if isinstance(eff, CorrelatedReturnEffect)
+        store_name
+        for eff in plan.effects
+        if isinstance(eff, CorrelatedReturnEffect)
+        for store_name in eff.store_names
     }
 
     # Liquid stores are those that are neither liabilities nor asset classes

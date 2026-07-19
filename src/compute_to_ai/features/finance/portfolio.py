@@ -72,7 +72,7 @@ def add_asset_class(
     # Add the CorrelatedReturnEffect
     effect = CorrelatedReturnEffect(
         name=f"Rendite {store_name}",
-        store_name=store_name,
+        store_names=[store_name],
         expected_return=expected_return,
         volatility=volatility,
         correlation_group=correlation_group,

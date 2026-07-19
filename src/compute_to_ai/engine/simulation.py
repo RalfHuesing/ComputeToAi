@@ -81,6 +81,50 @@ def _apply_transfer_effect(
             _record_ledger_entry(ledger, effect, "transfer", t, to_name, contribution)
 
 
+def _apply_growing_fixed_effect(
+    effect: GrowingFixedEffect,
+    t: int,
+    fixed_additions: dict[str, float],
+    ledger: list[LedgerEntry] | None,
+) -> None:
+    """Add a GrowingFixedEffect's per-step contribution to `fixed_additions` in place."""
+    store_name = effect.store_name
+    if store_name in fixed_additions:
+        amount = effect.amount_per_step
+        rate = effect.growth_rate
+        val = amount * ((1.0 + rate) ** t)
+        fixed_additions[store_name] += val
+        _record_ledger_entry(ledger, effect, "growing_fixed", t, store_name, val)
+
+
+def _apply_growth_rate_to_stores(
+    effect: PercentageGrowthEffect | CorrelatedReturnEffect,
+    eff_type: LedgerEffectType,
+    rate: float,
+    t: int,
+    store_balances: dict[str, float],
+    fixed_additions: dict[str, float],
+    total_growth_rates: dict[str, float],
+    ledger: list[LedgerEntry] | None,
+) -> None:
+    """Add the same `rate` to every one of the effect's stores in place.
+
+    Shared by PercentageGrowthEffect (a fixed rate) and CorrelatedReturnEffect
+    (a drawn or expected rate) - both broadcast one rate to `store_names`.
+    """
+    for store_name in effect.store_names:
+        if store_name in fixed_additions:
+            total_growth_rates[store_name] += rate
+            _record_ledger_entry(
+                ledger,
+                effect,
+                eff_type,
+                t,
+                store_name,
+                store_balances.get(store_name, 0.0) * rate,
+            )
+
+
 def _apply_phase1_effect(
     effect: Effect,
     t: int,
@@ -93,45 +137,39 @@ def _apply_phase1_effect(
     """Apply a single Phase 1 effect's changes to additions and growth rates."""
     if isinstance(effect, TransferEffect):
         _apply_transfer_effect(effect, t, fixed_additions, ledger)
-        return
-
-    if isinstance(effect, GrowingFixedEffect):
-        store_name = effect.store_name
-        if store_name in fixed_additions:
-            amount = effect.amount_per_step
-            rate = effect.growth_rate
-            val = amount * ((1.0 + rate) ** t)
-            fixed_additions[store_name] += val
-            _record_ledger_entry(ledger, effect, "growing_fixed", t, store_name, val)
+    elif isinstance(effect, GrowingFixedEffect):
+        _apply_growing_fixed_effect(effect, t, fixed_additions, ledger)
     elif isinstance(effect, PercentageGrowthEffect):
-        store_name = effect.store_name
-        if store_name in fixed_additions:
-            rate = effect.growth_rate
-            total_growth_rates[store_name] += rate
-            _record_ledger_entry(
-                ledger,
-                effect,
-                "percentage_growth",
-                t,
-                store_name,
-                store_balances.get(store_name, 0.0) * rate,
-            )
+        _apply_growth_rate_to_stores(
+            effect,
+            "percentage_growth",
+            effect.growth_rate,
+            t,
+            store_balances,
+            fixed_additions,
+            total_growth_rates,
+            ledger,
+        )
     elif isinstance(effect, CorrelatedReturnEffect):
-        store_name = effect.store_name
-        if store_name in fixed_additions:
-            if drawn_rates is not None and store_name in drawn_rates:
-                rate = float(drawn_rates[store_name][t])
-            else:
-                rate = effect.expected_return
-            total_growth_rates[store_name] += rate
-            _record_ledger_entry(
-                ledger,
-                effect,
-                "correlated_return",
-                t,
-                store_name,
-                store_balances.get(store_name, 0.0) * rate,
-            )
+        # store_names[0] is the representative axis identifier this effect's
+        # rate was drawn under (see _default_correlation_groups and
+        # _pre_draw_correlated_returns) - the same drawn rate is then
+        # broadcast to every store in store_names.
+        axis_name = effect.store_names[0]
+        if drawn_rates is not None and axis_name in drawn_rates:
+            rate = float(drawn_rates[axis_name][t])
+        else:
+            rate = effect.expected_return
+        _apply_growth_rate_to_stores(
+            effect,
+            "correlated_return",
+            rate,
+            t,
+            store_balances,
+            fixed_additions,
+            total_growth_rates,
+            ledger,
+        )
 
 
 def _calculate_phase1_updates(
@@ -186,6 +224,10 @@ def _default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
     unconfigured asset class would make an entire Monte-Carlo run
     deterministic instead of erroring or asking, which is far more
     dangerous than either.
+
+    An effect covering multiple stores contributes only its representative
+    axis identifier (`store_names[0]`) - all its stores share a single draw
+    (see `CorrelatedReturnEffect`), so they need only one axis in the matrix.
     """
     referenced: dict[str, list[str]] = {}
     for effect in plan.effects:
@@ -194,10 +236,10 @@ def _default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
         group_name = effect.correlation_group
         if group_name in plan.correlation_groups:
             continue
-        store_name = effect.store_name
+        axis_name = effect.store_names[0]
         stores = referenced.setdefault(group_name, [])
-        if store_name not in stores:
-            stores.append(store_name)
+        if axis_name not in stores:
+            stores.append(axis_name)
 
     return {
         name: CorrelationGroup(matrix=np.eye(len(stores)).tolist(), store_names=stores)
@@ -225,11 +267,15 @@ def _pre_draw_correlated_returns(
         vols = np.zeros(n_group)
 
         for idx, store_name in enumerate(group_config.store_names):
+            # `store_name` here is an axis identifier of the correlation
+            # matrix, matched against each CorrelatedReturnEffect's
+            # representative store (store_names[0]) - see
+            # _default_correlation_groups.
             effect = None
             for eff in plan.effects:
                 if (
                     isinstance(eff, CorrelatedReturnEffect)
-                    and eff.store_name == store_name
+                    and eff.store_names[0] == store_name
                     and eff.correlation_group == group_name
                 ):
                     effect = eff

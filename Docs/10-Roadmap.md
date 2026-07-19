@@ -165,9 +165,9 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 
 ### Teilstrecke B – Mehrfach-Positionen je Anlageklasse
 
-- [ ] **Epic 4.6 – Kern-Erweiterung: Mehrfach-Speicher-Ziel für Wachstums-/Renditeeffekte** (`compute_to_ai.engine`)
-  - [ ] `PercentageGrowthEffect` und `CorrelatedReturnEffect` akzeptieren eine Liste von Speichernamen statt nur eines einzelnen (jeder referenzierte Speicher erhält dieselbe gezogene bzw. feste Rate) – rückwärtskompatibel, da ein einzelner Name weiterhin eine Liste der Länge 1 ist.
-  - [ ] Unit-Tests: mehrere Speicher derselben Gruppe erhalten in jedem Lauf identische Renditewerte.
+- [x] **Epic 4.6 – Kern-Erweiterung: Mehrfach-Speicher-Ziel für Wachstums-/Renditeeffekte** (`compute_to_ai.engine`)
+  - [x] `PercentageGrowthEffect` und `CorrelatedReturnEffect` akzeptieren eine Liste von Speichernamen statt nur eines einzelnen (jeder referenzierte Speicher erhält dieselbe gezogene bzw. feste Rate) – rückwärtskompatibel, da ein einzelner Name weiterhin eine Liste der Länge 1 ist.
+  - [x] Unit-Tests: mehrere Speicher derselben Gruppe erhalten in jedem Lauf identische Renditewerte.
 - [ ] **Epic 4.7 – Bausteine: Position als Anlageklassen-Mitglied** (`compute_to_ai.features.finance`)
   - [ ] Neue Berechnungsbausteine `calculations_shares_from_transactions` und `calculations_market_value` (siehe 06-Feature-Berechnungen.md, Gruppe „Depot-Bestand & Rebalancing-Rechner"); `calculations_shares_from_transactions` ist rein optional – ein Speicher kann seine Stückzahl weiterhin direkt (`finance_set_asset_shares`, Epic 4.3) statt über eine Transaktionshistorie erhalten, nicht jeder Nutzer hat eine solche über Jahre geführt.
   - [ ] `finance_add_asset_class` bzw. ein neues Tool erlaubt das Hinzufügen mehrerer Positionen (je ISIN/WKN, Anteile fest oder aus Transaktionshistorie, aktueller Kurs) zu derselben Anlageklasse; jede Position wird als eigener Speicher mit Lot-Semantik angelegt, alle Positionen einer Anlageklasse referenzieren denselben Rendite-Effekt (siehe Epic 4.6). Die Wertpapier-Metadaten aus Epic 4.2 werden dabei je Position (statt je Anlageklasse) geführt.

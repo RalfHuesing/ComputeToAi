@@ -137,7 +137,7 @@ def add_liability(
     plan.effects.append(
         PercentageGrowthEffect(
             name=f"{name} Zins",
-            store_name=liability_store_name,
+            store_names=[liability_store_name],
             growth_rate=interest_rate,
             start_step=start_step,
             end_step=end_step,

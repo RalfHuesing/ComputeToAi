@@ -146,7 +146,7 @@ def test_flexible_acquisition_triggers_on_refpath() -> None:
     # Add growth on portfolio: +20% per step
     from compute_to_ai.engine.effect import PercentageGrowthEffect
 
-    plan.effects.append(PercentageGrowthEffect(store_name="portfolio", growth_rate=0.20))
+    plan.effects.append(PercentageGrowthEffect(store_names=["portfolio"], growth_rate=0.20))
 
     # Add flexible acquisition
     add_flexible_acquisition(
@@ -230,7 +230,7 @@ def test_flexible_acquisition_trigger_does_not_leak_across_monte_carlo_runs() ->
 
     from compute_to_ai.engine.effect import PercentageGrowthEffect
 
-    plan.effects.append(PercentageGrowthEffect(store_name="portfolio", growth_rate=0.20))
+    plan.effects.append(PercentageGrowthEffect(store_names=["portfolio"], growth_rate=0.20))
 
     add_flexible_acquisition(
         plan=plan,

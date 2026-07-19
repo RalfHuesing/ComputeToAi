@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy as np
 import pytest
 
 from compute_to_ai.engine.effect import (
@@ -79,11 +80,27 @@ def test_percentage_growth_effect_compounds() -> None:
         name="percentage-growth",
         timeline=Timeline(step_count=2),
         stores=[Store(name="cash", balance=100.0)],
-        effects=[PercentageGrowthEffect(store_name="cash", growth_rate=0.05)],
+        effects=[PercentageGrowthEffect(store_names=["cash"], growth_rate=0.05)],
     )
 
     result = run_simulation(plan)
     assert result.final_balances["cash"] == 110.25
+
+
+def test_percentage_growth_effect_applies_same_rate_to_multiple_stores() -> None:
+    # Two stores, one effect at 5% growth targeting both.
+    # Step 0: 100 * 1.05 is 105 for each store
+    # Step 1: 105 * 1.05 is 110.25 for each store
+    plan = Plan(
+        name="percentage-growth-multi-store",
+        timeline=Timeline(step_count=2),
+        stores=[Store(name="etf_a", balance=100.0), Store(name="etf_b", balance=100.0)],
+        effects=[PercentageGrowthEffect(store_names=["etf_a", "etf_b"], growth_rate=0.05)],
+    )
+
+    result = run_simulation(plan)
+    assert result.final_balances["etf_a"] == 110.25
+    assert result.final_balances["etf_b"] == 110.25
 
 
 def test_store_fifo_lot_consumption() -> None:
@@ -192,7 +209,7 @@ def test_computed_effect_runs_in_phase2() -> None:
             Store(name="tax_account", balance=0.0),
         ],
         effects=[
-            PercentageGrowthEffect(store_name="depot", growth_rate=0.10),
+            PercentageGrowthEffect(store_names=["depot"], growth_rate=0.10),
             ComputedEffect(function_name="test_tax", parameters={"rate": 0.20}),
         ],
     )
@@ -329,13 +346,13 @@ def test_correlated_returns_monte_carlo() -> None:
         ],
         effects=[
             CorrelatedReturnEffect(
-                store_name="stocks",
+                store_names=["stocks"],
                 correlation_group="assets",
                 expected_return=0.07,
                 volatility=0.15,
             ),
             CorrelatedReturnEffect(
-                store_name="bonds",
+                store_names=["bonds"],
                 correlation_group="assets",
                 expected_return=0.03,
                 volatility=0.05,
@@ -367,6 +384,65 @@ def test_correlated_returns_monte_carlo() -> None:
     # Verify that the drawn values are reasonable
     assert 100.0 < p50_stocks < 300.0
     assert 100.0 < p50_bonds < 200.0
+
+
+def test_correlated_return_broadcasts_draw_to_stores_and_keeps_group_correlation() -> None:
+    # Two ETF positions ("etf_a", "etf_b") tracking the same index share one
+    # CorrelatedReturnEffect and must receive the identical drawn rate every
+    # run/step. A third, single-store "bonds" effect in the same correlation
+    # group must still be correlated with that shared draw as configured -
+    # the regression risk when broadcasting one group draw to several stores.
+    matrix = [[1.0, -0.9], [-0.9, 1.0]]
+    plan = Plan(
+        name="correlated-multi-store",
+        timeline=Timeline(step_count=1),
+        stores=[
+            Store(name="etf_a", balance=100.0),
+            Store(name="etf_b", balance=250.0),
+            Store(name="bonds", balance=100.0),
+        ],
+        effects=[
+            CorrelatedReturnEffect(
+                store_names=["etf_a", "etf_b"],
+                correlation_group="assets",
+                expected_return=0.07,
+                volatility=0.15,
+            ),
+            CorrelatedReturnEffect(
+                store_names=["bonds"],
+                correlation_group="assets",
+                expected_return=0.03,
+                volatility=0.05,
+            ),
+        ],
+        correlation_groups={
+            "assets": CorrelationGroup(matrix=matrix, store_names=["etf_a", "bonds"])
+        },
+    )
+
+    num_runs = 2000
+    mc_result = run_monte_carlo(plan, num_runs=num_runs, seed=11)
+
+    # Same drawn rate every run: etf_a and etf_b start from different
+    # balances, so the implied rate (delta / balance_before) - not the raw
+    # delta - must be compared to prove it's literally the same float.
+    for run_idx in (0, 1, num_runs - 1):
+        path = run_monte_carlo_path(plan, run_idx, num_runs=num_runs, seed=11)
+        deltas = {
+            e.store_name: e.delta for e in path.ledger if e.effect_type == "correlated_return"
+        }
+        rate_a = deltas["etf_a"] / 100.0
+        rate_b = deltas["etf_b"] / 250.0
+        assert pytest.approx(rate_a, abs=1e-12) == rate_b
+
+    # Correlation with the single-store "bonds" effect in the same group is
+    # preserved: with step_count=1, final balance is a linear function of
+    # the drawn rate, so the sample correlation of final balances mirrors
+    # the configured -0.9 rate correlation.
+    etf_a_finals = np.array([b["etf_a"] for b in mc_result.raw_final_balances])
+    bonds_finals = np.array([b["bonds"] for b in mc_result.raw_final_balances])
+    sample_corr = np.corrcoef(etf_a_finals, bonds_finals)[0, 1]
+    assert sample_corr < -0.7
 
 
 def test_ledger_records_growing_fixed_deltas() -> None:
@@ -424,7 +500,7 @@ def test_ledger_records_percentage_growth_delta_on_pre_step_balance() -> None:
         name="ledger-percentage-growth",
         timeline=Timeline(step_count=2),
         stores=[Store(name="depot", balance=100.0)],
-        effects=[PercentageGrowthEffect(name="Rendite", store_name="depot", growth_rate=0.05)],
+        effects=[PercentageGrowthEffect(name="Rendite", store_names=["depot"], growth_rate=0.05)],
     )
 
     result = run_simulation(plan, record_ledger=True)
@@ -441,7 +517,7 @@ def test_ledger_skips_zero_delta_entries() -> None:
         name="ledger-zero-delta",
         timeline=Timeline(step_count=1),
         stores=[Store(name="loan", balance=100.0)],
-        effects=[PercentageGrowthEffect(store_name="loan", growth_rate=0.0)],
+        effects=[PercentageGrowthEffect(store_names=["loan"], growth_rate=0.0)],
     )
 
     result = run_simulation(plan, record_ledger=True)
@@ -460,7 +536,7 @@ def test_ledger_records_computed_effect_deltas_via_before_after_diff() -> None:
             Store(name="tax_account", balance=0.0),
         ],
         effects=[
-            PercentageGrowthEffect(store_name="depot", growth_rate=0.10),
+            PercentageGrowthEffect(store_names=["depot"], growth_rate=0.10),
             ComputedEffect(name="Steuer", function_name="test_tax", parameters={"rate": 0.20}),
         ],
     )
@@ -527,13 +603,13 @@ def test_run_monte_carlo_path_reproduces_the_original_run_exactly() -> None:
         stores=[Store(name="stocks", balance=100.0), Store(name="bonds", balance=100.0)],
         effects=[
             CorrelatedReturnEffect(
-                store_name="stocks",
+                store_names=["stocks"],
                 correlation_group="assets",
                 expected_return=0.07,
                 volatility=0.15,
             ),
             CorrelatedReturnEffect(
-                store_name="bonds",
+                store_names=["bonds"],
                 correlation_group="assets",
                 expected_return=0.03,
                 volatility=0.05,
@@ -560,7 +636,10 @@ def test_run_path_audit_produces_instrumented_percentile_and_deterministic_paths
         stores=[Store(name="cash", balance=1000.0)],
         effects=[
             CorrelatedReturnEffect(
-                store_name="cash", correlation_group="assets", expected_return=0.05, volatility=0.10
+                store_names=["cash"],
+                correlation_group="assets",
+                expected_return=0.05,
+                volatility=0.10,
             ),
             GrowingFixedEffect(name="Ausgabe", store_name="cash", amount_per_step=-50.0),
         ],

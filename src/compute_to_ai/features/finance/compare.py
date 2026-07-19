@@ -23,7 +23,9 @@ def _get_effect_key(eff: Effect) -> str:
     if eff.name:
         return eff.name
     store = "unknown"
-    if isinstance(eff, (GrowingFixedEffect, PercentageGrowthEffect, CorrelatedReturnEffect)) or (
+    if isinstance(eff, (PercentageGrowthEffect, CorrelatedReturnEffect)):
+        store = "+".join(eff.store_names)
+    elif isinstance(eff, GrowingFixedEffect) or (
         isinstance(eff, ComputedEffect) and eff.store_name is not None
     ):
         store = eff.store_name
@@ -46,8 +48,8 @@ def _compare_growing_fixed(
 def _compare_percentage_growth(
     ea: PercentageGrowthEffect, eb: PercentageGrowthEffect, diffs: dict[str, dict[str, Any]]
 ) -> None:
-    if ea.store_name != eb.store_name:
-        diffs["store_name"] = {"from": ea.store_name, "to": eb.store_name}
+    if ea.store_names != eb.store_names:
+        diffs["store_names"] = {"from": ea.store_names, "to": eb.store_names}
     if ea.growth_rate != eb.growth_rate:
         diffs["growth_rate"] = {"from": ea.growth_rate, "to": eb.growth_rate}
 
@@ -55,8 +57,8 @@ def _compare_percentage_growth(
 def _compare_correlated_return(
     ea: CorrelatedReturnEffect, eb: CorrelatedReturnEffect, diffs: dict[str, dict[str, Any]]
 ) -> None:
-    if ea.store_name != eb.store_name:
-        diffs["store_name"] = {"from": ea.store_name, "to": eb.store_name}
+    if ea.store_names != eb.store_names:
+        diffs["store_names"] = {"from": ea.store_names, "to": eb.store_names}
     if ea.correlation_group != eb.correlation_group:
         diffs["correlation_group"] = {"from": ea.correlation_group, "to": eb.correlation_group}
     if ea.expected_return != eb.expected_return:

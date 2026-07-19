@@ -48,21 +48,23 @@ class GrowingFixedEffect(BaseEffect):
 
 
 class PercentageGrowthEffect(BaseEffect):
-    """A compounding growth effect that grows a store's balance by a rate."""
+    """A compounding growth effect that grows one or more stores' balances by the same rate."""
 
     type: Literal["percentage_growth"] = "percentage_growth"
-    store_name: str
+    store_names: list[str]
     growth_rate: float
 
 
 class CorrelatedReturnEffect(BaseEffect):
     """A stochastic growth effect whose rate is drawn from a multivariate normal distribution.
 
-    Drawn together with all other effects in the same correlation group.
+    Drawn once per step and applied identically to every store in `store_names`
+    (e.g. several ETF positions tracking the same index), together with all
+    other effects in the same correlation group.
     """
 
     type: Literal["correlated_return"] = "correlated_return"
-    store_name: str
+    store_names: list[str]
     correlation_group: str
     expected_return: float
     volatility: float
