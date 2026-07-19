@@ -133,6 +133,8 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
 
 **Ziel**: Bereitstellung eines MCP-gestützten Live-Kurs-Abfragemechanismus zur automatisierten Initialisierung und Aktualisierung von Depotsalden im Plan-Datenmodell. Das System soll deutsche WKNs und internationale ISINs direkt auflösen und Kurse von deutschen Börsenplätzen beziehen, ohne dass der Nutzer diese manuell nachschlagen muss. Zusätzlich wird das Domänenmodell auf **mehrere Positionen je Anlageklasse** erweitert (siehe „Position" in 03-Feature-Finanzen-Domaenenmodell.md) – der reale Fall, dass historisch/steuerlich bedingt mehrere ETFs denselben Index abbilden, statt nur eine einzelne Stückzahl je Anlageklasse zu erlauben.
 
+Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epics 4.1–4.5) sind bewusst **unabhängig** von der Mehrfach-Positionen-Erweiterung (Epics 4.6–4.10) umsetzbar: Beides funktioniert schon mit dem heutigen Modell (eine Anlageklasse = ein Speicher). Die dafür neu eingeführten ISIN/Stückzahl-Metadaten sind pro Speicher-Name abgelegt und werden unverändert weiterverwendet, sobald eine Anlageklasse aus mehreren Positionen (je eigenem Speicher) besteht.
+
 ### Technische Analyse (PoC-Erkenntnisse)
 * **Datenquelle**: `Ariva.de` dient als stabile, kostenlose und anmeldefreie Abfragequelle. Sie löst sowohl WKNs (z. B. `ETF018`, `A0RPWH`, `A2N6CW`, `DBX1AU`, `A12GVR`, `A111X9`, `ETF019`) als auch ISINs (z. B. `LU2572257124`, `IE00B4L5Y983`, `IE00BFY0GT14`, `LU0322253906`, `IE00BTJRMP35`, `IE00BKM4GZ66`, `LU2573966905`) per 302-Redirect auf die jeweilige Instrumenten-Detailseite auf.
 * **Börsenplatz-Steuerung**: Durch das Anhängen des Parameters `?boerse_id=X` an die *aufgelöste* URL können gezielt Realtime- oder Xetra-Kurse geladen werden. Die relevanten IDs sind:
@@ -142,39 +144,46 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   * **Gettex**: `boerse_id=207`
 * **Implementierung**: Keine externen HTTP- oder Scraping-Bibliotheken nötig. Die Implementierung erfolgt robust über die Standardbibliothek (`urllib.request` mit geeignetem `User-Agent` sowie `re` zur Extraktion).
 
+### Teilstrecke A – Live-Kurs-Abfrage und manuelles Depot-Update
+
 - [ ] **Epic 4.1 – Zustandsloses Live-Kurs-Tool (`finance_get_live_price`)**
   - [ ] Implementierung der zweistufigen HTTP-Abfrage (Redirect auflösen -> URL mit `boerse_id` abfragen).
   - [ ] Robustes Parsen des HTML-Header-Preises (`class="instrument-header-quote"`), der Währung (z. B. `EUR`) und des Zeitstempels (`class="instrument-header-last-time"`).
   - [ ] Rückgabe eines strukturierten JSON-Objekts mit Name, ISIN, WKN, Kurs, Währung, Börse und Abfrage-Zeitstempel.
-- [ ] **Epic 4.2 – Kern-Erweiterung: Mehrfach-Speicher-Ziel für Wachstums-/Renditeeffekte** (`compute_to_ai.engine`)
+  - [ ] Funktioniert unabhängig von einem Plan – direkt für beliebige Kursabfragen des Nutzers nutzbar, nicht nur für den Depot-Kontext.
+- [ ] **Epic 4.2 – Wertpapier-Metadaten je Speicher, persistiert neben dem Plan** (`compute_to_ai.features.finance`)
+  - [ ] Neues, ausschließlich Finance-seitiges Modell (z. B. `PositionMetadata`: ISIN/WKN, Stückzahl, Börsenplatz, Zeitstempel der letzten Kurs-Aktualisierung), je Speicher-Name in einer eigenen JSON-Datei neben `plan.json` gehalten – über den bereits vorhandenen generischen `save_result`/`load_result`-Mechanismus (`plan_storage.py`), ohne den domänenneutralen `Store`/`Plan` im Kern um finanzspezifische Felder zu erweitern.
+  - [ ] Ein Speicher ohne hinterlegte Metadaten bleibt unverändert rein manuell geführt (kein Zwang, jede Anlageklasse/Position darüber zu pflegen).
+- [ ] **Epic 4.3 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
+  - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, store_name, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Marktwert (`shares * price`) berechnet, den Startwert des Speichers setzt und den Metadaten-Eintrag aus Epic 4.2 anlegt.
+- [ ] **Epic 4.4 – Manueller Update-Check (`finance_update_plan_prices`)**
+  - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das für jeden Speicher mit hinterlegten Metadaten (Epic 4.2) den aktuellen Kurs abfragt, den Saldo neu berechnet (`shares * aktueller Kurs`) und den Plan speichert (löst das Problem des „Alterns von Plänen" teil-automatisiert, siehe 08-Offene-Fragen.md).
+  - [ ] Ausschließlich auf expliziten Aufruf hin – **nicht** Teil von `core_run_simulation` oder `finance_run_monte_carlo`, damit ein Simulationslauf reproduzierbar bleibt und nicht heimlich mit aktualisierten Kursen rechnet.
+- [ ] **Epic 4.5 – Golden-Tests & Fehlerbehandlung (Teilstrecke A)**
+  - [ ] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
+  - [ ] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
+
+### Teilstrecke B – Mehrfach-Positionen je Anlageklasse
+
+- [ ] **Epic 4.6 – Kern-Erweiterung: Mehrfach-Speicher-Ziel für Wachstums-/Renditeeffekte** (`compute_to_ai.engine`)
   - [ ] `PercentageGrowthEffect` und `CorrelatedReturnEffect` akzeptieren eine Liste von Speichernamen statt nur eines einzelnen (jeder referenzierte Speicher erhält dieselbe gezogene bzw. feste Rate) – rückwärtskompatibel, da ein einzelner Name weiterhin eine Liste der Länge 1 ist.
   - [ ] Unit-Tests: mehrere Speicher derselben Gruppe erhalten in jedem Lauf identische Renditewerte.
-- [ ] **Epic 4.3 – Bausteine: Position als Anlageklassen-Mitglied** (`compute_to_ai.features.finance`)
-  - [ ] Neue Berechnungsbausteine `calculations_shares_from_transactions` und `calculations_market_value` (siehe 06-Feature-Berechnungen.md, Gruppe „Depot-Bestandsermittlung").
-  - [ ] `finance_add_asset_class` bzw. ein neues Tool erlaubt das Hinzufügen mehrerer Positionen (je ISIN/WKN, Anteile fest oder aus Transaktionshistorie, aktueller Kurs) zu derselben Anlageklasse; jede Position wird als eigener Speicher mit Lot-Semantik angelegt, alle Positionen einer Anlageklasse referenzieren denselben Rendite-Effekt (siehe Epic 4.2).
+- [ ] **Epic 4.7 – Bausteine: Position als Anlageklassen-Mitglied** (`compute_to_ai.features.finance`)
+  - [ ] Neue Berechnungsbausteine `calculations_shares_from_transactions` und `calculations_market_value` (siehe 06-Feature-Berechnungen.md, Gruppe „Depot-Bestand & Rebalancing-Rechner"); `calculations_shares_from_transactions` ist rein optional – ein Speicher kann seine Stückzahl weiterhin direkt (`finance_set_asset_shares`, Epic 4.3) statt über eine Transaktionshistorie erhalten, nicht jeder Nutzer hat eine solche über Jahre geführt.
+  - [ ] `finance_add_asset_class` bzw. ein neues Tool erlaubt das Hinzufügen mehrerer Positionen (je ISIN/WKN, Anteile fest oder aus Transaktionshistorie, aktueller Kurs) zu derselben Anlageklasse; jede Position wird als eigener Speicher mit Lot-Semantik angelegt, alle Positionen einer Anlageklasse referenzieren denselben Rendite-Effekt (siehe Epic 4.6). Die Wertpapier-Metadaten aus Epic 4.2 werden dabei je Position (statt je Anlageklasse) geführt.
   - [ ] Bei Herleitung aus der Transaktionshistorie werden die initialen Lots direkt aus den einzelnen Kauftransaktionen gebildet (Kaufdatum, Stückzahl, Einstandspreis), nicht aus einem pauschalen Startbetrag.
   - [ ] Genau eine Position je Anlageklasse ist als aktiv markierbar (Kaufpriorität für neue Sparraten).
-- [ ] **Epic 4.4 – Baustein: Positions-Rebalancing innerhalb einer Anlageklasse** (`compute_to_ai.features.finance`)
+- [ ] **Epic 4.8 – Baustein: Positions-Rebalancing innerhalb einer Anlageklasse** (`compute_to_ai.features.finance`)
   - [ ] Neuer `ComputedEffect`, der bei Investition den Betrag vollständig der aktiven Position zuweist und bei Entnahme zuerst die Position ohne Bestandsschutz-Vorteil mit dem geringsten unrealisierten Gewinn (in Prozent) abbaut, erst danach die mit dem nächsthöheren Gewinn, zuletzt Bestandsschutz-Positionen; innerhalb einer gewählten Position bleibt die Lot-FIFO-Verbrauchsfolge unangetastet (siehe 04-Feature-Finanzen-Methodik.md, Abschnitt „Positions-Rebalancing innerhalb einer Anlageklasse").
   - [ ] Konfigurierbare Verkaufsschwelle (`sell_threshold`, Prozent-Abweichung vom Startgewicht einer Position innerhalb ihrer Anlageklasse; `None` = nie aktiv verkaufen, `0` = jede Abweichung sofort zurückführen).
   - [ ] Unit-Tests für beide Schwellen-Extreme sowie einen Zwischenwert, dazu ein Test, der bestätigt, dass bei mehreren nicht geschützten Positionen zuerst die mit dem geringsten Gewinn verkauft wird.
-- [ ] **Epic 4.5 – Baustein: Beitrags-Rechner für Sparraten-Verteilung**
+- [ ] **Epic 4.9 – Baustein: Beitrags-Rechner für Sparraten-Verteilung**
   - [ ] Neuer generischer Berechnungsbaustein `calculations_contribution_allocation` (`compute_to_ai.features.calculations.holdings`): nimmt je Bucket den aktuellen Wert und das Zielgewicht sowie einen neuen Gesamtbetrag entgegen und verteilt ihn so, dass die Abweichung vom Zielgewicht über alle Buckets minimiert wird – ohne Plan-Bezug, reine Arithmetik (siehe 06-Feature-Berechnungen.md).
   - [ ] Finance-Wrapper-Tool, das diesen Baustein mit den tatsächlichen Anlageklassen-Zielgewichten und Positions-Marktwerten eines Plans füttert und das Ergebnis auf die aktive Position je Anlageklasse abbildet – beantwortet direkt „wie viel investiere ich diesen Monat in welchen ETF", ohne einen vollen Monte-Carlo-Lauf zu benötigen (löst den entsprechenden Punkt aus 08-Offene-Fragen.md, „Performance interaktiver Ad-hoc-Anfragen", für diesen konkreten Fall).
-- [ ] **Epic 4.6 – Auswertung: Ist/Soll-Drift- und Gewinn/Bestandsschutz-Report je Position**
-  - [ ] Neues MCP-Tool, das je Anlageklasse und Position die Ist-Gewichtung der Soll-Gewichtung (BIP-Zielallokation) gegenüberstellt.
-  - [ ] Ergänzend je Position: unrealisierter Gewinn/Verlust in Euro und Prozent, aufgeteilt in Bestandsschutz- und reguläre Lots.
-- [ ] **Epic 4.7 – Ad-hoc-Tool: Einzelverkaufs-Steuerschätzer**
-  - [ ] Neues MCP-Tool, das für eine konkrete Position (oder eine angegebene Verkaufssumme) die anfallende Steuer bei einem gedachten Verkauf heute schätzt – Komposition der bereits vorhandenen Steuer-Bausteine (Abgeltungsteuer, Teilfreistellung, Sparerpauschbetrag, Bestandsschutz, siehe 03-Feature-Finanzen-Domaenenmodell.md) auf den aktuellen Lot-Bestand der Position, ohne einen Simulationslauf zu benötigen.
-- [ ] **Epic 4.8 – Auswertung: Plan-Ist-Vergleich gegen Perzentilkurven**
-  - [ ] Neues MCP-Tool, das den heutigen tatsächlichen Gesamtwert (Positionen + Cash-Bucket) dem Wert an derselben Stelle (Alter/Schritt) der zuvor berechneten p10/p50/p90-Kurven aus `finance_get_percentile_curves` gegenüberstellt – ein einzelner Stichtagsvergleich („bin ich noch im Plan?"), keine Nachbildung eines historischen Ist-Verlaufs über die Zeit (dafür fehlt eine fortlaufende Kurs-Historie, siehe 08-Offene-Fragen.md).
-- [ ] **Epic 4.9 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
-  - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, asset_class, position, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Marktwert (`shares * price`) berechnet und den Startwert der jeweiligen Position setzt.
-- [ ] **Epic 4.10 – Automatisierter Update-Check (Altern-Check / Plan-Aktualisierung)**
-  - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das alle im Plan hinterlegten Positionen (Wertpapiere und Stückzahlen) abfragt, die aktuellen Marktwerte neu berechnet und die Depotsalden im Plan-Datenmodell aktualisiert (löst das Problem des "Alterns von Plänen" teil-automatisiert).
-- [ ] **Epic 4.11 – Golden-Tests & Fehlerbehandlung**
-  - [ ] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
-  - [ ] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
+- [ ] **Epic 4.10 – Auswertung: Ist/Soll-Drift- und Gewinn/Bestandsschutz-Report, Einzelverkaufs-Steuerschätzer, Plan-Ist-Vergleich**
+  - [ ] Ist/Soll-Report: neues MCP-Tool, das je Anlageklasse und Position die Ist-Gewichtung der Soll-Gewichtung (BIP-Zielallokation) gegenüberstellt, ergänzt um unrealisierten Gewinn/Verlust in Euro und Prozent je Position, aufgeteilt in Bestandsschutz- und reguläre Lots.
+  - [ ] Einzelverkaufs-Steuerschätzer: neues MCP-Tool, das für eine konkrete Position (oder eine angegebene Verkaufssumme) die anfallende Steuer bei einem gedachten Verkauf heute schätzt – Komposition der bereits vorhandenen Steuer-Bausteine (Abgeltungsteuer, Teilfreistellung, Sparerpauschbetrag, Bestandsschutz, siehe 03-Feature-Finanzen-Domaenenmodell.md) auf den aktuellen Lot-Bestand der Position, ohne einen Simulationslauf zu benötigen.
+  - [ ] Plan-Ist-Vergleich: neues MCP-Tool, das den heutigen tatsächlichen Gesamtwert (Positionen + Cash-Bucket) dem Wert an derselben Stelle (Alter/Schritt) der zuvor berechneten p10/p50/p90-Kurven aus `finance_get_percentile_curves` gegenüberstellt – ein einzelner Stichtagsvergleich („bin ich noch im Plan?"), keine Nachbildung eines historischen Ist-Verlaufs über die Zeit (dafür fehlt eine fortlaufende Kurs-Historie, siehe 08-Offene-Fragen.md).
 
 ## Meilenstein 5 – Baustein-Katalog & Regelwerk-Templates
 
