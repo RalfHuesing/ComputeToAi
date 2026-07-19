@@ -15,6 +15,7 @@ class Phase(BaseModel):
     name: str
     start_step: int
     end_step: int
+    description: str | None = None
 
 
 class Timeline(BaseModel):

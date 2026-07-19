@@ -19,6 +19,7 @@ class BaseEffect(BaseModel):
     active_phases: list[str] | None = Field(
         default=None, description="List of phase names this effect is active in"
     )
+    description: str | None = Field(default=None, description="Optional custom description of this effect")
 
     def is_active(self, step: int, active_phase_name: str | None) -> bool:
         """Check if the effect is active at a given step and active phase."""

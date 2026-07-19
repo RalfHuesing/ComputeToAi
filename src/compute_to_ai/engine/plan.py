@@ -35,6 +35,7 @@ class Plan(BaseModel):
     correlation_groups: dict[str, CorrelationGroup] = {}
     ruin_stores: list[str] = []
     ruin_threshold: float = 0.0
+    description: str | None = None
 
     def store(self, name: str) -> Store:
         """Find a Store by its name or raise KeyError."""

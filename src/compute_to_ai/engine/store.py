@@ -32,6 +32,7 @@ class Store(BaseModel):
     balance: float = 0.0
     lots: list[Lot] = []
     withdrawn_lots_this_step: list[Lot] = []
+    description: str | None = None
 
     def add_amount(
         self,
