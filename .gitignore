@@ -225,3 +225,7 @@ examples/settings.toml
 examples/logs/
 examples/*/plan.json
 examples/*/result.json
+
+# ComputeToAi: Ralf's personal working directories under examples/ (e.g.
+# examples/ralf, examples/ralf-test4711) are local scratch data, not tracked.
+examples/ralf*/
