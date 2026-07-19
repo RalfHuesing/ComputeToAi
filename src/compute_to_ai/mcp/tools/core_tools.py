@@ -16,9 +16,10 @@ from mcp.server.fastmcp import FastMCP
 from compute_to_ai.engine.effect import GrowingFixedEffect, TransferEffect
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.result import SimulationResult
-from compute_to_ai.engine.simulation import run_simulation
+from compute_to_ai.engine.simulation import run_path_audit, run_simulation
 from compute_to_ai.engine.store import Store
 from compute_to_ai.engine.timeline import Timeline
+from compute_to_ai.mcp.tools.plan_storage import PATH_AUDIT_RESULT_FILENAME
 from compute_to_ai.mcp.tools.plan_storage import load_plan as _load_plan
 from compute_to_ai.mcp.tools.plan_storage import load_result as _load_result
 from compute_to_ai.mcp.tools.plan_storage import plan_dir as _plan_dir
@@ -249,3 +250,37 @@ def _register_simulation_tools(mcp: FastMCP, working_directory: Path) -> None:
         )
         logger.debug("core_get_result payload: %s", payload)
         return payload
+
+    @mcp.tool()
+    def core_run_path_audit(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        num_runs: int,
+        seed: int | None = None,
+        percentiles: list[int] | None = None,
+        store_names: list[str] | None = None,
+    ) -> str:
+        """Run a Monte-Carlo simulation, then instrument a few representative
+        paths (one per percentile, plus the deterministic reference run)
+        with a full per-step ledger, for later plausibility auditing.
+
+        `store_names` defaults to the plan's target-condition stores (see
+        finance_set_target_condition), falling back to every store in the
+        plan if that's empty too. `percentiles` defaults to [50, 10] (median
+        and worst-case-ish path).
+        """
+        plan = _load_plan(working_directory, plan_name)
+        result = run_path_audit(
+            plan,
+            num_runs,
+            seed,
+            tuple(percentiles) if percentiles is not None else (50, 10),
+            store_names,
+        )
+        _save_result(working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, result)
+        logger.info(
+            "core_run_path_audit: plan=%r num_runs=%d paths=%s status=ok",
+            plan_name,
+            num_runs,
+            sorted(result.paths),
+        )
+        return f"path audit for plan {plan_name!r} complete ({', '.join(sorted(result.paths))})"

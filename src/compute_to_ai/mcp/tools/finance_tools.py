@@ -14,11 +14,12 @@ carry the full arguments/results (see "Logging" in Docs/02 and
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
-from compute_to_ai.engine.result import MonteCarloResult
+from compute_to_ai.engine.plan import Plan
+from compute_to_ai.engine.result import MonteCarloResult, PathAuditResult, SimulationResult
 from compute_to_ai.engine.simulation import run_monte_carlo
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
@@ -27,6 +28,7 @@ from compute_to_ai.features.finance.cashflow import (
     add_income_stream,
 )
 from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
+from compute_to_ai.features.finance.path_audit import build_event_log, compute_category_series
 from compute_to_ai.features.finance.pension import (
     add_statutory_pension,
     calculate_pension_adjustment_factor,
@@ -39,7 +41,13 @@ from compute_to_ai.features.finance.portfolio import (
     set_correlation_matrix,
 )
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
-from compute_to_ai.mcp.tools.plan_storage import load_plan, load_result, save_plan, save_result
+from compute_to_ai.mcp.tools.plan_storage import (
+    PATH_AUDIT_RESULT_FILENAME,
+    load_plan,
+    load_result,
+    save_plan,
+    save_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +62,7 @@ def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     _register_portfolio_tools(mcp, working_directory)
     _register_tax_and_pension_tools(mcp, working_directory)
     _register_goal_and_monte_carlo_tools(mcp, working_directory)
+    _register_path_audit_tools(mcp, working_directory)
 
 
 def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:
@@ -448,3 +457,57 @@ def _register_goal_and_monte_carlo_tools(mcp: FastMCP, working_directory: Path) 
             del payload["raw_final_balances"]
         logger.debug("finance_get_monte_carlo_result payload: %s", payload)
         return payload
+
+
+def _load_audited_path(
+    working_directory: Path, plan_name: str, path: str
+) -> tuple[Plan, SimulationResult]:
+    """Load the plan and one named path from its last path audit, or raise ValueError."""
+    plan = load_plan(working_directory, plan_name)
+    audit = load_result(
+        working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult
+    )
+    if path not in audit.paths:
+        msg = (
+            f"no path {path!r} in plan {plan_name!r}'s last path audit "
+            f"(run core_run_path_audit first); available paths: {sorted(audit.paths)}"
+        )
+        raise ValueError(msg)
+    return plan, audit.paths[path]
+
+
+def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
+    @mcp.tool()
+    def finance_get_path_category_series(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        path: str,
+        granularity: Literal["annual", "monthly_average"] = "annual",
+    ) -> dict[str, Any]:
+        """Return per-step cashflow category sums (Einnahmen, Ausgaben, Steuern,
+        Rendite, Umschichtungen, Saldo je Speicher) for one path of the plan's
+        last path audit (see core_run_path_audit).
+
+        `path` is one of the labels from core_run_path_audit's result (e.g.
+        "p50", "p10", "deterministic"). `granularity="monthly_average"`
+        divides every flow category by 12 for easier comparison against a
+        monthly household budget.
+        """
+        plan, result = _load_audited_path(working_directory, plan_name, path)
+        series = compute_category_series(plan, result, granularity)
+        logger.info(
+            "finance_get_path_category_series: plan=%r path=%r status=ok", plan_name, path
+        )
+        return {"steps": [step.model_dump() for step in series]}
+
+    @mcp.tool()
+    def finance_get_path_event_log(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, path: str
+    ) -> dict[str, Any]:
+        """Return the chronological event log (phase transitions, liabilities
+        paid off, acquisitions triggered) for one path of the plan's last
+        path audit (see core_run_path_audit).
+        """
+        plan, result = _load_audited_path(working_directory, plan_name, path)
+        events = build_event_log(plan, result)
+        logger.info("finance_get_path_event_log: plan=%r path=%r status=ok", plan_name, path)
+        return {"events": [event.model_dump() for event in events]}

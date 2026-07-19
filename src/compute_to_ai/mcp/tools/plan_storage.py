@@ -9,6 +9,10 @@ from pydantic import BaseModel
 
 from compute_to_ai.engine.plan import Plan
 
+# Shared across mcp.tools modules (core_tools.py writes it, finance_tools.py
+# reads it) so both agree on the same file without duplicating the literal.
+PATH_AUDIT_RESULT_FILENAME = "path_audit_result.json"
+
 
 def plan_dir(working_directory: Path, plan_name: str) -> Path:
     return working_directory / plan_name
