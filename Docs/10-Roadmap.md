@@ -113,4 +113,4 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
 
 ## Meilenstein 6 – Weitere Ausbaustufen (später, unverbindlich)
 
-Regimeabhängige Korrelationsmodelle, Mehrgeräte-/Mehrsitzungs-Konsistenz der lokalen Speicherung, weitere Feature-Module, Vertiefung der in 08-Offene-Fragen.md verbliebenen fachlichen Detailfragen.
+Regimeabhängige Korrelationsmodelle, Mehrgeräte-/Mehrsitzungs-Konsistenz der lokalen Speicherung, weitere Feature-Module, Vertiefung der in 08-Offene-Fragen.md verbliebenen fachlichen Detailfragen. Denkbar auch: proaktive, marktsignalgetriebene Portfolio-Verkäufe zur Cash-Bucket-Auffüllung (z. B. bei Allzeithochs oder nach überdurchschnittlichen Renditephasen) statt nur regelbasiert nach Zielgröße - **ausdrücklich mit dem Vorbehalt, dass kurzfristiges Markttiming empirisch nicht robust vorhersagbar ist** (Effizienzmarkthypothese); eine mögliche Umsetzung müsste diesen Vorbehalt im Nutzer-Prompt/Ergebnis transparent machen, statt als empfohlene Standardstrategie zu erscheinen.
