@@ -271,8 +271,14 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         withdrawal_years: float = 3.0,
         cash_store_name: str = "cash",
         withdrawal_phase_names: list[str] | None = None,
+        max_target_cash: float | None = None,
     ) -> str:
-        """Add the Cash-Bucket manager (liquidity buffer sizing and rebalancing)."""
+        """Add the Cash-Bucket manager (liquidity buffer sizing and rebalancing).
+
+        `max_target_cash` caps the dynamically computed target size, so
+        excess cash above the cap still sweeps into the portfolio but the
+        target itself never grows past it.
+        """
         plan = load_plan(working_directory, plan_name)
         add_cash_bucket(
             plan,
@@ -284,6 +290,7 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
             withdrawal_years,
             cash_store_name,
             withdrawal_phase_names,
+            max_target_cash,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_cash_bucket: plan=%r status=ok", plan_name)

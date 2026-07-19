@@ -123,6 +123,7 @@ class CashBucketParameters(BaseModel):
     near_horizon_steps: int = 2
     withdrawal_years: float = 3.0
     withdrawal_phase_names: list[str] = []
+    max_target_cash: float | None = None
 
 
 def _calculate_near_horizon_outlook(
@@ -216,6 +217,8 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
 
     # Target Cash-Bucket size
     target_cash = buffer_1 + buffer_2 + buffer_3
+    if params.max_target_cash is not None:
+        target_cash = min(target_cash, params.max_target_cash)
     current_cash = balances.get(cash_store, 0.0)
     portfolio_weights = params.portfolio_weights
 
@@ -250,12 +253,18 @@ def add_cash_bucket(
     withdrawal_years: float = 3.0,
     cash_store_name: str = "cash",
     withdrawal_phase_names: list[str] | None = None,
+    max_target_cash: float | None = None,
 ) -> None:
     """Add a computed cash bucket manager to the plan.
 
     `withdrawal_phase_names` names the phases (e.g. the retirement phase)
     whose withdrawal dependency feeds the Entnahmepuffer component; phases
     not listed there never contribute to it, regardless of how they're named.
+
+    `max_target_cash` caps the otherwise unbounded, dynamically computed
+    target size - without it, any cash above the computed target is always
+    swept into the portfolio in full, with no way to let it accumulate
+    beyond that target.
     """
     # Ensure the cash store exists
     store_exists = False
@@ -275,6 +284,7 @@ def add_cash_bucket(
         near_horizon_steps=near_horizon_steps,
         withdrawal_years=withdrawal_years,
         withdrawal_phase_names=withdrawal_phase_names or [],
+        max_target_cash=max_target_cash,
     )
 
     effect = ComputedEffect(

@@ -169,6 +169,66 @@ def test_cash_bucket_excess_moves_to_portfolio() -> None:
     assert pytest.approx(result.final_balances["bond"]) == 21.0
 
 
+def test_cash_bucket_caps_target_at_max() -> None:
+    from compute_to_ai.engine.timeline import Phase
+
+    plan = Plan(
+        name="cash-bucket-max-target-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=100.0)],
+        phases=[Phase(name="Erwerbsphase", start_step=0, end_step=10)],
+    )
+
+    add_asset_class(plan, "equity", 0.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 0.0, 0.0, 0.0)
+
+    add_cash_bucket(
+        plan=plan,
+        portfolio_weights={"equity": 0.70, "bond": 0.30},
+        emergency_buffer_months={"Erwerbsphase": 3.0},
+        monthly_expenses=10.0,
+        max_target_cash=10.0,
+    )
+
+    result = run_simulation(plan)
+
+    # Computed target would be 30, but max_target_cash=10 caps it - the
+    # excess above 10 (not just above 30) sweeps to the portfolio.
+    assert pytest.approx(result.final_balances["cash"]) == 10.0
+    assert pytest.approx(result.final_balances["equity"]) == 63.0
+    assert pytest.approx(result.final_balances["bond"]) == 27.0
+
+
+def test_cash_bucket_max_target_has_no_effect_when_above_computed_target() -> None:
+    from compute_to_ai.engine.timeline import Phase
+
+    plan = Plan(
+        name="cash-bucket-max-target-noop-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=100.0)],
+        phases=[Phase(name="Erwerbsphase", start_step=0, end_step=10)],
+    )
+
+    add_asset_class(plan, "equity", 0.0, 0.0, 0.0)
+    add_asset_class(plan, "bond", 0.0, 0.0, 0.0)
+
+    add_cash_bucket(
+        plan=plan,
+        portfolio_weights={"equity": 0.70, "bond": 0.30},
+        emergency_buffer_months={"Erwerbsphase": 3.0},
+        monthly_expenses=10.0,
+        max_target_cash=1000.0,
+    )
+
+    result = run_simulation(plan)
+
+    # Cap (1000) is above the computed target (30) - identical to the
+    # uncapped case.
+    assert pytest.approx(result.final_balances["cash"]) == 30.0
+    assert pytest.approx(result.final_balances["equity"]) == 49.0
+    assert pytest.approx(result.final_balances["bond"]) == 21.0
+
+
 def test_cash_bucket_deficit_pulls_from_portfolio() -> None:
     from compute_to_ai.engine.timeline import Phase
     plan = Plan(
