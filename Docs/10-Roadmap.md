@@ -129,21 +129,47 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
 
 
 
-## Meilenstein 4 – Baustein-Katalog & Regelwerk-Templates
+## Meilenstein 4 – Live-Kurs-Integration (WKN/ISIN-Abfrage & Depot-Initialisierung)
+
+**Ziel**: Bereitstellung eines MCP-gestützten Live-Kurs-Abfragemechanismus zur automatisierten Initialisierung und Aktualisierung von Depotsalden im Plan-Datenmodell. Das System soll deutsche WKNs und internationale ISINs direkt auflösen und Kurse von deutschen Börsenplätzen beziehen, ohne dass der Nutzer diese manuell nachschlagen muss.
+
+### Technische Analyse (PoC-Erkenntnisse)
+* **Datenquelle**: `Ariva.de` dient als stabile, kostenlose und anmeldefreie Abfragequelle. Sie löst sowohl WKNs (z. B. `ETF018`, `A0RPWH`, `A2N6CW`, `DBX1AU`, `A12GVR`, `A111X9`, `ETF019`) als auch ISINs (z. B. `LU2572257124`, `IE00B4L5Y983`, `IE00BFY0GT14`, `LU0322253906`, `IE00BTJRMP35`, `IE00BKM4GZ66`, `LU2573966905`) per 302-Redirect auf die jeweilige Instrumenten-Detailseite auf.
+* **Börsenplatz-Steuerung**: Durch das Anhängen des Parameters `?boerse_id=X` an die *aufgelöste* URL können gezielt Realtime- oder Xetra-Kurse geladen werden. Die relevanten IDs sind:
+  * **Xetra**: `boerse_id=45`
+  * **Tradegate**: `boerse_id=131`
+  * **Lang & Schwarz (L&S)**: `boerse_id=16`
+  * **Gettex**: `boerse_id=207`
+* **Implementierung**: Keine externen HTTP- oder Scraping-Bibliotheken nötig. Die Implementierung erfolgt robust über die Standardbibliothek (`urllib.request` mit geeignetem `User-Agent` sowie `re` zur Extraktion).
+
+- [ ] **Epic 4.1 – Zustandsloses Live-Kurs-Tool (`finance_get_live_price`)**
+  - [ ] Implementierung der zweistufigen HTTP-Abfrage (Redirect auflösen -> URL mit `boerse_id` abfragen).
+  - [ ] Robustes Parsen des HTML-Header-Preises (`class="instrument-header-quote"`), der Währung (z. B. `EUR`) und des Zeitstempels (`class="instrument-header-last-time"`).
+  - [ ] Rückgabe eines strukturierten JSON-Objekts mit Name, ISIN, WKN, Kurs, Währung, Börse und Abfrage-Zeitstempel.
+- [ ] **Epic 4.2 – Depot-Initialisierung per Stückzahl (`finance_set_asset_shares`)**
+  - [ ] Erweiterung des Plan-Datenmodells/Initialisierungstools um die Möglichkeit, Stückzahlen und WKN/ISIN je Anlageklasse zu hinterlegen (als optionale Konfigurations-Metadaten).
+  - [ ] Neues MCP-Tool `finance_set_asset_shares(plan_name, asset_class, shares, isin_or_wkn, exchange="Xetra")`, welches den Kurs abfragt, den Gesamtwert (`shares * price`) berechnet und den Startwert des Depot-Speichers setzt.
+- [ ] **Epic 4.3 – Automatisierter Update-Check (Altern-Check / Plan-Aktualisierung)**
+  - [ ] Implementierung des Tools `finance_update_plan_prices(plan_name)`, das alle im Plan hinterlegten Wertpapiere und Stückzahlen abfragt, die aktuellen Marktwerte neu berechnet und die Depotsalden im Plan-Datenmodell aktualisiert (löst das Problem des "Alterns von Plänen" teil-automatisiert).
+- [ ] **Epic 4.4 – Golden-Tests & Fehlerbehandlung**
+  - [ ] Offline-Tests (mit Mock-HTML-Dateien für die getesteten ETFs), um Parser-Stabilität bei HTML-Änderungen zu sichern.
+  - [ ] Online-Integrationstests zur kontinuierlichen Überwachung der Ariva-Schnittstelle.
+
+## Meilenstein 5 – Baustein-Katalog & Regelwerk-Templates
 
 **Ziel**: Der Mechanismus für versionierte Regelwerk-Templates (z. B. jährliche Steuerrechtsänderungen) ist umgesetzt, inklusive Bestandsschutz-Handling und einem Vertrauensmodell für extern geladene Templates.
 
-- [ ] Epic 4.1 – Regelwerk-Template-Format und Ladeprozess
-- [ ] Epic 4.2 – Bestandsschutz-Konsistenz bei Regelwerk-Wechsel
-- [ ] Epic 4.3 – Vertrauens-/Prüfmechanismus für Templates (Testfälle, Diff-Vorschau)
+- [ ] Epic 5.1 – Regelwerk-Template-Format und Ladeprozess
+- [ ] Epic 5.2 – Bestandsschutz-Konsistenz bei Regelwerk-Wechsel
+- [ ] Epic 5.3 – Vertrauens-/Prüfmechanismus für Templates (Testfälle, Diff-Vorschau)
 
-## Meilenstein 5 – Generizitäts-Probe an einer zweiten Domäne
+## Meilenstein 6 – Generizitäts-Probe an einer zweiten Domäne
 
 **Ziel**: Testweise Umsetzung eines zweiten, deutlich andersartigen Anwendungsfalls (z. B. Ausdauersport- oder Startup-Runway-Simulation) auf demselben Kern, um zu prüfen, ob die generische Architektur trägt.
 
-- [ ] Epic 5.1 – Zweite Domäne auswählen und Speicher/Effekte modellieren
-- [ ] Epic 5.2 – Kern-Anpassungen dokumentieren, falls die Domäne finanzspezifische Annahmen im Kern aufdeckt
+- [ ] Epic 6.1 – Zweite Domäne auswählen und Speicher/Effekte modellieren
+- [ ] Epic 6.2 – Kern-Anpassungen dokumentieren, falls die Domäne finanzspezifische Annahmen im Kern aufdeckt
 
-## Meilenstein 6 – Weitere Ausbaustufen (später, unverbindlich)
+## Meilenstein 7 – Weitere Ausbaustufen (später, unverbindlich)
 
 Regimeabhängige Korrelationsmodelle, Mehrgeräte-/Mehrsitzungs-Konsistenz der lokalen Speicherung, weitere Feature-Module, Vertiefung der in 08-Offene-Fragen.md verbliebenen fachlichen Detailfragen. Denkbar auch: proaktive, marktsignalgetriebene Portfolio-Verkäufe zur Cash-Bucket-Auffüllung (z. B. bei Allzeithochs oder nach überdurchschnittlichen Renditephasen) statt nur regelbasiert nach Zielgröße - **ausdrücklich mit dem Vorbehalt, dass kurzfristiges Markttiming empirisch nicht robust vorhersagbar ist** (Effizienzmarkthypothese); eine mögliche Umsetzung müsste diesen Vorbehalt im Nutzer-Prompt/Ergebnis transparent machen, statt als empfohlene Standardstrategie zu erscheinen.
