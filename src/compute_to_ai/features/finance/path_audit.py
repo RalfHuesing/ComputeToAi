@@ -14,7 +14,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.engine.result import LedgerEntry, SimulationResult
+from compute_to_ai.engine.result import LedgerEntry, SimulationResult, PathAuditResult
 from compute_to_ai.engine.timeline import Phase
 
 CategoryName = Literal["income", "expenses", "taxes", "returns", "reallocations"]
@@ -497,3 +497,36 @@ def audit_plan(plan: Plan, result: SimulationResult) -> list[AuditFinding]:
         *_check_unpaid_liabilities(result, liability_stores),
     ]
     return sorted(findings, key=lambda finding: (finding.step is None, finding.step or 0))
+
+
+def get_percentile_curves(plan: Plan, audit: PathAuditResult) -> dict[str, list[dict[str, float]]]:
+    """Classify all plan stores and return aggregated balance curves for each audited path."""
+    liability_stores = _liability_store_names(plan)
+    invested_stores = {
+        eff.store_name
+        for eff in plan.effects
+        if getattr(eff, "type", None) == "correlated_return" and eff.store_name is not None
+    }
+    
+    # Liquid stores are those that are neither liabilities nor asset classes
+    all_store_names = {s.name for s in plan.stores}
+    liquid_stores = all_store_names - liability_stores - invested_stores
+
+    curves = {}
+    for path_name, path_result in audit.paths.items():
+        steps_list = []
+        for t, balances in enumerate(path_result.time_series):
+            liquid_balance = sum(balances.get(name, 0.0) for name in liquid_stores)
+            invested_balance = sum(balances.get(name, 0.0) for name in invested_stores)
+            liabilities_balance = sum(balances.get(name, 0.0) for name in liability_stores)
+            
+            steps_list.append({
+                "step": t,
+                "liquid": liquid_balance,
+                "invested": invested_balance,
+                "liabilities": liabilities_balance,
+                "total_net": liquid_balance + invested_balance - liabilities_balance,
+            })
+        curves[path_name] = steps_list
+        
+    return curves

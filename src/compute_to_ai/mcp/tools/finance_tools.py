@@ -19,7 +19,7 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.engine.result import MonteCarloResult, SimulationResult
+from compute_to_ai.engine.result import MonteCarloResult, SimulationResult, PathAuditResult
 from compute_to_ai.engine.simulation import run_monte_carlo
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
@@ -32,6 +32,7 @@ from compute_to_ai.features.finance.path_audit import (
     audit_plan,
     build_event_log,
     compute_category_series,
+    get_percentile_curves,
 )
 from compute_to_ai.features.finance.pension import (
     add_statutory_pension,
@@ -47,6 +48,7 @@ from compute_to_ai.features.finance.portfolio import (
 )
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 from compute_to_ai.mcp.tools.plan_storage import (
+    PATH_AUDIT_RESULT_FILENAME,
     load_audited_path,
     load_plan,
     load_result,
@@ -578,3 +580,22 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
         comparison = compare_plans(plan_a, result_a, plan_b, result_b)
         logger.info("finance_compare_plans: plan_a=%r plan_b=%r status=ok", plan_name_a, plan_name_b)
         return comparison
+
+    @mcp.tool()
+    def finance_get_percentile_curves(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str
+    ) -> dict[str, Any]:
+        """Return the aggregated liquid, invested, liabilities, and net worth Curves
+        for all percentile paths of the plan's last path audit (see core_run_path_audit).
+
+        Categories:
+        - liquid: Cash-Buckets
+        - invested: MSCI World, MSCI EM, etc.
+        - liabilities: Debt balances
+        - total_net: Net wealth (liquid + invested - liabilities)
+        """
+        plan = load_plan(working_directory, plan_name)
+        audit = load_result(working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult)
+        curves = get_percentile_curves(plan, audit)
+        logger.info("finance_get_percentile_curves: plan=%r status=ok", plan_name)
+        return {"curves": curves}
