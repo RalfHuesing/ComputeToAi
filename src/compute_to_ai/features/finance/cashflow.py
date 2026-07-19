@@ -177,6 +177,7 @@ def add_flexible_acquisition(
     safe_store_name: str,
     glidepath_start_step: int,
     inflation_rate: float = 0.0,
+    description: str | None = None,
 ) -> None:
     """Add a computed flexible acquisition effect to the plan.
 
@@ -197,5 +198,6 @@ def add_flexible_acquisition(
         name=name,
         function_name="flexible_acquisition",
         parameters=params.model_dump(),
+        description=description,
     )
     plan.effects.append(effect)

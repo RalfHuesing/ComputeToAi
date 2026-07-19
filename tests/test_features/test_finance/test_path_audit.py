@@ -313,3 +313,217 @@ def test_audit_plan_reports_no_findings_on_a_clean_plan() -> None:
     findings = audit_plan(plan, result)
 
     assert findings == []
+
+
+# ---------------------------------------------------------------------------
+# Tests for compute_category_series with real-money inflation adjustment
+# ---------------------------------------------------------------------------
+
+
+def test_compute_category_series_annual_real_deflates_future_values() -> None:
+    """With annual_real granularity, step t values are divided by (1 + rate)^t.
+
+    Step 0 is unaffected (divisor = 1). Steps 1+ are deflated.
+    We use a 100% inflation_rate to make the divisor powers obvious:
+    - step 0: income 1000 / 2^0 = 1000
+    - step 1: income 1000 / 2^1 = 500
+    """
+    plan = Plan(
+        name="real-money-test",
+        timeline=Timeline(step_count=2),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+    # Constant income with inflation_rate=1.0 (100%) so the plan's internal
+    # rate is picked up by _find_plan_inflation_rate through the expense effect.
+    add_income_stream(plan, "Gehalt", "cash", amount=1000.0)
+    add_expense(plan, "Lebenshaltung", "cash", amount=0.0, inflation_rate=1.0)  # sets plan inflation rate
+
+    result = run_simulation(plan, record_ledger=True)
+    series = compute_category_series(plan, result, granularity="annual_real")
+
+    assert len(series) == 2
+    # Step 0: no deflation
+    assert pytest.approx(series[0].income, abs=1e-6) == 1000.0
+    # Step 1: deflated by (1+1.0)^1 = 2
+    assert pytest.approx(series[1].income, abs=1e-6) == 500.0
+
+
+def test_compute_category_series_monthly_average_real_combines_divisors() -> None:
+    """monthly_average_real should deflate AND divide by 12."""
+    plan = Plan(
+        name="real-monthly-test",
+        timeline=Timeline(step_count=2),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+    add_income_stream(plan, "Gehalt", "cash", amount=1200.0)
+    add_expense(plan, "Lebenshaltung", "cash", amount=0.0, inflation_rate=1.0)  # 100% inflation
+
+    result = run_simulation(plan, record_ledger=True)
+    series = compute_category_series(plan, result, granularity="monthly_average_real")
+
+    # Step 0: 1200 / 12 = 100 (no inflation at step 0)
+    assert pytest.approx(series[0].income, abs=1e-6) == 100.0
+    # Step 1: 1200 / (2^1 * 12) = 50
+    assert pytest.approx(series[1].income, abs=1e-6) == 50.0
+
+
+def test_compute_category_series_real_balances_are_also_deflated() -> None:
+    """Balances in real granularity should be divided by the cumulative inflation factor."""
+    plan = Plan(
+        name="real-balances-test",
+        timeline=Timeline(step_count=2),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+    add_income_stream(plan, "Gehalt", "cash", amount=1000.0)
+    add_expense(plan, "Lebenshaltung", "cash", amount=0.0, inflation_rate=1.0)
+
+    result = run_simulation(plan, record_ledger=True)
+    nominal = compute_category_series(plan, result, granularity="annual")
+    real = compute_category_series(plan, result, granularity="annual_real")
+
+    # Step 0: real and nominal are the same (divisor = 1)
+    assert real[0].balances["cash"] == pytest.approx(nominal[0].balances["cash"], abs=1e-6)
+    # Step 1: real cash balance is half the nominal
+    assert real[1].balances["cash"] == pytest.approx(nominal[1].balances["cash"] / 2.0, abs=1e-6)
+
+
+def test_compute_category_series_annual_real_zero_inflation_unchanged() -> None:
+    """With 0% inflation the 'real' series must equal the nominal series."""
+    plan = Plan(
+        name="zero-inflation-real-test",
+        timeline=Timeline(step_count=3),
+        stores=[Store(name="cash", balance=100.0)],
+    )
+    add_income_stream(plan, "Gehalt", "cash", amount=500.0)
+    add_expense(plan, "Lebenshaltung", "cash", amount=200.0, inflation_rate=0.0)
+
+    result = run_simulation(plan, record_ledger=True)
+    nominal = compute_category_series(plan, result, granularity="annual")
+    real = compute_category_series(plan, result, granularity="annual_real")
+
+    for n, r in zip(nominal, real):
+        assert pytest.approx(n.income) == r.income
+        assert pytest.approx(n.expenses) == r.expenses
+        for store in n.balances:
+            assert pytest.approx(n.balances[store]) == r.balances[store]
+
+
+# ---------------------------------------------------------------------------
+# Tests for get_percentile_curves
+# ---------------------------------------------------------------------------
+
+
+def _build_audit_plan() -> Plan:
+    """Build a plan with liquid, invested, and liability stores for curve tests."""
+    plan = Plan(
+        name="curves-test",
+        timeline=Timeline(step_count=4),
+        stores=[Store(name="cash", balance=1000.0)],
+        ruin_stores=["cash"],
+    )
+    add_income_stream(plan, "Gehalt", "cash", amount=500.0)
+    add_expense(plan, "Lebenshaltung", "cash", amount=200.0, inflation_rate=0.02)
+    add_asset_class(plan, store_name="depot", initial_balance=2000.0, expected_return=0.07, volatility=0.15)
+    add_liability(
+        plan,
+        name="Kredit",
+        liability_store_name="kredit",
+        cash_store_name="cash",
+        principal=3000.0,
+        interest_rate=0.05,
+        payment=500.0,
+    )
+    return plan
+
+
+def test_get_percentile_curves_returns_correct_keys() -> None:
+    from compute_to_ai.engine.simulation import run_path_audit
+    from compute_to_ai.features.finance.path_audit import get_percentile_curves
+
+    plan = _build_audit_plan()
+    audit = run_path_audit(plan, num_runs=20, seed=42)
+
+    curves = get_percentile_curves(plan, audit)
+
+    # Must have one entry per path in the audit
+    assert set(curves.keys()) == set(audit.paths.keys())
+
+
+def test_get_percentile_curves_step_fields_present() -> None:
+    from compute_to_ai.engine.simulation import run_path_audit
+    from compute_to_ai.features.finance.path_audit import get_percentile_curves
+
+    plan = _build_audit_plan()
+    audit = run_path_audit(plan, num_runs=20, seed=42)
+    curves = get_percentile_curves(plan, audit)
+
+    for path_key, steps in curves.items():
+        assert len(steps) == plan.timeline.step_count, f"wrong number of steps for path {path_key!r}"
+        for step in steps:
+            assert "step" in step
+            assert "liquid" in step
+            assert "invested" in step
+            assert "liabilities" in step
+            assert "total_net" in step
+
+
+def test_get_percentile_curves_classifies_stores_correctly() -> None:
+    """Depot should be invested, kredit should be liabilities, cash should be liquid."""
+    from compute_to_ai.engine.simulation import run_path_audit
+    from compute_to_ai.features.finance.path_audit import get_percentile_curves
+
+    plan = _build_audit_plan()
+    audit = run_path_audit(plan, num_runs=20, seed=42)
+    curves = get_percentile_curves(plan, audit)
+
+    # Use the deterministic path for reproducibility
+    det_steps = curves["deterministic"]
+
+    # Step 0: liquid=cash(1000 initial + 500 income - 200 expense - 500 kredit rate = ~800),
+    # invested>0 (depot), liabilities>=0 (kredit)
+    first = det_steps[0]
+    assert first["invested"] > 0.0, "depot should contribute to invested"
+    assert first["liabilities"] > 0.0, "kredit should contribute to liabilities"
+    # total_net = liquid + invested - liabilities
+    assert pytest.approx(first["total_net"]) == (
+        first["liquid"] + first["invested"] - first["liabilities"]
+    )
+
+
+def test_get_percentile_curves_total_net_equals_sum() -> None:
+    """total_net must always equal liquid + invested - liabilities for every step/path."""
+    from compute_to_ai.engine.simulation import run_path_audit
+    from compute_to_ai.features.finance.path_audit import get_percentile_curves
+
+    plan = _build_audit_plan()
+    audit = run_path_audit(plan, num_runs=20, seed=42)
+    curves = get_percentile_curves(plan, audit)
+
+    for path_key, steps in curves.items():
+        for step in steps:
+            expected = step["liquid"] + step["invested"] - step["liabilities"]
+            assert pytest.approx(step["total_net"], abs=1e-6) == expected, (
+                f"total_net mismatch at step {step['step']} for path {path_key!r}"
+            )
+
+
+def test_get_percentile_curves_liquid_only_plan() -> None:
+    """A plan with only cash stores should have invested=0 and liabilities=0."""
+    from compute_to_ai.engine.simulation import run_path_audit
+    from compute_to_ai.features.finance.path_audit import get_percentile_curves
+
+    plan = Plan(
+        name="liquid-only-curves",
+        timeline=Timeline(step_count=3),
+        stores=[Store(name="cash", balance=500.0)],
+        ruin_stores=["cash"],
+    )
+    add_income_stream(plan, "Gehalt", "cash", amount=300.0)
+    audit = run_path_audit(plan, num_runs=10, seed=1)
+    curves = get_percentile_curves(plan, audit)
+
+    for path_key, steps in curves.items():
+        for step in steps:
+            assert step["invested"] == 0.0, f"no asset classes, invested should be 0 (path {path_key!r})"
+            assert step["liabilities"] == 0.0, f"no liabilities (path {path_key!r})"
+

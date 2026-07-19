@@ -117,6 +117,18 @@ Das deckt ab: wachsende Einkommens-/Ausgabeneffekte, zwei parallele Verbindlichk
   - [x] `core_get_path_computed_states(plan_name, path)`: liefert `computed_effect_final_states` (die nach Laufende verbliebenen Parameter-Zustände jedes berechneten Effekts, z. B. ob eine flexible Anschaffung ausgelöst wurde) eines instrumentierten Pfads – bislang nur intern von `compute_category_series`/`build_event_log` genutzt, nicht direkt per MCP abrufbar.
   - [x] Ein Prompt-Hinweis in `Docs/prompts/finance_de/finanzberater.md`, `finance_audit_plan` nach jedem `core_run_path_audit` als festen Schritt auszuführen und die zurückgegebenen Hinweise dem Nutzer verständlich vorzulegen (nicht nur roh durchzureichen)
 
+- [x] **Epic 3.11 – Ergonomie & Plausibilität: Beschreibungen, Kaufkraftbereinigung, Planvergleich, Perzentilkurven**
+
+  Vier miteinander verwandte Ergonomie- und Interpretierbarkeits-Features, die als offene Fragen in 08-Offene-Fragen.md gesammelt und dann gesamthaft umgesetzt wurden.
+
+  - [x] **Optionale Freitext-Beschreibungen (`description`):** `Plan`, `Store`, `BaseEffect` (und alle Unterklassen) und `Phase` erhalten ein optionales Feld `description: str | None = None`. Alle MCP-Add-Tools (z. B. `finance_add_income_stream`, `finance_add_store`, `finance_set_life_phases`) akzeptieren und persistieren den Parameter. Das LLM kann dadurch die fachliche Intention hinter einem Posten lesen (z. B. *„Wohnen = Miete, Strom, Gas"* für eine Pauschale) und gezielte Rückfragen des Nutzers beantworten.
+  - [x] **Kaufkraftbereinigung (`granularity="annual_real"` / `"monthly_average_real"`):** `finance_get_path_category_series` akzeptiert nun zwei zusätzliche Granularitäts-Modi. Alle Cashflow-Kategorien **und** Speicher-Salden werden auf den Schritt `t` durch `(1 + inflation_rate)^t` dividiert, wobei die Inflationsrate pfadspezifisch aus dem Plan (Cash-Bucket-Manager oder Lebenshaltungs-Effekt) ermittelt wird. Dadurch erhält das LLM direkt kaufkraftbereinigte Monatswerte, die der Nutzer intuitiv einordnen kann.
+  - [x] **Plan-Vergleichs-Tool (`finance_compare_plans`):** Neues MCP-Tool und Feature-Modul `compare.py`. Liefert (1) ein Konfigurations-Delta (Stores, Effekte, Phasen: hinzugefügt / entfernt / geändert mit konkreten Vorher-Nachher-Werten) und (2) ein Simulations-Delta (Differenz der Ruinwahrscheinlichkeit sowie der Endvermögens-Perzentile p10/p50/p90 der Ruin-Stores). Bei fehlenden MC-Ergebnissen oder unterschiedlichen Timeline-Längen werden strukturierte Warnungen ausgegeben statt harter Fehler.
+  - [x] **Perzentil-Kurven-Tool (`finance_get_percentile_curves`):** Neues MCP-Tool. Liest das `PathAuditResult` und klassifiziert alle Plan-Stores in `liquid` (Cash-Buckets), `invested` (Anlageklassen mit `CorrelatedReturnEffect`) und `liabilities` (über `liability_manager`). Gibt pro Pfad (`p10`, `p50`, `p90`, `deterministic`) und Schritt die aggregierten Salden sowie `total_net = liquid + invested − liabilities` zurück – maximale Token-Effizienz für Chart-Daten.
+  - [x] Tests: `tests/test_features/test_finance/test_compare.py` (neu, 11 Tests), `tests/test_features/test_finance/test_path_audit.py` (erweitert um 9 Tests für Inflation-Adjustment und `get_percentile_curves`)
+
+
+
 ## Meilenstein 4 – Baustein-Katalog & Regelwerk-Templates
 
 **Ziel**: Der Mechanismus für versionierte Regelwerk-Templates (z. B. jährliche Steuerrechtsänderungen) ist umgesetzt, inklusive Bestandsschutz-Handling und einem Vertrauensmodell für extern geladene Templates.
