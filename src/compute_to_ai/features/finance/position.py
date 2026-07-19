@@ -82,8 +82,12 @@ class PositionTransaction(BaseModel):
     `shares` follows the same signed convention as `ShareTransaction` in
     `compute_to_ai.features.calculations.holdings` (positive = bought,
     negative = sold). `price` is the price per share paid/received at that
-    transaction - required for buys, ignored for sells (a sell consumes
-    existing lots FIFO and needs no price of its own).
+    transaction - required for both directions: a buy needs it to record the
+    lot's cost basis, and a sell needs it too, since a Store's Lots are
+    money-denominated (`Lot.quantity` tracks a Euro value, not a raw share
+    count, see `compute_to_ai.engine.store`) - withdrawing the bare share
+    count instead of `shares * price` would consume the wrong fraction of
+    the FIFO queue.
     """
 
     date: date
@@ -115,20 +119,22 @@ def apply_transaction_history(store: Store, transactions: list[PositionTransacti
     store.balance = 0.0
 
     for transaction in sorted(transactions, key=lambda t: t.date):
+        if transaction.price is None or transaction.price <= 0.0:
+            direction = "buy" if transaction.shares > 0 else "sell"
+            msg = (
+                f"{direction} transaction on {transaction.date} needs a positive price "
+                "(Lots are money-denominated, see apply_transaction_history)"
+            )
+            raise ValueError(msg)
+
         if transaction.shares > 0:
-            if transaction.price is None or transaction.price <= 0.0:
-                msg = (
-                    f"buy transaction on {transaction.date} needs a positive price "
-                    "(price paid per share)"
-                )
-                raise ValueError(msg)
             cost_basis = transaction.shares * transaction.price
             rule_version = "pre_2009" if transaction.date < _PRE_2009_CUTOFF else None
             store.add_amount(
                 cost_basis, step=0, cost_basis=cost_basis, rule_version=rule_version
             )
         elif transaction.shares < 0:
-            store.withdraw_amount(-transaction.shares)
+            store.withdraw_amount(-transaction.shares * transaction.price)
 
 
 def apply_price_update(store: Store, shares: float, new_price: float) -> None:

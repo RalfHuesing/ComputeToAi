@@ -90,18 +90,32 @@ def test_apply_transaction_history_sell_consumes_earliest_lot_first() -> None:
     transactions = [
         PositionTransaction(date=date(2020, 1, 1), shares=10.0, price=100.0),
         PositionTransaction(date=date(2021, 1, 1), shares=5.0, price=120.0),
-        PositionTransaction(date=date(2022, 1, 1), shares=-4.0),
+        PositionTransaction(date=date(2022, 1, 1), shares=-4.0, price=150.0),
     ]
 
     apply_transaction_history(store, transactions)
 
-    # withdraw_amount is called with the raw sold share count (4.0), which
-    # is subtracted from the first (earliest, FIFO) lot's currency quantity.
+    # A sell withdraws shares * price (money-denominated, matching how Lots
+    # are recorded), consumed FIFO from the earliest lot first: 4 * 150 =
+    # 600, fully absorbed by the first lot's 1000, leaving it at 400.
     assert len(store.lots) == 2
-    assert store.lots[0].quantity == pytest.approx(1000.0 - 4.0)
-    assert store.lots[0].cost_basis == pytest.approx(1000.0 - 4.0)
+    assert store.lots[0].quantity == pytest.approx(1000.0 - 4.0 * 150.0)
+    assert store.lots[0].cost_basis == pytest.approx(1000.0 - 4.0 * 150.0)
     assert store.lots[1].quantity == pytest.approx(600.0)
-    assert store.balance == pytest.approx(1000.0 - 4.0 + 600.0)
+    assert store.balance == pytest.approx(1000.0 - 4.0 * 150.0 + 600.0)
+
+
+def test_apply_transaction_history_rejects_sell_without_price() -> None:
+    store = Store(name="equity")
+
+    with pytest.raises(ValueError, match="price"):
+        apply_transaction_history(
+            store,
+            [
+                PositionTransaction(date=date(2020, 1, 1), shares=10.0, price=100.0),
+                PositionTransaction(date=date(2021, 1, 1), shares=-4.0),
+            ],
+        )
 
 
 def test_apply_transaction_history_marks_pre_2009_lot() -> None:

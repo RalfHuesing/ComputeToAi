@@ -223,7 +223,7 @@ async def test_finance_set_position_from_transactions_sets_cost_basis_and_regist
 
         transactions = [
             {"date": "2020-01-01", "shares": 10.0, "price": 100.0},
-            {"date": "2021-01-01", "shares": -4.0},
+            {"date": "2021-01-01", "shares": -4.0, "price": 150.0},
         ]
         status = await _call_ok(
             session,
@@ -238,10 +238,11 @@ async def test_finance_set_position_from_transactions_sets_cost_basis_and_regist
         stores_text = await _call_ok(session, "core_list_stores", plan_name=plan_name)
         stores = json.loads(stores_text)["stores"]
         world_b = next(store for store in stores if store["name"] == "world_b")
-        # A sell withdraws the raw sold share count (4.0) from the currency
-        # lot balance, so the resulting cost-basis balance is 1000 - 4 (see
+        # A sell withdraws shares * price (money-denominated, matching how
+        # Lots are recorded) from the currency lot balance: 4 * 150 = 600,
+        # so the resulting cost-basis balance is 1000 - 600 (see
         # apply_transaction_history), not today's market value.
-        assert world_b["balance"] == pytest.approx(1000.0 - 4.0)
+        assert world_b["balance"] == pytest.approx(1000.0 - 4.0 * 150.0)
 
     positions_file = tmp_path / "work" / plan_name / "positions.json"
     positions = json.loads(positions_file.read_text(encoding="utf-8"))
