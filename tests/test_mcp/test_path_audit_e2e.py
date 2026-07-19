@@ -154,6 +154,69 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
 
 
 @pytest.mark.anyio
+async def test_core_get_path_step_ledger_and_computed_states(
+    server_params: StdioServerParameters,
+) -> None:
+    plan_name = "path-audit-drilldown"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=6)
+        await _call_ok(
+            session,
+            "core_add_store",
+            plan_name=plan_name,
+            store_name="risky",
+            initial_balance=2000.0,
+        )
+        await _call_ok(
+            session, "core_add_store", plan_name=plan_name, store_name="safe", initial_balance=0.0
+        )
+        await _call_ok(
+            session,
+            "finance_add_flexible_acquisition",
+            plan_name=plan_name,
+            name="Urlaub",
+            amount=1000.0,
+            target_step=5,
+            tolerance_steps=1,
+            risky_store_name="risky",
+            safe_store_name="safe",
+            glidepath_start_step=0,
+        )
+
+        await _call_ok(session, "core_run_path_audit", plan_name=plan_name, num_runs=5, seed=1)
+
+        # Trigger fires at step 4 (see Docs/04, "Trigger-Logik", and
+        # tests/test_features/test_finance/test_path_audit.py).
+        ledger_text = await _call_ok(
+            session,
+            "core_get_path_step_ledger",
+            plan_name=plan_name,
+            path="deterministic",
+            step=4,
+        )
+        states_text = await _call_ok(
+            session, "core_get_path_computed_states", plan_name=plan_name, path="deterministic"
+        )
+
+    ledger_payload = json.loads(ledger_text)
+    entries = ledger_payload["entries"]
+    assert entries
+    assert all(entry["step"] == 4 for entry in entries)
+    assert any(entry["effect_type"] == "computed" for entry in entries)
+
+    states_payload = json.loads(states_text)
+    states = states_payload["states"]
+    assert len(states) == 1
+    assert states[0]["function_name"] == "flexible_acquisition"
+    assert states[0]["parameters"]["triggered_step"] == 4
+
+
+@pytest.mark.anyio
 async def test_finance_get_path_category_series_on_unknown_path_is_a_tool_error(
     server_params: StdioServerParameters,
 ) -> None:

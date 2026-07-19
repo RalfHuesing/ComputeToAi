@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from compute_to_ai.engine.plan import Plan
+from compute_to_ai.engine.result import PathAuditResult, SimulationResult
 
 # Shared across mcp.tools modules (core_tools.py writes it, finance_tools.py
 # reads it) so both agree on the same file without duplicating the literal.
@@ -54,3 +55,18 @@ def save_result(working_directory: Path, plan_name: str, filename: str, result: 
     file = result_file(working_directory, plan_name, filename)
     file.parent.mkdir(parents=True, exist_ok=True)
     file.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+
+
+def load_audited_path(working_directory: Path, plan_name: str, path: str) -> SimulationResult:
+    """Load one named path (e.g. "p50", "deterministic") from a plan's last
+    path audit, or raise ValueError - shared by every core_*/finance_* tool
+    that drills into a `core_run_path_audit` result.
+    """
+    audit = load_result(working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult)
+    if path not in audit.paths:
+        msg = (
+            f"no path {path!r} in plan {plan_name!r}'s last path audit "
+            f"(run core_run_path_audit first); available paths: {sorted(audit.paths)}"
+        )
+        raise ValueError(msg)
+    return audit.paths[path]

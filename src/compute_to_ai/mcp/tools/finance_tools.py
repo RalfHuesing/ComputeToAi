@@ -19,7 +19,7 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.engine.result import MonteCarloResult, PathAuditResult, SimulationResult
+from compute_to_ai.engine.result import MonteCarloResult, SimulationResult
 from compute_to_ai.engine.simulation import run_monte_carlo
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
@@ -42,7 +42,7 @@ from compute_to_ai.features.finance.portfolio import (
 )
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 from compute_to_ai.mcp.tools.plan_storage import (
-    PATH_AUDIT_RESULT_FILENAME,
+    load_audited_path,
     load_plan,
     load_result,
     save_plan,
@@ -464,16 +464,8 @@ def _load_audited_path(
 ) -> tuple[Plan, SimulationResult]:
     """Load the plan and one named path from its last path audit, or raise ValueError."""
     plan = load_plan(working_directory, plan_name)
-    audit = load_result(
-        working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult
-    )
-    if path not in audit.paths:
-        msg = (
-            f"no path {path!r} in plan {plan_name!r}'s last path audit "
-            f"(run core_run_path_audit first); available paths: {sorted(audit.paths)}"
-        )
-        raise ValueError(msg)
-    return plan, audit.paths[path]
+    result = load_audited_path(working_directory, plan_name, path)
+    return plan, result
 
 
 def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:

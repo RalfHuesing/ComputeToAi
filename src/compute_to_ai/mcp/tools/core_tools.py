@@ -20,6 +20,7 @@ from compute_to_ai.engine.simulation import run_path_audit, run_simulation
 from compute_to_ai.engine.store import Store
 from compute_to_ai.engine.timeline import Timeline
 from compute_to_ai.mcp.tools.plan_storage import PATH_AUDIT_RESULT_FILENAME
+from compute_to_ai.mcp.tools.plan_storage import load_audited_path as _load_audited_path
 from compute_to_ai.mcp.tools.plan_storage import load_plan as _load_plan
 from compute_to_ai.mcp.tools.plan_storage import load_result as _load_result
 from compute_to_ai.mcp.tools.plan_storage import plan_dir as _plan_dir
@@ -284,3 +285,45 @@ def _register_simulation_tools(mcp: FastMCP, working_directory: Path) -> None:
             sorted(result.paths),
         )
         return f"path audit for plan {plan_name!r} complete ({', '.join(sorted(result.paths))})"
+
+    @mcp.tool()
+    def core_get_path_step_ledger(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, path: str, step: int
+    ) -> dict[str, Any]:
+        """Return the raw per-(Effect, Store) ledger entries for one step of
+        one path of the plan's last path audit (see core_run_path_audit).
+
+        No domain meaning (income/expense/tax/...) is attached here - the
+        engine itself assigns none (see Docs/01-Kern-Domaenenmodell.md,
+        "Ledger"); use finance_get_path_category_series for that. This is a
+        drill-down for when a category sum itself needs explaining.
+        """
+        result = _load_audited_path(working_directory, plan_name, path)
+        entries = [entry for entry in result.ledger if entry.step == step]
+        logger.info(
+            "core_get_path_step_ledger: plan=%r path=%r step=%d status=ok",
+            plan_name,
+            path,
+            step,
+        )
+        return {"entries": [entry.model_dump() for entry in entries]}
+
+    @mcp.tool()
+    def core_get_path_computed_states(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, path: str
+    ) -> dict[str, Any]:
+        """Return the post-run parameter state of every ComputedEffect for
+        one path of the plan's last path audit (see core_run_path_audit).
+
+        Surfaces run-scoped mutable state a computed effect wrote into its
+        own parameters during the run (e.g. whether/when a flexible
+        acquisition triggered) - state otherwise not visible via MCP at all
+        (see Docs/01-Kern-Domaenenmodell.md, "Ledger").
+        """
+        result = _load_audited_path(working_directory, plan_name, path)
+        logger.info(
+            "core_get_path_computed_states: plan=%r path=%r status=ok", plan_name, path
+        )
+        return {
+            "states": [state.model_dump() for state in result.computed_effect_final_states]
+        }
