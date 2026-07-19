@@ -216,6 +216,42 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
     - *Frage 1 (Standard-Fallback & Hierarchie)*: Soll `inflation_general` als automatischer Fallback für Ausgaben greifen, sofern keine spezifische Rate (z. B. `inflation_kfz`) angegeben ist?
     - *Frage 2 (Reichweite & Abgrenzung stochastischer Effekte)*: Welche Parameter gehören in die Registry? (Festverzinsliche Raten, Kreditzinsen, Inflationen, Gehaltssteigerungen vs. stochastische Aktien-Renditen/Vola, die bereits über `CorrelatedReturnEffect` und Korrelationsmatrizen modelliert werden).
     - *Frage 3 (Zeitvariabilität & Staffelung)*: Reichen statische Werte über die Laufzeit oder soll die Registry auch zeitvariable Raten-Pfade unterstützen (z. B. "Jahre 0–3: 4,0 %, danach 2,0 %")?
+- [ ] **Epic 4.15 – Strikte Cache-Invalidierung & Plan-Hash-Synchronisation (Monte-Carlo & Audit-Cache)**
+
+  **Warum**: Bei Planänderungen (z. B. Hinzufügen/Ändern/Entfernen von Stores, Effekten, Phasen, Parametern oder Zielbedingungen) wurden in Tests veraltete Monte-Carlo-Ergebnisse aus dem Cache zurückgeliefert, wenn der Cache-Key nicht strikt an den aktuellen deterministischen Plan-Zustand gebunden war.
+
+  **Ziel**: Verhindern veralteter Simulationsergebnisse durch striktes Plan-Content-Hashing und automatische Cache-Invalidierung.
+
+  - [ ] **Kern-Erweiterung (`compute_to_ai.engine`)**: Determinische Berechnung eines Content-Hashes für das `Plan`-Objekt (inkl. aller Sub-Komponenten, Parameter, Phasen und Zielbedingungen).
+  - [ ] **Automatische Cache-Invalidierung**: Bei jeder mutierenden MCP-Tool-Operation (`add_*`, `set_*`, `remove_*`) oder Planänderung wird der Cache automatisch entleert bzw. der Plan-Hash aktualisiert.
+  - [ ] **Unit- & Integrationstests**: Nachweis, dass `finance_get_monte_carlo_result` nach einer Planänderung verlässlich neue Simulationen veranlasst und veraltete Ergebnisse verwirft.
+
+- [ ] **Epic 4.16 – Pre-Flight Konfigurations-Audit & Strukturierte Validierung**
+
+  **Warum**: Das System berechnete in der Praxis Ergebnisse auf unvollständig konfigurierten Plänen ohne Warnung – die gefährlichste Fehlerklasse bei einem Finanztool (plausibel aussehende, aber sachlich falsche Zahlen):
+  - `ruin_stores` unkonfiguriert $\rightarrow$ "0 % Ruinwahrscheinlichkeit" wurde ausgegeben, obwohl die Ruin-Bedingung schlicht nie gesetzt war.
+  - Implizite Korrelation 0.0 $\rightarrow$ fehlende Korrelationsmatrix zwischen Aktienregionen führt zu künstlich/unrealistisch niedriger Portfoliovolatilität.
+  - Fehlen eines Cash-Buckets $\rightarrow$ verdecktes Liquiditätsrisiko bei Schwankungen oder Entnahmen.
+  - Phasen-/Timeline-Mismatches $\rightarrow$ unvollständig abgedeckte Zeitabschnitte oder Diskrepanzen zwischen Timeline-Ende und Phasen-Ende.
+
+  **Ziel**: Ein hartes Validierungssystem vor der Ausführung/Ergebnisabgabe, das unvollständige Annahmen explizit ausweist.
+
+  - [ ] **Pre-Flight Validation in `finance_run_monte_carlo` & `core_run_simulation`**:
+    - **Ruin-Bedingung**: Gibt `ruin_probability: null` und Status `"UNCONFIGURED"` / Warnung zurück, wenn `ruin_stores` nicht explizit konfiguriert ist, statt eine irreleitende `0.0` vorzugaukeln.
+    - **Korrelations-Audit**: Erkennt stochastische Effekte derselben Korrelationsgruppe ohne explizite Korrelationsmatrix und gibt eine deutliche Warnung aus ("Implizite Korrelation 0.0 angenommen").
+    - **Cash-Bucket- & Notgroschen-Check**: Warnung, wenn Ausgaben/Entnahmen direkt aus einem risikobehafteten Portfolio getätigt werden, ohne dass ein Cash-Bucket vorgeschaltet ist.
+    - **Phasen- & Timeline-Abdeckungsprüfer**: Warnung bei Zeitschritten außerhalb aktiver Phasen oder mit unvollständiger Zu-/Abflussabdeckung.
+  - [ ] **Erweiterung von `finance_audit_plan`**: Zusammenfassung aller Konfigurations- und Ausführungshinweise in ein strukturiertes Prüfergebnis mit Schweregraden (`CRITICAL_CONFIG_MISSING`, `WARNING`, `INFO`), das vom Agenten vor jeder Zahlenausgabe an den Nutzer ausgewertet werden muss.
+
+- [ ] **Epic 4.17 – Golden-Tests für Fehlkonfigurationen & Audit-Warnungen**
+
+  **Warum**: Die Testsuite prüfte bisher primär valide, vollständig konfigurierte Pläne ("Happy Path"). Systematische Absicherung gegen stille Fehler erfordert Tests, die unvollständige Konfigurationen provozieren.
+
+  **Ziel**: Abdeckung aller Konfigurationsprüfungen und Fehlerfälle in automatisierten Golden-Tests.
+
+  - [ ] **Automatisierte Golden-Tests**: Testfälle für fehlende `ruin_stores`, fehlende Korrelationsmatrizen, Cache-Invalidierung bei Planänderungen sowie Phasen/Timeline-Diskrepanzen.
+  - [ ] **Verifikation**: Nachweis, dass das System in allen diesen Fällen strukturierte Warnungen/Fehler ausgibt, statt stumm plausible falsche Zahlen zu liefern.
+
 
 
 
