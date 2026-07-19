@@ -13,7 +13,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from compute_to_ai.engine.effect import GrowingFixedEffect
+from compute_to_ai.engine.effect import GrowingFixedEffect, TransferEffect
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.result import SimulationResult
 from compute_to_ai.engine.simulation import run_simulation
@@ -100,6 +100,19 @@ def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> Non
         return f"deleted plan {plan_name!r}"
 
 
+def _validate_transfer_targets(
+    plan: Plan, from_store_name: str, to_store_weights: dict[str, float]
+) -> None:
+    """Raise KeyError for an unknown store, ValueError if weights don't sum to 1.0."""
+    plan.store(from_store_name)  # raises KeyError if unknown
+    for to_name in to_store_weights:
+        plan.store(to_name)  # raises KeyError if unknown
+    weight_sum = sum(to_store_weights.values())
+    if abs(weight_sum - 1.0) > 1e-9:
+        msg = f"to_store_weights must sum to 1.0, got {weight_sum!r}"
+        raise ValueError(msg)
+
+
 def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def core_add_store(  # pyright: ignore[reportUnusedFunction]
@@ -127,6 +140,44 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
         logger.info("core_add_effect: plan=%r store=%r status=ok", plan_name, store_name)
         logger.debug("core_add_effect args: amount_per_step=%s", amount_per_step)
         return f"added effect on store {store_name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def core_add_transfer(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        from_store_name: str,
+        to_store_weights: dict[str, float],
+        amount: float,
+        growth_rate: float = 0.0,
+        active_phases: list[str] | None = None,
+        start_step: int | None = None,
+        end_step: int | None = None,
+    ) -> str:
+        """Add a per-step Transfer effect between Stores in an existing Plan.
+
+        Moves a fixed (optionally growing) amount from one Store, split
+        across one or more destination Stores by weight - e.g. a fixed
+        savings rate into a portfolio, without a negative-expense/
+        positive-income workaround.
+        """
+        plan = _load_plan(working_directory, plan_name)
+        _validate_transfer_targets(plan, from_store_name, to_store_weights)
+        plan.validate_active_phases(active_phases)
+        plan.effects.append(
+            TransferEffect(
+                from_store_name=from_store_name,
+                to_store_weights=to_store_weights,
+                amount_per_step=abs(amount),
+                growth_rate=growth_rate,
+                active_phases=active_phases,
+                start_step=start_step,
+                end_step=end_step,
+            )
+        )
+        _save_plan(working_directory, plan)
+        logger.info(
+            "core_add_transfer: plan=%r from=%r status=ok", plan_name, from_store_name
+        )
+        return f"added transfer from {from_store_name!r} to plan {plan_name!r}"
 
     @mcp.tool()
     def core_list_stores(plan_name: str) -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]

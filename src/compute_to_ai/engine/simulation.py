@@ -14,6 +14,19 @@ from compute_to_ai.engine.result import MonteCarloResult, SimulationResult
 from compute_to_ai.engine.store import Store
 
 
+def _apply_transfer_effect(effect: Effect, t: int, fixed_additions: dict[str, float]) -> None:
+    """Add a TransferEffect's per-step contribution to `fixed_additions` in place."""
+    from_name = getattr(effect, "from_store_name", None)
+    amount = getattr(effect, "amount_per_step", 0.0)
+    rate = getattr(effect, "growth_rate", 0.0)
+    val = amount * ((1.0 + rate) ** t)
+    if isinstance(from_name, str) and from_name in fixed_additions:
+        fixed_additions[from_name] -= val
+    for to_name, weight in getattr(effect, "to_store_weights", {}).items():
+        if to_name in fixed_additions:
+            fixed_additions[to_name] += val * weight
+
+
 def _calculate_phase1_updates(
     effects: list[Effect],
     t: int,
@@ -29,11 +42,15 @@ def _calculate_phase1_updates(
         if not effect.is_active(t, active_phase):
             continue
 
+        eff_type = getattr(effect, "type", None)
+        if eff_type == "transfer":
+            _apply_transfer_effect(effect, t, fixed_additions)
+            continue
+
         store_name = getattr(effect, "store_name", None)
         if not isinstance(store_name, str) or store_name not in fixed_additions:
             continue
 
-        eff_type = getattr(effect, "type", None)
         if eff_type == "growing_fixed":
             amount = getattr(effect, "amount_per_step", 0.0)
             rate = getattr(effect, "growth_rate", 0.0)

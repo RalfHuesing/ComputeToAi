@@ -220,3 +220,104 @@ async def test_remove_effect_is_rejected_when_name_is_ambiguous(
         # Neither effect was removed by the failed, ambiguous attempt.
         effects_text = await _call_ok(session, "core_list_effects", plan_name="ambiguous-test")
         assert len(json.loads(effects_text)["effects"]) == 2
+
+
+@pytest.mark.anyio
+async def test_core_add_transfer_moves_a_fixed_amount_split_by_weight(
+    server_params: StdioServerParameters,
+) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="transfer-test", step_count=1)
+        await _call_ok(
+            session,
+            "core_add_store",
+            plan_name="transfer-test",
+            store_name="cash",
+            initial_balance=1000.0,
+        )
+        await _call_ok(session, "core_add_store", plan_name="transfer-test", store_name="etf_a")
+        await _call_ok(session, "core_add_store", plan_name="transfer-test", store_name="etf_b")
+
+        await _call_ok(
+            session,
+            "core_add_transfer",
+            plan_name="transfer-test",
+            from_store_name="cash",
+            to_store_weights={"etf_a": 0.6, "etf_b": 0.4},
+            amount=100.0,
+        )
+        await _call_ok(session, "core_run_simulation", plan_name="transfer-test")
+        result_text = await _call_ok(session, "core_get_result", plan_name="transfer-test")
+
+    payload = json.loads(result_text)
+    assert payload["final_balances"]["cash"] == 900.0
+    assert payload["final_balances"]["etf_a"] == 60.0
+    assert payload["final_balances"]["etf_b"] == 40.0
+
+
+@pytest.mark.anyio
+async def test_core_add_transfer_rejects_unknown_store(
+    server_params: StdioServerParameters,
+) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(
+            session, "core_create_plan", plan_name="transfer-unknown-store", step_count=1
+        )
+        await _call_ok(
+            session, "core_add_store", plan_name="transfer-unknown-store", store_name="cash"
+        )
+
+        result = await session.call_tool(
+            "core_add_transfer",
+            {
+                "plan_name": "transfer-unknown-store",
+                "from_store_name": "cash",
+                "to_store_weights": {"does-not-exist": 1.0},
+                "amount": 100.0,
+            },
+        )
+
+    assert result.isError
+
+
+@pytest.mark.anyio
+async def test_core_add_transfer_rejects_weights_not_summing_to_one(
+    server_params: StdioServerParameters,
+) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(
+            session, "core_create_plan", plan_name="transfer-bad-weights", step_count=1
+        )
+        await _call_ok(
+            session, "core_add_store", plan_name="transfer-bad-weights", store_name="cash"
+        )
+        await _call_ok(
+            session, "core_add_store", plan_name="transfer-bad-weights", store_name="etf"
+        )
+
+        result = await session.call_tool(
+            "core_add_transfer",
+            {
+                "plan_name": "transfer-bad-weights",
+                "from_store_name": "cash",
+                "to_store_weights": {"etf": 0.5},
+                "amount": 100.0,
+            },
+        )
+
+    assert result.isError

@@ -75,9 +75,30 @@ class ComputedEffect(BaseEffect):
     order: int = 0  # lower runs first within Phase 2; ties keep append order
 
 
+class TransferEffect(BaseEffect):
+    """An additive effect moving a fixed (optionally growing) amount from one
+    store to one or more others, split by weight.
+
+    The generic primitive for "a fixed savings rate into a portfolio"
+    without a negative-expense/positive-income workaround. Pure Phase-1
+    arithmetic (no cross-effect state), so it needs no execution order
+    relative to other effects.
+    """
+
+    type: Literal["transfer"] = "transfer"
+    from_store_name: str
+    to_store_weights: dict[str, float]
+    amount_per_step: float
+    growth_rate: float = 0.0
+
+
 # Discriminated Union for Pydantic to cleanly serialize/deserialize effects
 Effect = Annotated[
-    GrowingFixedEffect | PercentageGrowthEffect | CorrelatedReturnEffect | ComputedEffect,
+    GrowingFixedEffect
+    | PercentageGrowthEffect
+    | CorrelatedReturnEffect
+    | ComputedEffect
+    | TransferEffect,
     PydanticField(discriminator="type"),
 ]
 

@@ -7,6 +7,7 @@ from compute_to_ai.engine.effect import (
     CorrelatedReturnEffect,
     GrowingFixedEffect,
     PercentageGrowthEffect,
+    TransferEffect,
     register_computed_effect,
 )
 from compute_to_ai.engine.plan import CorrelationGroup, Plan
@@ -32,6 +33,38 @@ def test_growing_fixed_effect_compounds_growth() -> None:
     result = run_simulation(plan)
     assert result.final_balances["cash"] == 210.0
     assert result.time_series == [{"cash": 100.0}, {"cash": 210.0}]
+
+
+def test_transfer_effect_conserves_and_splits_by_weight() -> None:
+    # Step 0: transfer 100 * 1.1^0 = 100 from cash, split 60/40.
+    # Step 1: transfer 100 * 1.1^1 = 110 from cash, split 60/40.
+    plan = Plan(
+        name="transfer-test",
+        timeline=Timeline(step_count=2),
+        stores=[
+            Store(name="cash", balance=1000.0),
+            Store(name="etf_a", balance=0.0),
+            Store(name="etf_b", balance=0.0),
+        ],
+        effects=[
+            TransferEffect(
+                from_store_name="cash",
+                to_store_weights={"etf_a": 0.6, "etf_b": 0.4},
+                amount_per_step=100.0,
+                growth_rate=0.10,
+            )
+        ],
+    )
+
+    result = run_simulation(plan)
+
+    assert pytest.approx(result.final_balances["cash"]) == 790.0
+    assert pytest.approx(result.final_balances["etf_a"]) == 126.0
+    assert pytest.approx(result.final_balances["etf_b"]) == 84.0
+    # Conservation: what cash lost, the destinations gained in aggregate.
+    assert pytest.approx(1000.0 - result.final_balances["cash"]) == (
+        result.final_balances["etf_a"] + result.final_balances["etf_b"]
+    )
 
 
 def test_percentage_growth_effect_compounds() -> None:
