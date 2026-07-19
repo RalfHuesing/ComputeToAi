@@ -492,7 +492,7 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
     def finance_get_path_category_series(  # pyright: ignore[reportUnusedFunction]
         plan_name: str,
         path: str,
-        granularity: Literal["annual", "monthly_average"] = "annual",
+        granularity: Literal["annual", "monthly_average", "annual_real", "monthly_average_real"] = "annual",
     ) -> dict[str, Any]:
         """Return per-step cashflow category sums (Einnahmen, Ausgaben, Steuern,
         Rendite, Umschichtungen, Saldo je Speicher) for one path of the plan's
@@ -501,7 +501,8 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
         `path` is one of the labels from core_run_path_audit's result (e.g.
         "p50", "p10", "deterministic"). `granularity="monthly_average"`
         divides every flow category by 12 for easier comparison against a
-        monthly household budget.
+        monthly household budget. Options ending with "_real" adjust all values
+        for inflation back to the start year using the plan's simulated inflation.
         """
         plan, result = _load_audited_path(working_directory, plan_name, path)
         series = compute_category_series(plan, result, granularity)

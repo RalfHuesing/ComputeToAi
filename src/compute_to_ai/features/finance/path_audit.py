@@ -95,10 +95,23 @@ def _classify_entry(entry: LedgerEntry, liability_stores: set[str]) -> tuple[Cat
     return "expenses", -entry.delta
 
 
+def _find_plan_inflation_rate(plan: Plan) -> float:
+    """Find the inflation rate of a plan from its effects configuration."""
+    for effect in plan.effects:
+        if getattr(effect, "function_name", None) == "cash_bucket_manager":
+            val = effect.parameters.get("inflation_rate", 0.0)
+            if isinstance(val, float):
+                return val
+    for effect in plan.effects:
+        if getattr(effect, "type", None) == "growing_fixed" and effect.name == "Lebenshaltung":
+            return getattr(effect, "growth_rate", 0.0)
+    return 0.0
+
+
 def compute_category_series(
     plan: Plan,
     result: SimulationResult,
-    granularity: Literal["annual", "monthly_average"] = "annual",
+    granularity: Literal["annual", "monthly_average", "annual_real", "monthly_average_real"] = "annual",
 ) -> list[CategoryStep]:
     """Aggregate an instrumented run's ledger into per-step category sums.
 
@@ -106,12 +119,6 @@ def compute_category_series(
     category scheme. `granularity="monthly_average"` divides every flow
     category (not `balances`, a point-in-time snapshot) by 12, for easier
     comparison against a monthly household budget.
-
-    Known simplification: a flexible acquisition's actual trigger (a real,
-    one-off spend) is classified as "reallocations" together with its
-    glidepath pre-shifting (a genuine net-zero reshuffling) - the resulting
-    non-zero net in "reallocations" that step, together with the event log's
-    `acquisition_triggered` entry, still makes the real spend visible.
     """
     liability_stores = _liability_store_names(plan)
     steps = {
@@ -124,16 +131,22 @@ def compute_category_series(
         step_data = steps.setdefault(entry.step, CategoryStep(step=entry.step))
         setattr(step_data, category, getattr(step_data, category) + magnitude)
 
-    divisor = 12.0 if granularity == "monthly_average" else 1.0
+    is_real = granularity in ("annual_real", "monthly_average_real")
+    divisor = 12.0 if granularity in ("monthly_average", "monthly_average_real") else 1.0
+    inflation_rate = _find_plan_inflation_rate(plan) if is_real else 0.0
+
     return [
         CategoryStep(
             step=t,
-            income=steps[t].income / divisor,
-            expenses=steps[t].expenses / divisor,
-            taxes=steps[t].taxes / divisor,
-            returns=steps[t].returns / divisor,
-            reallocations=steps[t].reallocations / divisor,
-            balances=steps[t].balances,
+            income=(steps[t].income / ((1.0 + inflation_rate) ** t)) / divisor,
+            expenses=(steps[t].expenses / ((1.0 + inflation_rate) ** t)) / divisor,
+            taxes=(steps[t].taxes / ((1.0 + inflation_rate) ** t)) / divisor,
+            returns=(steps[t].returns / ((1.0 + inflation_rate) ** t)) / divisor,
+            reallocations=(steps[t].reallocations / ((1.0 + inflation_rate) ** t)) / divisor,
+            balances={
+                store: bal / ((1.0 + inflation_rate) ** t)
+                for store, bal in steps[t].balances.items()
+            } if is_real else steps[t].balances,
         )
         for t in sorted(steps)
     ]
