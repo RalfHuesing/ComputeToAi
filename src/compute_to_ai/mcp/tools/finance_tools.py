@@ -131,7 +131,13 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         step: int,
         inflation_rate: float = 0.0,
     ) -> str:
-        """Add a one-time fixed acquisition or lump-sum income (positive or negative)."""
+        """Add a one-time fixed acquisition (always an outflow, magnitude only).
+
+        A one-time windfall (Sondereinnahme, e.g. an inheritance) is a
+        positive cashflow, not a negative acquisition - use
+        finance_add_income_stream with start_step==end_step for that instead
+        (see Docs/03-Feature-Finanzen-Domaenenmodell.md, "Anschaffung").
+        """
         plan = load_plan(working_directory, plan_name)
         add_fixed_acquisition(plan, name, store_name, amount, step, inflation_rate)
         save_plan(working_directory, plan)

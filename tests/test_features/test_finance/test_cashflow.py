@@ -100,6 +100,36 @@ def test_add_fixed_acquisition_ignores_a_pre_negated_amount() -> None:
     assert pytest.approx(result.final_balances["cash"]) == 500.0
 
 
+def test_add_flexible_acquisition_ignores_a_pre_negated_amount() -> None:
+    """amount is always a magnitude, matching add_fixed_acquisition's
+    convention - a pre-negated input must not flip the acquisition into an
+    inflow."""
+    plan = Plan(
+        name="flex-acq-negative-input-test",
+        timeline=Timeline(step_count=1),
+        stores=[
+            Store(name="portfolio", balance=0.0),
+            Store(name="cash", balance=1000.0),
+        ],
+    )
+
+    add_flexible_acquisition(
+        plan=plan,
+        name="Boat",
+        amount=-120.0,
+        target_step=0,
+        tolerance_steps=0,
+        risky_store_name="portfolio",
+        safe_store_name="cash",
+        glidepath_start_step=0,
+        inflation_rate=0.0,
+    )
+
+    result = run_simulation(plan)
+
+    assert pytest.approx(result.final_balances["cash"]) == 880.0
+
+
 def test_flexible_acquisition_triggers_on_refpath() -> None:
     # Portfolio starts at 100, grows by 20% each step.
     # We want to buy an item of nominal cost 120 at step 5 (window [3, 7]).

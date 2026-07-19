@@ -172,11 +172,16 @@ def add_flexible_acquisition(
     glidepath_start_step: int,
     inflation_rate: float = 0.0,
 ) -> None:
-    """Add a computed flexible acquisition effect to the plan."""
+    """Add a computed flexible acquisition effect to the plan.
+
+    `amount` is always a positive magnitude - it's normalized internally
+    regardless of the sign passed in, matching add_fixed_acquisition's
+    convention (a flexible acquisition is always an outflow by definition).
+    """
     params = FlexibleAcquisitionParameters(
         target_step=target_step,
         tolerance_steps=tolerance_steps,
-        amount=amount,
+        amount=abs(amount),
         inflation_rate=inflation_rate,
         risky_store_name=risky_store_name,
         safe_store_name=safe_store_name,
