@@ -13,6 +13,7 @@ carry the full arguments/results (see "Logging" in Docs/02 and
 """
 
 import logging
+import urllib.error
 from pathlib import Path
 from typing import Any, Literal
 
@@ -47,7 +48,13 @@ from compute_to_ai.features.finance.portfolio import (
     add_portfolio_rebalancing,
     set_correlation_matrix,
 )
-from compute_to_ai.features.finance.position import PositionMetadata, set_position_balance
+from compute_to_ai.features.finance.position import (
+    PositionMetadata,
+    PositionPriceUpdate,
+    PriceUpdateResult,
+    apply_price_update,
+    set_position_balance,
+)
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 from compute_to_ai.mcp.tools.plan_storage import (
     PATH_AUDIT_RESULT_FILENAME,
@@ -146,6 +153,59 @@ def _register_live_price_tools(mcp: FastMCP, working_directory: Path) -> None:
             f"at {price_info.price} {price_info.currency} "
             f"(market value {shares * price_info.price:.2f} {price_info.currency})"
         )
+
+    @mcp.tool()
+    def finance_update_plan_prices(plan_name: str) -> PriceUpdateResult:  # pyright: ignore[reportUnusedFunction]
+        """Refresh every registered position's balance from its current live price.
+
+        Standalone and user-triggered only - never called from
+        core_run_simulation/finance_run_monte_carlo, so a simulation run
+        stays reproducible instead of silently picking up updated quotes.
+        A position whose store no longer exists in the plan, or whose live
+        price lookup fails, is skipped with a reason instead of aborting the
+        whole update (see Docs/03-Feature-Finanzen-Domaenenmodell.md,
+        "Position (ETF-/Fondsanteil, Konto)").
+        """
+        plan = load_plan(working_directory, plan_name)
+        registry = load_position_registry(working_directory, plan_name)
+        result = PriceUpdateResult()
+
+        for store_name, meta in registry.positions.items():
+            if store_name not in {store.name for store in plan.stores}:
+                result.skipped[store_name] = "store no longer exists in plan"
+                continue
+
+            try:
+                price_info = get_live_price(meta.isin_or_wkn, meta.exchange)
+            except (ValueError, urllib.error.URLError, TimeoutError) as error:
+                result.skipped[store_name] = str(error)
+                continue
+
+            store = plan.store(store_name)
+            old_balance = store.balance
+            apply_price_update(store, meta.shares, price_info.price)
+            meta.last_updated = price_info.queried_at
+            result.updated.append(
+                PositionPriceUpdate(
+                    store_name=store_name,
+                    old_balance=old_balance,
+                    new_balance=store.balance,
+                    price=price_info.price,
+                    currency=price_info.currency,
+                )
+            )
+
+        save_plan(working_directory, plan)
+        save_position_registry(working_directory, plan_name, registry)
+
+        logger.info(
+            "finance_update_plan_prices: plan=%r updated=%d skipped=%d status=ok",
+            plan_name,
+            len(result.updated),
+            len(result.skipped),
+        )
+        logger.debug("finance_update_plan_prices result: %s", result.model_dump())
+        return result
 
 
 def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:

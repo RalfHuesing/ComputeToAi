@@ -18,6 +18,28 @@ class PositionMetadata(BaseModel):
     last_updated: str
 
 
+class PositionPriceUpdate(BaseModel):
+    """One store successfully repriced by `finance_update_plan_prices`."""
+
+    store_name: str
+    old_balance: float
+    new_balance: float
+    price: float
+    currency: str
+
+
+class PriceUpdateResult(BaseModel):
+    """Result of `finance_update_plan_prices`: which positions updated vs. were skipped.
+
+    A position is skipped rather than aborting the whole run - one stale
+    ISIN or one temporarily unreachable quote must not prevent every other
+    position from being refreshed.
+    """
+
+    updated: list[PositionPriceUpdate] = []
+    skipped: dict[str, str] = {}
+
+
 class PositionRegistry(BaseModel):
     """All positions with live-price metadata in a plan, keyed by store name.
 
