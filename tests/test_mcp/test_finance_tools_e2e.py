@@ -260,6 +260,42 @@ async def test_finance_add_income_stream_on_unknown_plan_is_a_tool_error(
 
 
 @pytest.mark.anyio
+async def test_finance_add_income_stream_rejects_unknown_phase_name(
+    server_params: StdioServerParameters,
+) -> None:
+    plan_name = "phase-validation-test"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=10)
+        await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="cash")
+        await _call_ok(
+            session,
+            "finance_set_life_phases",
+            plan_name=plan_name,
+            current_age=20,
+            employment_end_age=63,
+            statutory_pension_start_age=67,
+            life_expectancy_age=90,
+        )
+
+        result = await session.call_tool(
+            "finance_add_income_stream",
+            {
+                "plan_name": plan_name,
+                "name": "Gehalt",
+                "store_name": "cash",
+                "amount": 1000.0,
+                "active_phases": ["work"],
+            },
+        )
+
+    assert result.isError
+
+
+@pytest.mark.anyio
 async def test_finance_calculate_pension_adjustment_needs_no_plan(
     server_params: StdioServerParameters,
 ) -> None:

@@ -3,7 +3,7 @@ import pytest
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_simulation
 from compute_to_ai.engine.store import Store
-from compute_to_ai.engine.timeline import Timeline
+from compute_to_ai.engine.timeline import Phase, Timeline
 from compute_to_ai.features.finance.cashflow import add_income_stream
 from compute_to_ai.features.finance.pension import (
     add_statutory_pension,
@@ -63,6 +63,26 @@ def test_add_statutory_pension_applies_adjustment_and_starts_on_time() -> None:
     # Annual amount = 1000 * 12 * 0.856 = 10272.0, paid for 2 steps (43, 44).
     assert result.time_series[42]["cash"] == 0.0
     assert pytest.approx(result.final_balances["cash"]) == 10272.0 * 2
+
+
+def test_add_statutory_pension_rejects_unknown_phase_name() -> None:
+    plan = Plan(
+        name="pension-unknown-phase-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+        phases=[Phase(name="Rentenphase", start_step=0, end_step=1)],
+    )
+
+    with pytest.raises(ValueError, match="retirement"):
+        add_statutory_pension(
+            plan=plan,
+            name="Rente",
+            store_name="cash",
+            annual_amount_at_regular_retirement_age=12000.0,
+            regular_retirement_step=0,
+            actual_retirement_step=0,
+            active_phases=["retirement"],
+        )
 
 
 def test_income_stream_to_pension_transition_across_early_retirement_gap() -> None:

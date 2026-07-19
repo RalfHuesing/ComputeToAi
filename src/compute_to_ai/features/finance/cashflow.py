@@ -26,6 +26,7 @@ def add_income_stream(
     end_step: int | None = None,
 ) -> None:
     """Add a growing fixed income stream (positive cashflow) to the plan."""
+    plan.validate_active_phases(active_phases)
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,
@@ -49,6 +50,7 @@ def add_expense(
     end_step: int | None = None,
 ) -> None:
     """Add an inflation-adjusted expense (negative cashflow) to the plan."""
+    plan.validate_active_phases(active_phases)
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,

@@ -52,6 +52,7 @@ def add_statutory_pension(
     income stream (see Docs/01-Kern-Domaenenmodell.md, "Effekt-Arten"): a
     GrowingFixedEffect, only the base amount and start step differ.
     """
+    plan.validate_active_phases(active_phases)
     months_early = max(0, regular_retirement_step - actual_retirement_step) * 12
     months_late = max(0, actual_retirement_step - regular_retirement_step) * 12
     adjustment_factor = calculate_pension_adjustment_factor(

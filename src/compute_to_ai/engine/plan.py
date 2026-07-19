@@ -50,3 +50,18 @@ class Plan(BaseModel):
             if phase.start_step <= step < phase.end_step:
                 return phase.name
         return None
+
+    def validate_active_phases(self, active_phases: list[str] | None) -> None:
+        """Raise ValueError if any name in active_phases is not a registered Phase.
+
+        Without this, a typo'd phase name is accepted silently and the effect
+        referencing it simply never activates (BaseEffect.is_active never
+        matches), instead of failing at configuration time.
+        """
+        if active_phases is None:
+            return
+        known = {phase.name for phase in self.phases}
+        unknown = [name for name in active_phases if name not in known]
+        if unknown:
+            msg = f"unknown phase name(s) {unknown!r} in plan {self.name!r}"
+            raise ValueError(msg)

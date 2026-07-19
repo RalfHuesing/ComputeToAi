@@ -3,7 +3,7 @@ import pytest
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_monte_carlo, run_simulation
 from compute_to_ai.engine.store import Store
-from compute_to_ai.engine.timeline import Timeline
+from compute_to_ai.engine.timeline import Phase, Timeline
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
     add_fixed_acquisition,
@@ -38,6 +38,30 @@ def test_add_income_and_expense() -> None:
     # Cash becomes 1200 plus 525 minus 306 which is 1419
     assert pytest.approx(result.final_balances["cash"]) == 1419.0
     assert result.time_series == [{"cash": 1200.0}, {"cash": 1419.0}]
+
+
+def test_add_income_stream_rejects_unknown_phase_name() -> None:
+    plan = Plan(
+        name="income-unknown-phase-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+        phases=[Phase(name="Erwerbsphase", start_step=0, end_step=1)],
+    )
+
+    with pytest.raises(ValueError, match="work"):
+        add_income_stream(plan, "Salary", "cash", amount=500.0, active_phases=["work"])
+
+
+def test_add_expense_rejects_unknown_phase_name() -> None:
+    plan = Plan(
+        name="expense-unknown-phase-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+        phases=[Phase(name="Erwerbsphase", start_step=0, end_step=1)],
+    )
+
+    with pytest.raises(ValueError, match="work"):
+        add_expense(plan, "Rent", "cash", amount=300.0, active_phases=["work"])
 
 
 def test_add_fixed_acquisition() -> None:
