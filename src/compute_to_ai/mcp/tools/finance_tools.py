@@ -62,6 +62,7 @@ from compute_to_ai.features.finance.position import (
     remove_position,
     set_position_balance,
 )
+from compute_to_ai.features.finance.positions_rebalancing import add_position_rebalancing
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 from compute_to_ai.mcp.tools.plan_storage import (
     PATH_AUDIT_RESULT_FILENAME,
@@ -147,9 +148,7 @@ def _register_live_price_tools(mcp: FastMCP, working_directory: Path) -> None:
         )
         save_position_registry(working_directory, plan_name, registry)
 
-        logger.info(
-            "finance_set_asset_shares: plan=%r store=%r status=ok", plan_name, store_name
-        )
+        logger.info("finance_set_asset_shares: plan=%r store=%r status=ok", plan_name, store_name)
         logger.debug(
             "finance_set_asset_shares: shares=%s price=%s market_value=%s",
             shares,
@@ -582,6 +581,36 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         save_plan(working_directory, plan)
         logger.info("finance_add_portfolio_rebalancing: plan=%r name=%r status=ok", plan_name, name)
         return f"added portfolio rebalancing {name!r} to plan {plan_name!r}"
+
+    @mcp.tool()
+    def finance_add_position_rebalancing(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        store_names: list[str],
+        active_store_name: str,
+        sell_threshold: float | None = None,
+        description: str | None = None,
+    ) -> str:
+        """Add positions-rebalancing within one asset class's positions.
+
+        New investment always flows entirely into `active_store_name`; a
+        negative active-position balance is always covered from its siblings
+        (unprotected ones first, ascending unrealized gain %); an optional
+        `sell_threshold` additionally sells an over-drifted, non-protected
+        sibling back to its balance-at-configuration-time weight, investing
+        the proceeds into the active position. `None` (default) means that
+        threshold-triggered selling never happens - only the shortfall cover
+        does. The positions must already be valued (e.g. via
+        finance_set_asset_shares) so initial weights can be computed.
+        """
+        plan = load_plan(working_directory, plan_name)
+        add_position_rebalancing(plan, store_names, active_store_name, sell_threshold, description)
+        save_plan(working_directory, plan)
+        logger.info(
+            "finance_add_position_rebalancing: plan=%r active_store_name=%r status=ok",
+            plan_name,
+            active_store_name,
+        )
+        return f"added position rebalancing (active={active_store_name!r}) to plan {plan_name!r}"
 
     @mcp.tool()
     def finance_add_cash_bucket(  # pyright: ignore[reportUnusedFunction]
