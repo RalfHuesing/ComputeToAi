@@ -34,7 +34,7 @@ def add_statutory_pension(
     plan: Plan,
     name: str,
     store_name: str,
-    monthly_amount_at_regular_retirement_age: float,
+    annual_amount_at_regular_retirement_age: float,
     regular_retirement_step: int,
     actual_retirement_step: int,
     annual_increase_rate: float = 0.0,
@@ -52,8 +52,6 @@ def add_statutory_pension(
     income stream (see Docs/01-Kern-Domaenenmodell.md, "Effekt-Arten"): a
     GrowingFixedEffect, only the base amount and start step differ.
     """
-    # One step is one year (12 months), matching the yearly simulation step
-    # (Docs/04-Feature-Finanzen-Methodik.md).
     months_early = max(0, regular_retirement_step - actual_retirement_step) * 12
     months_late = max(0, actual_retirement_step - regular_retirement_step) * 12
     adjustment_factor = calculate_pension_adjustment_factor(
@@ -63,7 +61,7 @@ def add_statutory_pension(
         early_reduction_cap=early_reduction_cap,
         late_bonus_rate_per_month=late_bonus_rate_per_month,
     )
-    annual_amount = monthly_amount_at_regular_retirement_age * 12.0 * adjustment_factor
+    annual_amount = annual_amount_at_regular_retirement_age * adjustment_factor
 
     effect = GrowingFixedEffect(
         name=name,

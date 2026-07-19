@@ -327,7 +327,7 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         plan_name: str,
         name: str,
         store_name: str,
-        monthly_amount_at_regular_retirement_age: float,
+        annual_amount_at_regular_retirement_age: float,
         regular_retirement_step: int,
         actual_retirement_step: int,
         annual_increase_rate: float = 0.0,
@@ -337,13 +337,18 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         active_phases: list[str] | None = None,
         end_step: int | None = None,
     ) -> str:
-        """Add the statutory pension (gesetzliche Rente) including Rentenabschlag/-zuschlag."""
+        """Add the statutory pension (gesetzliche Rente) including Rentenabschlag/-zuschlag.
+
+        `annual_amount_at_regular_retirement_age` is the yearly figure, matching
+        every other finance_add_* amount (a monthly pension quote must be
+        multiplied by 12 before calling this tool).
+        """
         plan = load_plan(working_directory, plan_name)
         add_statutory_pension(
             plan,
             name,
             store_name,
-            monthly_amount_at_regular_retirement_age,
+            annual_amount_at_regular_retirement_age,
             regular_retirement_step,
             actual_retirement_step,
             annual_increase_rate,
@@ -359,16 +364,20 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
 
     @mcp.tool()
     def finance_calculate_pension_adjustment(  # pyright: ignore[reportUnusedFunction]
-        monthly_amount_at_regular_retirement_age: float,
+        base_amount: float,
         months_early: float = 0.0,
         months_late: float = 0.0,
         early_reduction_rate_per_month: float = 0.003,
         early_reduction_cap: float = 0.144,
         late_bonus_rate_per_month: float = 0.005,
     ) -> float:
-        """Adjusted monthly pension for claiming early/late (Rentenabschlag/-zuschlag),
+        """Adjusted pension for claiming early/late (Rentenabschlag/-zuschlag),
         without needing a Plan - the same calculation add_statutory_pension applies
         internally, for a quick standalone check (e.g. "what if I retire 5 years early?").
+
+        `base_amount` is a pure multiplicative-factor calculation, not tied to
+        the simulation's step convention - pass a monthly or yearly figure,
+        the returned value is adjusted in the same unit.
         """
         factor = calculate_pension_adjustment_factor(
             months_early=months_early,
@@ -378,7 +387,7 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
             late_bonus_rate_per_month=late_bonus_rate_per_month,
         )
         logger.info("finance_calculate_pension_adjustment: status=ok")
-        return monthly_amount_at_regular_retirement_age * factor
+        return base_amount * factor
 
 
 def _register_goal_and_monte_carlo_tools(mcp: FastMCP, working_directory: Path) -> None:

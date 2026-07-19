@@ -202,7 +202,7 @@ async def test_anna_example_plan_end_to_end(server_params: StdioServerParameters
             plan_name=plan_name,
             name="Rente",
             store_name="cash",
-            monthly_amount_at_regular_retirement_age=1800.0,
+            annual_amount_at_regular_retirement_age=21600.0,
             regular_retirement_step=47,
             actual_retirement_step=47,
             annual_increase_rate=0.01,
@@ -273,7 +273,7 @@ async def test_finance_calculate_pension_adjustment_needs_no_plan(
         result_text = await _call_ok(
             session,
             "finance_calculate_pension_adjustment",
-            monthly_amount_at_regular_retirement_age=1800.0,
+            base_amount=1800.0,
             months_early=48,
         )
 

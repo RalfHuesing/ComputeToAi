@@ -51,7 +51,7 @@ def test_add_statutory_pension_applies_adjustment_and_starts_on_time() -> None:
         plan=plan,
         name="Rente",
         store_name="cash",
-        monthly_amount_at_regular_retirement_age=1000.0,
+        annual_amount_at_regular_retirement_age=12000.0,
         regular_retirement_step=47,
         actual_retirement_step=43,
     )
@@ -87,7 +87,7 @@ def test_income_stream_to_pension_transition_across_early_retirement_gap() -> No
         plan=plan,
         name="Rente",
         store_name="cash",
-        monthly_amount_at_regular_retirement_age=1500.0,
+        annual_amount_at_regular_retirement_age=18000.0,
         regular_retirement_step=7,
         actual_retirement_step=7,
         active_phases=["Rentenphase"],
