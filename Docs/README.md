@@ -14,6 +14,7 @@ Konzeptdokumentation für eine generische Simulations-Engine (Speicher/Effekt/Ze
 10. [09-Quellen.md](09-Quellen.md) – Externe Fakten (u. a. Steuer-/Rentenrecht, Architektur-Vorbilder) mit Quelle und Abrufdatum
 11. [10-Roadmap.md](10-Roadmap.md) – Abhakbare Meilensteine und Epics
 12. [11-Code-Standards-und-Projektstruktur.md](11-Code-Standards-und-Projektstruktur.md) – Wie der Code strukturiert und geschrieben wird
+13. [12-Disruption-und-Reality-Check.md](12-Disruption-und-Reality-Check.md) – Das Potenzial und die harten Grenzen von ComputeToAi (Disruptionsanalyse, Behavioral Finance, Thesenmatrix)
 
 [prompts/](prompts/) enthält Rollen-/Workflow-Dateien für Agenten, die das fertige System *nutzen* (z. B. [prompts/finance_de/finanzberater.md](prompts/finance_de/finanzberater.md)) – fachliche Nutzer-Workflows, keine Entwicklungsregeln (die stehen in [`.agents/rules/`](../.agents/rules/README.md)). Wie die übrigen Konzeptdokumente werden sie über den MCP-Server als `docs://`-Resources bereitgestellt (siehe 02-Architektur-und-MCP.md).
 

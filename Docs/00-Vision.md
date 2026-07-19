@@ -37,5 +37,7 @@ Dieses Konzept legt die fachliche und architektonische Grundlage fest, ist aber 
 | [09-Quellen.md](09-Quellen.md) | Externe Fakten (v. a. Steuer-/Rentenrecht) mit Quelle und Abrufdatum |
 | [10-Roadmap.md](10-Roadmap.md) | Abhakbare Meilensteine und Epics |
 | [11-Code-Standards-und-Projektstruktur.md](11-Code-Standards-und-Projektstruktur.md) | Wie der Code strukturiert und geschrieben wird |
+| [12-Disruption-und-Reality-Check.md](12-Disruption-und-Reality-Check.md) | Das Potenzial und die harten Grenzen von ComputeToAi (Disruptionsanalyse, Behavioral Finance, Thesenmatrix) |
 
 Die Dokumente bauen aufeinander auf, können aber auch einzeln gelesen werden. Sie werden im Laufe der weiteren Arbeit erweitert und angepasst.
+
