@@ -99,3 +99,26 @@ Nach Abschluss aller Läufe eines Plans werden berechnet: Perzentile des Endverm
 ## Ableitung der nötigen Sparquote
 
 Die minimal nötige Sparquote kann ermittelt werden, indem die Sparquote als variabler Parameter behandelt und die Simulation wiederholt wird, bis die gewünschte Ziel-Erfolgswahrscheinlichkeit gerade erreicht wird (z. B. Bisektion über die Sparquote). Das methodische Detail wird erst bei der Programmentwicklung festgelegt.
+
+## Pfad-Audit und Plausibilitätsprüfung
+
+Für einen instrumentierten Lauf (siehe 01-Kern-Domaenenmodell.md, „Ledger") ordnet das Finanz-Feature jede Ledger-Zeile einer von sechs Kategorien zu:
+
+- **Einnahmen**: ein positiver additiver Effekt (Einkommensstrom, Sondereinnahme, …) auf einen Nicht-Verbindlichkeits-Speicher.
+- **Ausgaben**: ein negativer additiver Effekt (laufende Ausgabe, fixe Anschaffung, die volle fällige Verbindlichkeiten-Rate, …) auf einen Nicht-Verbindlichkeits-Speicher.
+- **Steuern**: jede Ledger-Zeile der Bausteine „Rentenbesteuerung" bzw. „Abgeltungsteuer/Vorabpauschale".
+- **Rendite**: der prozentuale Wachstumseffekt bzw. die korrelierte Anlageklassen-Rendite auf einen Nicht-Verbindlichkeits-Speicher.
+- **Umschichtungen**: alles Übrige – Transfer-Effekte, alle sonstigen berechneten Effekte (Cash-Bucket-Management, Portfolio-Rebalancing, flexible Anschaffung, Verbindlichkeiten-Manager) sowie jede Zins-/Tilgungsbuchung direkt auf dem Verbindlichkeits-Speicher selbst. Der volle fällige Rate-Abfluss vom Cash-Konto zählt bereits als Ausgabe (siehe oben); die parallele Zins-/Tilgungsbuchung auf dem Verbindlichkeits-Speicher restatiert nur dessen Restschuld und wäre sonst eine Doppelzählung derselben Zahlung.
+- **Saldo**: der Speicherstand je Speicher zum jeweiligen Zeitschritt, unverändert aus dem Zeitverlauf übernommen – keine Kategorie im eigentlichen Sinn, sondern der Momentaufnahme-Bezugswert dazu.
+
+Welche Speicher als „Verbindlichkeits-Speicher" gelten, wird nicht erraten, sondern aus den im Plan konfigurierten Verbindlichkeiten-Bausteinen abgeleitet. Eine bekannte Vereinfachung: Der tatsächliche Auslösezeitpunkt einer flexiblen Anschaffung ist real ein Vermögensabfluss (kein reiner Umschichtungsvorgang wie die vorangehenden Glidepath-Schritte), wird aus Einfachheitsgründen aber ebenfalls als Umschichtung geführt – erkennbar bleibt der Vorgang trotzdem über das Event-Log (siehe unten) und den sichtbaren Sprung im Speichersaldo.
+
+Diese Kategoriesummen lassen sich wahlweise als Jahressumme oder als Monatsdurchschnitt (Jahreswert / 12) ausgeben; der Saldo je Speicher bleibt davon unberührt, da er eine Momentaufnahme und kein Fluss ist.
+
+Ein Event-Log fasst drei Ereignistypen chronologisch zusammen:
+
+- **Phasenübergang**: die aktive Phase ändert sich zwischen zwei aufeinanderfolgenden Zeitschritten.
+- **Verbindlichkeit getilgt**: der Saldo eines Verbindlichkeits-Speichers erreicht erstmals 0.
+- **Anschaffung ausgelöst**: eine fixe Anschaffung (bestätigt durch ihre Ledger-Zeile im Auslöseschritt) oder eine flexible Anschaffung (deren Baustein nach Laufende einen Auslöse-Zeitpunkt im Ledger-Zustand hinterlassen hat, siehe 01-Kern-Domaenenmodell.md, „Ledger").
+
+Kategorie-Aggregation und Event-Log setzen einen zuvor durchgeführten Pfad-Audit voraus (siehe 01, „Ledger") und liefern damit die Grundlage, um einzelne Effekte eines Plans (ein zeitlich versetzter Autokauf, eine Steueränderung, eine Ausgabenerhöhung) im Nachhinein nachvollziehbar zu prüfen, statt sich auf aggregierte Endwerte verlassen zu müssen.

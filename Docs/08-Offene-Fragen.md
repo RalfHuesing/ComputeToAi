@@ -101,20 +101,3 @@ Wenn ein Simulationsplan (z. B. erstellt im Jahr 2026) nach mehreren Jahren (z. 
 **Warum:**
 Dieser Ansatz hält den Kern der Simulations-Engine schlank und verzichtet auf eine hochkomplexe Historisierung von Ist-Daten im Simulations-Code. Da sich Lebensumstände in mehreren Jahren meist grundlegend und unvorhersehbar ändern (z. B. durch Jobwechsel, Erbschaften, Markt-Crashs), ist eine automatische Fortschreibung ohnehin unrealistisch. Die menschlich-agentische Schnittstelle kann diese Anpassungen flexibler und präziser interaktiv lösen.
 
-## Validierung von Simulationsergebnissen und Plausibilitätsprüfungen (Explainable AI)
-
-**Intention:**
-Monte-Carlo-Simulationen liefern oft nur aggregierte Endwerte (z. B. Ruinwahrscheinlichkeit), was für den Nutzer eine "Black Box" darstellt. Es ist schwer zu überprüfen, ob alle eingegebenen Effekte (z. B. zeitlich versetzte Autokäufe, Steueränderungen, Ausgabenerhöhungen) tatsächlich und zum richtigen Zeitpunkt in die Berechnung eingeflossen sind und ob sich Rechenfehler oder Auslassungen eingeschlichen haben.
-
-**Vorgeschlagene Lösung:**
-1. **Pfad-Historisierung (Perzentil-Dumps):** Die Simulations-Engine speichert für repräsentative Pfade (z. B. Median/50. Perzentil, 10. Perzentil für den Worst Case und einen deterministischen Referenzlauf ohne Renditeschwankungen) den exakten Jahresverlauf aller Salden und Cashflows.
-2. **Datenhaltung in JSON-Strukturen:** Diese Dumps werden nicht in einer relationalen Datenbank (SQL) gespeichert, sondern pragmatisch in gesonderten strukturierten JSON-Dateien als lokale "NoSQL-Datenbank" abgelegt. Die Struktur sollte so aufgebaut sein, dass man per Key/Hash-Zugriff (z. B. über das Perzentil oder das Simulationsjahr) extrem schnell auf bestimmte Werte, Pfade und deren Verlauf zugreifen kann (z. B. eine verschachtelte Map/Dict-Struktur).
-3. **MCP-Analyse-Funktionen:**
-   * Eine Funktion liefert die kumulierten Jahreswerte (Einnahmen, Ausgaben, Steuern, Saldo, Rendite) für einen ausgewählten Pfad, wahlweise als Jahressummen oder als Monatsdurchschnitte (Jahreswert / 12) zur besseren menschlichen Plausibilisierung.
-   * Eine Funktion liefert ein chronologisches "Event-Log" des Pfades (z. B. wann Lebensphasen wechseln, Kredite abbezahlt sind oder Anschaffungen stattfinden).
-4. **Plausibilitäts-Auditing:** Der Agent führt nach der Simulation automatisierte Plausibilitätschecks durch, um Unstimmigkeiten (z. B. Phasen ohne Einkommen/Rente, unerwartete Liquiditätsengpässe) proaktiv als Warnung auszugeben.
-
-**Warum:**
-Finanzplanung basiert auf Vertrauen in die Zahlen. Nur wenn der Nutzer und der beratende Agent in der Lage sind, einzelne Pfade transparent zu "auditieren" und mit bekannten Monatsbudgets abzugeleichen, können Fehleingaben zuverlässig erkannt und die Simulation als verlässlich eingestuft werden. Die Verwendung einfacher JSON-Dateien hält die Architektur leichtgewichtig, dateibasiert und vermeidet externe Datenbank-Abhängigkeiten, während durch eine geschickte Map-/Dict-Strukturierung ein sehr schneller Datenzugriff per Key/Hash möglich bleibt.
-
-
