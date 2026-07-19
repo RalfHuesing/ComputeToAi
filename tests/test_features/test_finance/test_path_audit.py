@@ -336,7 +336,9 @@ def test_compute_category_series_annual_real_deflates_future_values() -> None:
     # Constant income with inflation_rate=1.0 (100%) so the plan's internal
     # rate is picked up by _find_plan_inflation_rate through the expense effect.
     add_income_stream(plan, "Gehalt", "cash", amount=1000.0)
-    add_expense(plan, "Lebenshaltung", "cash", amount=0.0, inflation_rate=1.0)  # sets plan inflation rate
+    add_expense(
+        plan, "Lebenshaltung", "cash", amount=0.0, inflation_rate=1.0
+    )  # sets plan inflation rate
 
     result = run_simulation(plan, record_ledger=True)
     series = compute_category_series(plan, result, granularity="annual_real")
@@ -401,7 +403,7 @@ def test_compute_category_series_annual_real_zero_inflation_unchanged() -> None:
     nominal = compute_category_series(plan, result, granularity="annual")
     real = compute_category_series(plan, result, granularity="annual_real")
 
-    for n, r in zip(nominal, real):
+    for n, r in zip(nominal, real, strict=True):
         assert pytest.approx(n.income) == r.income
         assert pytest.approx(n.expenses) == r.expenses
         for store in n.balances:
@@ -423,7 +425,9 @@ def _build_audit_plan() -> Plan:
     )
     add_income_stream(plan, "Gehalt", "cash", amount=500.0)
     add_expense(plan, "Lebenshaltung", "cash", amount=200.0, inflation_rate=0.02)
-    add_asset_class(plan, store_name="depot", initial_balance=2000.0, expected_return=0.07, volatility=0.15)
+    add_asset_class(
+        plan, store_name="depot", initial_balance=2000.0, expected_return=0.07, volatility=0.15
+    )
     add_liability(
         plan,
         name="Kredit",
@@ -458,7 +462,9 @@ def test_get_percentile_curves_step_fields_present() -> None:
     curves = get_percentile_curves(plan, audit)
 
     for path_key, steps in curves.items():
-        assert len(steps) == plan.timeline.step_count, f"wrong number of steps for path {path_key!r}"
+        assert len(steps) == plan.timeline.step_count, (
+            f"wrong number of steps for path {path_key!r}"
+        )
         for step in steps:
             assert "step" in step
             assert "liquid" in step
@@ -479,12 +485,12 @@ def test_get_percentile_curves_classifies_stores_correctly() -> None:
     # Use the deterministic path for reproducibility
     det_steps = curves["deterministic"]
 
-    # Step 0: liquid=cash(1000 initial + 500 income - 200 expense - 500 kredit rate = ~800),
-    # invested>0 (depot), liabilities>=0 (kredit)
+    # Step 0: liquid is cash (1000 init + 500 income - 200 expense - 500 credit rate = approx 800)
+    # invested is positive (depot), liabilities are positive (kredit)
     first = det_steps[0]
     assert first["invested"] > 0.0, "depot should contribute to invested"
     assert first["liabilities"] > 0.0, "kredit should contribute to liabilities"
-    # total_net = liquid + invested - liabilities
+    # total net calculation: liquid + invested - liabilities
     assert pytest.approx(first["total_net"]) == (
         first["liquid"] + first["invested"] - first["liabilities"]
     )
@@ -524,6 +530,7 @@ def test_get_percentile_curves_liquid_only_plan() -> None:
 
     for path_key, steps in curves.items():
         for step in steps:
-            assert step["invested"] == 0.0, f"no asset classes, invested should be 0 (path {path_key!r})"
+            assert step["invested"] == 0.0, (
+                f"no asset classes, invested should be 0 (path {path_key!r})"
+            )
             assert step["liabilities"] == 0.0, f"no liabilities (path {path_key!r})"
-

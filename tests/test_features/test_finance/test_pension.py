@@ -100,9 +100,7 @@ def test_income_stream_to_pension_transition_across_early_retirement_gap() -> No
         phases=phases,
     )
 
-    add_income_stream(
-        plan, "Gehalt", "cash", amount=3000.0, active_phases=["Erwerbsphase"]
-    )
+    add_income_stream(plan, "Gehalt", "cash", amount=3000.0, active_phases=["Erwerbsphase"])
     add_statutory_pension(
         plan=plan,
         name="Rente",

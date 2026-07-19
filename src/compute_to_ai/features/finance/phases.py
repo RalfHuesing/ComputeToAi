@@ -38,9 +38,7 @@ def build_standard_life_phases(
         step = education_end_step
 
     employment_end_step = employment_end_age - current_age
-    phases.append(
-        Phase(name=employment_phase_name, start_step=step, end_step=employment_end_step)
-    )
+    phases.append(Phase(name=employment_phase_name, start_step=step, end_step=employment_end_step))
     step = employment_end_step
 
     pension_start_step = statutory_pension_start_age - current_age

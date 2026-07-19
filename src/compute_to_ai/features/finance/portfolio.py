@@ -85,9 +85,7 @@ def set_correlation_matrix(
     plan: Plan, group_name: str, matrix: list[list[float]], store_names: list[str]
 ) -> None:
     """Set the correlation matrix and matching store names for a named correlation group."""
-    plan.correlation_groups[group_name] = CorrelationGroup(
-        matrix=matrix, store_names=store_names
-    )
+    plan.correlation_groups[group_name] = CorrelationGroup(matrix=matrix, store_names=store_names)
 
 
 def add_portfolio_rebalancing(
@@ -140,10 +138,7 @@ def _calculate_near_horizon_outlook(
     for s in range(step + 1, end_s):
         s_phase = plan.get_active_phase_name(s)
         for effect in plan.effects:
-            if (
-                effect.is_active(s, s_phase)
-                and getattr(effect, "store_name", None) == cash_store
-            ):
+            if effect.is_active(s, s_phase) and getattr(effect, "store_name", None) == cash_store:
                 amount = getattr(effect, "amount_per_step", 0.0)
                 if amount < 0.0:
                     rate = getattr(effect, "growth_rate", 0.0)
@@ -200,15 +195,11 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
 
     # 1. Einkommensausfallpuffer
     months = params.emergency_buffer_months.get(active_phase or "", 0.0)
-    monthly_expenses_inflated = params.monthly_expenses * (
-        (1.0 + params.inflation_rate) ** step
-    )
+    monthly_expenses_inflated = params.monthly_expenses * ((1.0 + params.inflation_rate) ** step)
     buffer_1 = months * monthly_expenses_inflated
 
     # 2. Nahsicht-Komponente
-    buffer_2 = _calculate_near_horizon_outlook(
-        plan, cash_store, step, params.near_horizon_steps
-    )
+    buffer_2 = _calculate_near_horizon_outlook(plan, cash_store, step, params.near_horizon_steps)
 
     # 3. Entnahmepuffer
     buffer_3 = _calculate_withdrawal_buffer(

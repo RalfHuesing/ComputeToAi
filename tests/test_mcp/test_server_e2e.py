@@ -300,9 +300,7 @@ async def test_core_add_transfer_rejects_weights_not_summing_to_one(
     ):
         await session.initialize()
 
-        await _call_ok(
-            session, "core_create_plan", plan_name="transfer-bad-weights", step_count=1
-        )
+        await _call_ok(session, "core_create_plan", plan_name="transfer-bad-weights", step_count=1)
         await _call_ok(
             session, "core_add_store", plan_name="transfer-bad-weights", store_name="cash"
         )
@@ -332,7 +330,7 @@ async def test_core_list_phases(server_params: StdioServerParameters) -> None:
         await session.initialize()
 
         await _call_ok(session, "core_create_plan", plan_name="phases-list-test", step_count=100)
-        
+
         # Initially empty
         phases_text = await _call_ok(session, "core_list_phases", plan_name="phases-list-test")
         payload = json.loads(phases_text)
@@ -352,7 +350,7 @@ async def test_core_list_phases(server_params: StdioServerParameters) -> None:
         phases_text = await _call_ok(session, "core_list_phases", plan_name="phases-list-test")
         payload = json.loads(phases_text)
         phases = payload["phases"]
-        
+
         assert len(phases) == 3
         # Employment, Early retirement gap, Pension
         assert phases[0]["name"] == "Erwerbsphase"
@@ -367,4 +365,3 @@ async def test_core_list_phases(server_params: StdioServerParameters) -> None:
         assert phases[2]["name"] == "Rentenphase"
         assert phases[2]["start_step"] == 37
         assert phases[2]["end_step"] == 60
-

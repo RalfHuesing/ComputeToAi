@@ -122,9 +122,7 @@ def test_vorabpauschale_increases_basis() -> None:
 
     plan.effects.insert(
         0,
-        ComputedEffect(
-            name="Sell Step 1", function_name="sell_all_step1", start_step=1
-        ),
+        ComputedEffect(name="Sell Step 1", function_name="sell_all_step1", start_step=1),
     )
 
     result = run_simulation(plan)
@@ -173,9 +171,7 @@ def test_altfaelle_bestandsschutz() -> None:
         asset_classes={"equity": AssetClassTaxConfig(partial_exemption_rate=0.0)},
     )
 
-    plan.effects.insert(
-        0, ComputedEffect(name="Sell All Alt", function_name="sell_all_alt")
-    )
+    plan.effects.insert(0, ComputedEffect(name="Sell All Alt", function_name="sell_all_alt"))
 
     result = run_simulation(plan)
 
@@ -197,11 +193,7 @@ def test_progressive_rent_taxation() -> None:
         timeline=Timeline(step_count=1),
         stores=[Store(name="cash", balance=0.0)],
         phases=[Phase(name="Ruhestand", start_step=0, end_step=10)],
-        effects=[
-            GrowingFixedEffect(
-                name="Rente", store_name="cash", amount_per_step=40000.0
-            )
-        ],
+        effects=[GrowingFixedEffect(name="Rente", store_name="cash", amount_per_step=40000.0)],
     )
 
     add_tax_manager(

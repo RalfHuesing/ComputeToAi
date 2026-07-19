@@ -43,7 +43,9 @@ def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> Non
     @mcp.tool()
     def core_create_plan(plan_name: str, step_count: int, description: str | None = None) -> str:  # pyright: ignore[reportUnusedFunction]
         """Create a new Plan with an empty Timeline of step_count steps."""
-        plan = Plan(name=plan_name, timeline=Timeline(step_count=step_count), description=description)
+        plan = Plan(
+            name=plan_name, timeline=Timeline(step_count=step_count), description=description
+        )
         _save_plan(working_directory, plan)
         logger.info("core_create_plan: plan=%r status=ok", plan_name)
         logger.debug("core_create_plan args: step_count=%d", step_count)
@@ -65,9 +67,7 @@ def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> Non
         new_plan = plan.model_copy(deep=True)
         new_plan.name = new_plan_name
         _save_plan(working_directory, new_plan)
-        logger.info(
-            "core_duplicate_plan: plan=%r new_plan=%r status=ok", plan_name, new_plan_name
-        )
+        logger.info("core_duplicate_plan: plan=%r new_plan=%r status=ok", plan_name, new_plan_name)
         return f"duplicated plan {plan_name!r} as {new_plan_name!r}"
 
     @mcp.tool()
@@ -85,9 +85,7 @@ def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> Non
         shutil.move(str(old_dir), str(new_dir))
         plan.name = new_plan_name
         _save_plan(working_directory, plan)
-        logger.info(
-            "core_rename_plan: plan=%r new_plan=%r status=ok", plan_name, new_plan_name
-        )
+        logger.info("core_rename_plan: plan=%r new_plan=%r status=ok", plan_name, new_plan_name)
         return f"renamed plan {plan_name!r} to {new_plan_name!r}"
 
     @mcp.tool()
@@ -118,7 +116,10 @@ def _validate_transfer_targets(
 def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def core_add_store(  # pyright: ignore[reportUnusedFunction]
-        plan_name: str, store_name: str, initial_balance: float = 0.0, description: str | None = None
+        plan_name: str,
+        store_name: str,
+        initial_balance: float = 0.0,
+        description: str | None = None,
     ) -> str:
         """Add a Store (a tracked balance) to an existing Plan."""
         plan = _load_plan(working_directory, plan_name)
@@ -136,7 +137,9 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
         plan = _load_plan(working_directory, plan_name)
         plan.store(store_name)  # raises KeyError if store_name is unknown
         plan.effects.append(
-            GrowingFixedEffect(store_name=store_name, amount_per_step=amount_per_step, description=description)
+            GrowingFixedEffect(
+                store_name=store_name, amount_per_step=amount_per_step, description=description
+            )
         )
         _save_plan(working_directory, plan)
         logger.info("core_add_effect: plan=%r store=%r status=ok", plan_name, store_name)
@@ -178,9 +181,7 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
             )
         )
         _save_plan(working_directory, plan)
-        logger.info(
-            "core_add_transfer: plan=%r from=%r status=ok", plan_name, from_store_name
-        )
+        logger.info("core_add_transfer: plan=%r from=%r status=ok", plan_name, from_store_name)
         return f"added transfer from {from_store_name!r} to plan {plan_name!r}"
 
     @mcp.tool()
@@ -225,9 +226,7 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
             raise ValueError(msg)
         plan.effects = [effect for effect in plan.effects if effect.name != effect_name]
         _save_plan(working_directory, plan)
-        logger.info(
-            "core_remove_effect: plan=%r effect=%r status=ok", plan_name, effect_name
-        )
+        logger.info("core_remove_effect: plan=%r effect=%r status=ok", plan_name, effect_name)
         return f"removed effect {effect_name!r} from plan {plan_name!r}"
 
 
@@ -330,9 +329,5 @@ def _register_simulation_tools(mcp: FastMCP, working_directory: Path) -> None:
         (see Docs/01-Kern-Domaenenmodell.md, "Ledger").
         """
         result = _load_audited_path(working_directory, plan_name, path)
-        logger.info(
-            "core_get_path_computed_states: plan=%r path=%r status=ok", plan_name, path
-        )
-        return {
-            "states": [state.model_dump() for state in result.computed_effect_final_states]
-        }
+        logger.info("core_get_path_computed_states: plan=%r path=%r status=ok", plan_name, path)
+        return {"states": [state.model_dump() for state in result.computed_effect_final_states]}

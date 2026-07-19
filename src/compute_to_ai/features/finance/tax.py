@@ -185,22 +185,16 @@ def _apply_capital_gains_taxation(
     balances: dict[str, float], plan: Plan, params: TaxManagerParameters
 ) -> None:
     """Calculate and deduct capital gains tax (withholding tax, allowance, Vorabpauschale)."""
-    asset_classes = {
-        name: cfg for name, cfg in params.asset_classes.items() if name in balances
-    }
+    asset_classes = {name: cfg for name, cfg in params.asset_classes.items() if name in balances}
 
     gains_from_sales = _calculate_sales_taxable_gains(plan, asset_classes)
-    vorab_taxable_total = _calculate_vorabpauschale_taxable(
-        plan, asset_classes, params.basiszins
-    )
+    vorab_taxable_total = _calculate_vorabpauschale_taxable(plan, asset_classes, params.basiszins)
 
     # Abgeltungsteuer-Abrechnung
     total_cap_gains = gains_from_sales + vorab_taxable_total
     if total_cap_gains > params.sparerpauschbetrag:
         excess = total_cap_gains - params.sparerpauschbetrag
-        eff_rate = params.withholding_tax_rate * (
-            1.0 + params.soli_rate + params.church_tax_rate
-        )
+        eff_rate = params.withholding_tax_rate * (1.0 + params.soli_rate + params.church_tax_rate)
         cap_gains_tax = excess * eff_rate
         cash_store = params.cash_store_name
         balances[cash_store] = balances.get(cash_store, 0.0) - cap_gains_tax

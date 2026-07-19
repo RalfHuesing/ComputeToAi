@@ -117,9 +117,7 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
             ruin_stores=["cash", "equity"],
         )
 
-        await _call_ok(
-            session, "core_run_path_audit", plan_name=plan_name, num_runs=30, seed=11
-        )
+        await _call_ok(session, "core_run_path_audit", plan_name=plan_name, num_runs=30, seed=11)
 
         category_text = await _call_ok(
             session, "finance_get_path_category_series", plan_name=plan_name, path="deterministic"
@@ -238,9 +236,7 @@ async def test_finance_get_path_category_series_on_unknown_path_is_a_tool_error(
 
         await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=3)
         await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="cash")
-        await _call_ok(
-            session, "core_run_path_audit", plan_name=plan_name, num_runs=5, seed=1
-        )
+        await _call_ok(session, "core_run_path_audit", plan_name=plan_name, num_runs=5, seed=1)
 
         result = await session.call_tool(
             "finance_get_path_category_series",

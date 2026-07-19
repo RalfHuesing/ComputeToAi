@@ -129,7 +129,9 @@ def add_liability(
             store_exists = True
             break
     if not store_exists:
-        plan.stores.append(Store(name=liability_store_name, balance=principal, description=description))
+        plan.stores.append(
+            Store(name=liability_store_name, balance=principal, description=description)
+        )
 
     # Zins (PercentageGrowthEffect on liability store)
     plan.effects.append(

@@ -13,8 +13,14 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from compute_to_ai.engine.effect import (
+    ComputedEffect,
+    CorrelatedReturnEffect,
+    Effect,
+    GrowingFixedEffect,
+)
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.engine.result import LedgerEntry, SimulationResult, PathAuditResult
+from compute_to_ai.engine.result import LedgerEntry, PathAuditResult, SimulationResult
 from compute_to_ai.engine.timeline import Phase
 
 CategoryName = Literal["income", "expenses", "taxes", "returns", "reallocations"]
@@ -59,13 +65,10 @@ def _liability_store_names(plan: Plan) -> set[str]:
     """
     names: set[str] = set()
     for effect in plan.effects:
-        if getattr(effect, "type", None) != "computed":
-            continue
-        if getattr(effect, "function_name", None) != "liability_manager":
-            continue
-        store = getattr(effect, "parameters", {}).get("liability_store_name")
-        if isinstance(store, str):
-            names.add(store)
+        if isinstance(effect, ComputedEffect) and effect.function_name == "liability_manager":
+            store = effect.parameters.get("liability_store_name")
+            if isinstance(store, str):
+                names.add(store)
     return names
 
 
@@ -98,20 +101,22 @@ def _classify_entry(entry: LedgerEntry, liability_stores: set[str]) -> tuple[Cat
 def _find_plan_inflation_rate(plan: Plan) -> float:
     """Find the inflation rate of a plan from its effects configuration."""
     for effect in plan.effects:
-        if getattr(effect, "function_name", None) == "cash_bucket_manager":
+        if isinstance(effect, ComputedEffect) and effect.function_name == "cash_bucket_manager":
             val = effect.parameters.get("inflation_rate", 0.0)
             if isinstance(val, float):
                 return val
     for effect in plan.effects:
-        if getattr(effect, "type", None) == "growing_fixed" and effect.name == "Lebenshaltung":
-            return getattr(effect, "growth_rate", 0.0)
+        if isinstance(effect, GrowingFixedEffect) and effect.name == "Lebenshaltung":
+            return effect.growth_rate
     return 0.0
 
 
 def compute_category_series(
     plan: Plan,
     result: SimulationResult,
-    granularity: Literal["annual", "monthly_average", "annual_real", "monthly_average_real"] = "annual",
+    granularity: Literal[
+        "annual", "monthly_average", "annual_real", "monthly_average_real"
+    ] = "annual",
 ) -> list[CategoryStep]:
     """Aggregate an instrumented run's ledger into per-step category sums.
 
@@ -146,7 +151,9 @@ def compute_category_series(
             balances={
                 store: bal / ((1.0 + inflation_rate) ** t)
                 for store, bal in steps[t].balances.items()
-            } if is_real else steps[t].balances,
+            }
+            if is_real
+            else steps[t].balances,
         )
         for t in sorted(steps)
     ]
@@ -181,26 +188,23 @@ def _liability_paid_off_events(plan: Plan, result: SimulationResult) -> list[Pat
     """
     events: list[PathEvent] = []
     for effect in plan.effects:
-        if getattr(effect, "type", None) != "computed":
-            continue
-        if getattr(effect, "function_name", None) != "liability_manager":
-            continue
-        store_name = getattr(effect, "parameters", {}).get("liability_store_name")
-        if not isinstance(store_name, str):
-            continue
-        label = effect.name or store_name
-        series = [plan.store(store_name).balance]
-        series.extend(balances.get(store_name, 0.0) for balances in result.time_series)
-        for k in range(1, len(series)):
-            if series[k - 1] > 1e-6 and series[k] <= 1e-6:
-                events.append(
-                    PathEvent(
-                        step=k - 1,
-                        event_type="liability_paid_off",
-                        description=f"{label} paid off",
+        if isinstance(effect, ComputedEffect) and effect.function_name == "liability_manager":
+            store_name = effect.parameters.get("liability_store_name")
+            if not isinstance(store_name, str):
+                continue
+            label = effect.name or store_name
+            series = [plan.store(store_name).balance]
+            series.extend(balances.get(store_name, 0.0) for balances in result.time_series)
+            for k in range(1, len(series)):
+                if series[k - 1] > 1e-6 and series[k] <= 1e-6:
+                    events.append(
+                        PathEvent(
+                            step=k - 1,
+                            event_type="liability_paid_off",
+                            description=f"{label} paid off",
+                        )
                     )
-                )
-                break
+                    break
     return events
 
 
@@ -217,13 +221,14 @@ def _fixed_acquisition_events(plan: Plan, result: SimulationResult) -> list[Path
     """
     fixed_acquisition_names: set[str] = set()
     for effect in plan.effects:
-        if getattr(effect, "type", None) != "growing_fixed":
-            continue
-        start_step = effect.start_step
-        end_step = effect.end_step
-        amount = getattr(effect, "amount_per_step", 0.0)
-        if start_step is not None and start_step == end_step and amount < 0.0:
-            fixed_acquisition_names.add(effect.name if effect.name is not None else "growing_fixed")
+        if isinstance(effect, GrowingFixedEffect):
+            start_step = effect.start_step
+            end_step = effect.end_step
+            amount = effect.amount_per_step
+            if start_step is not None and start_step == end_step and amount < 0.0:
+                fixed_acquisition_names.add(
+                    effect.name if effect.name is not None else "growing_fixed"
+                )
 
     return [
         PathEvent(
@@ -356,12 +361,12 @@ def _check_income_less_phase(
     return findings
 
 
-def _effect_overlaps_phase(effect: object, phase: Phase, step_count: int) -> bool:
-    active_phases = getattr(effect, "active_phases", None)
+def _effect_overlaps_phase(effect: Effect, phase: Phase, step_count: int) -> bool:
+    active_phases = effect.active_phases
     if active_phases is not None and phase.name not in active_phases:
         return False
-    eff_start = getattr(effect, "start_step", None) or 0
-    eff_end_raw = getattr(effect, "end_step", None)
+    eff_start = effect.start_step or 0
+    eff_end_raw = effect.end_step
     eff_end = eff_end_raw if eff_end_raw is not None else step_count - 1
     return eff_start <= phase.end_step - 1 and eff_end >= phase.start_step
 
@@ -377,7 +382,7 @@ def _income_expense_rates_in_phase(
     income_rates: list[float] = []
     expense_rates: list[float] = []
     for effect in plan.effects:
-        if getattr(effect, "type", None) != "growing_fixed":
+        if not isinstance(effect, GrowingFixedEffect):
             continue
         start_step = effect.start_step
         end_step = effect.end_step
@@ -385,8 +390,8 @@ def _income_expense_rates_in_phase(
             continue
         if not _effect_overlaps_phase(effect, phase, step_count):
             continue
-        amount = getattr(effect, "amount_per_step", 0.0)
-        rate = getattr(effect, "growth_rate", 0.0)
+        amount = effect.amount_per_step
+        rate = effect.growth_rate
         if amount > 0.0:
             income_rates.append(rate)
         elif amount < 0.0:
@@ -503,30 +508,30 @@ def get_percentile_curves(plan: Plan, audit: PathAuditResult) -> dict[str, list[
     """Classify all plan stores and return aggregated balance curves for each audited path."""
     liability_stores = _liability_store_names(plan)
     invested_stores = {
-        eff.store_name
-        for eff in plan.effects
-        if getattr(eff, "type", None) == "correlated_return" and eff.store_name is not None
+        eff.store_name for eff in plan.effects if isinstance(eff, CorrelatedReturnEffect)
     }
-    
+
     # Liquid stores are those that are neither liabilities nor asset classes
     all_store_names = {s.name for s in plan.stores}
     liquid_stores = all_store_names - liability_stores - invested_stores
 
-    curves = {}
+    curves: dict[str, list[dict[str, float]]] = {}
     for path_name, path_result in audit.paths.items():
-        steps_list = []
+        steps_list: list[dict[str, float]] = []
         for t, balances in enumerate(path_result.time_series):
             liquid_balance = sum(balances.get(name, 0.0) for name in liquid_stores)
             invested_balance = sum(balances.get(name, 0.0) for name in invested_stores)
             liabilities_balance = sum(balances.get(name, 0.0) for name in liability_stores)
-            
-            steps_list.append({
-                "step": t,
-                "liquid": liquid_balance,
-                "invested": invested_balance,
-                "liabilities": liabilities_balance,
-                "total_net": liquid_balance + invested_balance - liabilities_balance,
-            })
+
+            steps_list.append(
+                {
+                    "step": float(t),
+                    "liquid": liquid_balance,
+                    "invested": invested_balance,
+                    "liabilities": liabilities_balance,
+                    "total_net": liquid_balance + invested_balance - liabilities_balance,
+                }
+            )
         curves[path_name] = steps_list
-        
+
     return curves

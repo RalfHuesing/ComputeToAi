@@ -1,7 +1,5 @@
 """Tests for compare_plans() function in compare.py."""
 
-import pytest
-
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_monte_carlo
 from compute_to_ai.engine.store import Store
@@ -91,7 +89,9 @@ def test_compare_detects_added_effect() -> None:
     plan_a = _make_simple_plan("a")
     plan_b = _make_simple_plan("b")
     plan_b.stores.append(Store(name="depot", balance=0.0))
-    add_asset_class(plan_b, store_name="depot", initial_balance=0.0, expected_return=0.07, volatility=0.15)
+    add_asset_class(
+        plan_b, store_name="depot", initial_balance=0.0, expected_return=0.07, volatility=0.15
+    )
 
     result = compare_plans(plan_a, None, plan_b, None)
 
@@ -165,7 +165,9 @@ def test_compare_simulation_delta_with_results() -> None:
         ruin_threshold=0.0,
     )
     add_income_stream(plan_a, "Gehalt", "cash", amount=100.0)
-    add_expense(plan_a, "Lebenshaltung", "cash", amount=500.0, inflation_rate=0.02)  # expenses >> income
+    add_expense(
+        plan_a, "Lebenshaltung", "cash", amount=500.0, inflation_rate=0.02
+    )  # expenses >> income
 
     # plan_b: income far exceeds expenses - nearly zero ruin risk
     plan_b = Plan(
@@ -196,7 +198,7 @@ def test_compare_description_field_in_stores_effects_and_phases() -> None:
     plan_a = _make_simple_plan("a")
     plan_a.stores[0].description = "Girokonto DKB"
     plan_a.phases[0].description = "Phase A"
-    
+
     plan_b = _make_simple_plan("b")
     plan_b.stores[0].description = "Girokonto Sparkasse"  # changed store description
     plan_b.phases[0].description = "Phase B"  # changed phase description
@@ -218,4 +220,3 @@ def test_compare_description_field_in_stores_effects_and_phases() -> None:
     assert "description" in phase_change["changes"]
     assert phase_change["changes"]["description"]["from"] == "Phase A"
     assert phase_change["changes"]["description"]["to"] == "Phase B"
-

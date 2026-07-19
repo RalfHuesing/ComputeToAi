@@ -143,6 +143,7 @@ def test_single_asset_class_without_correlation_matrix_is_still_stochastic() -> 
 
 def test_cash_bucket_excess_moves_to_portfolio() -> None:
     from compute_to_ai.engine.timeline import Phase
+
     plan = Plan(
         name="cash-bucket-excess-test",
         timeline=Timeline(step_count=1),
@@ -231,6 +232,7 @@ def test_cash_bucket_max_target_has_no_effect_when_above_computed_target() -> No
 
 def test_cash_bucket_deficit_pulls_from_portfolio() -> None:
     from compute_to_ai.engine.timeline import Phase
+
     plan = Plan(
         name="cash-bucket-deficit-test",
         timeline=Timeline(step_count=1),
@@ -261,6 +263,7 @@ def test_cash_bucket_deficit_pulls_from_portfolio() -> None:
 def test_cash_bucket_with_near_horizon_expenses() -> None:
     from compute_to_ai.engine.timeline import Phase
     from compute_to_ai.features.finance.cashflow import add_fixed_acquisition
+
     plan = Plan(
         name="cash-bucket-near-horizon-test",
         timeline=Timeline(step_count=3),
@@ -309,9 +312,7 @@ def test_cash_bucket_entnahme_buffer_ignores_phase_name() -> None:
         timeline=Timeline(step_count=1),
         stores=[Store(name="cash", balance=0.0)],
         phases=[Phase(name="Ruhestand", start_step=0, end_step=10)],
-        effects=[
-            GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)
-        ],
+        effects=[GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)],
     )
 
     add_asset_class(plan, "equity", 4000.0, 0.0, 0.0)
@@ -348,9 +349,7 @@ def test_cash_bucket_entnahme_buffer_skips_unlisted_phase() -> None:
         timeline=Timeline(step_count=1),
         stores=[Store(name="cash", balance=0.0)],
         phases=[Phase(name="Rentenphase", start_step=0, end_step=10)],
-        effects=[
-            GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)
-        ],
+        effects=[GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)],
     )
 
     add_asset_class(plan, "equity", 4000.0, 0.0, 0.0)
@@ -374,4 +373,3 @@ def test_cash_bucket_entnahme_buffer_skips_unlisted_phase() -> None:
     assert pytest.approx(result.final_balances["cash"]) == 0.0
     assert pytest.approx(result.final_balances["equity"]) == 3300.0
     assert pytest.approx(result.final_balances["bond"]) == 1700.0
-

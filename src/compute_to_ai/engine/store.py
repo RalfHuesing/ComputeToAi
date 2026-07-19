@@ -86,9 +86,7 @@ class Store(BaseModel):
                     )
                     lot.quantity -= remaining
                     lot.cost_basis -= consumed_cost
-                    lot.metadata = {
-                        k: v - consumed_metadata[k] for k, v in lot.metadata.items()
-                    }
+                    lot.metadata = {k: v - consumed_metadata[k] for k, v in lot.metadata.items()}
                     remaining = 0.0
             self.balance = sum(lot.quantity for lot in self.lots)
             self.withdrawn_lots_this_step.extend(consumed)

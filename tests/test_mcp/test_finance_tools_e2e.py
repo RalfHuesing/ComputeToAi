@@ -220,9 +220,7 @@ async def test_anna_example_plan_end_to_end(server_params: StdioServerParameters
         await _call_ok(
             session, "finance_run_monte_carlo", plan_name=plan_name, num_runs=50, seed=42
         )
-        result_text = await _call_ok(
-            session, "finance_get_monte_carlo_result", plan_name=plan_name
-        )
+        result_text = await _call_ok(session, "finance_get_monte_carlo_result", plan_name=plan_name)
 
     payload = json.loads(result_text)
     assert payload["num_runs"] == 50

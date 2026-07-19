@@ -19,7 +19,7 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.engine.result import MonteCarloResult, SimulationResult, PathAuditResult
+from compute_to_ai.engine.result import MonteCarloResult, PathAuditResult, SimulationResult
 from compute_to_ai.engine.simulation import run_monte_carlo
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
@@ -27,6 +27,7 @@ from compute_to_ai.features.finance.cashflow import (
     add_flexible_acquisition,
     add_income_stream,
 )
+from compute_to_ai.features.finance.compare import compare_plans
 from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
 from compute_to_ai.features.finance.path_audit import (
     audit_plan,
@@ -39,7 +40,6 @@ from compute_to_ai.features.finance.pension import (
     calculate_pension_adjustment_factor,
 )
 from compute_to_ai.features.finance.phases import build_standard_life_phases
-from compute_to_ai.features.finance.compare import compare_plans
 from compute_to_ai.features.finance.portfolio import (
     add_asset_class,
     add_cash_bucket,
@@ -113,7 +113,15 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         """Add a growing income stream (positive cashflow) to the plan."""
         plan = load_plan(working_directory, plan_name)
         add_income_stream(
-            plan, name, store_name, amount, growth_rate, active_phases, start_step, end_step, description
+            plan,
+            name,
+            store_name,
+            amount,
+            growth_rate,
+            active_phases,
+            start_step,
+            end_step,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_income_stream: plan=%r name=%r status=ok", plan_name, name)
@@ -134,7 +142,15 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         """Add an inflation-adjusted expense (negative cashflow) to the plan."""
         plan = load_plan(working_directory, plan_name)
         add_expense(
-            plan, name, store_name, amount, inflation_rate, active_phases, start_step, end_step, description
+            plan,
+            name,
+            store_name,
+            amount,
+            inflation_rate,
+            active_phases,
+            start_step,
+            end_step,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_expense: plan=%r name=%r status=ok", plan_name, name)
@@ -250,7 +266,13 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         """Add an asset class with a correlated stochastic return effect to the plan."""
         plan = load_plan(working_directory, plan_name)
         add_asset_class(
-            plan, store_name, initial_balance, expected_return, volatility, correlation_group, description
+            plan,
+            store_name,
+            initial_balance,
+            expected_return,
+            volatility,
+            correlation_group,
+            description,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_asset_class: plan=%r store=%r status=ok", plan_name, store_name)
@@ -495,7 +517,9 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
     def finance_get_path_category_series(  # pyright: ignore[reportUnusedFunction]
         plan_name: str,
         path: str,
-        granularity: Literal["annual", "monthly_average", "annual_real", "monthly_average_real"] = "annual",
+        granularity: Literal[
+            "annual", "monthly_average", "annual_real", "monthly_average_real"
+        ] = "annual",
     ) -> dict[str, Any]:
         """Return per-step cashflow category sums (Einnahmen, Ausgaben, Steuern,
         Rendite, Umschichtungen, Saldo je Speicher) for one path of the plan's
@@ -509,9 +533,7 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
         """
         plan, result = _load_audited_path(working_directory, plan_name, path)
         series = compute_category_series(plan, result, granularity)
-        logger.info(
-            "finance_get_path_category_series: plan=%r path=%r status=ok", plan_name, path
-        )
+        logger.info("finance_get_path_category_series: plan=%r path=%r status=ok", plan_name, path)
         return {"steps": [step.model_dump() for step in series]}
 
     @mcp.tool()
@@ -568,22 +590,28 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
         plan_b = load_plan(working_directory, plan_name_b)
 
         try:
-            result_a = load_result(working_directory, plan_name_a, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult)
+            result_a = load_result(
+                working_directory, plan_name_a, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult
+            )
         except Exception:
             result_a = None
 
         try:
-            result_b = load_result(working_directory, plan_name_b, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult)
+            result_b = load_result(
+                working_directory, plan_name_b, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult
+            )
         except Exception:
             result_b = None
 
         comparison = compare_plans(plan_a, result_a, plan_b, result_b)
-        logger.info("finance_compare_plans: plan_a=%r plan_b=%r status=ok", plan_name_a, plan_name_b)
+        logger.info(
+            "finance_compare_plans: plan_a=%r plan_b=%r status=ok", plan_name_a, plan_name_b
+        )
         return comparison
 
     @mcp.tool()
     def finance_get_percentile_curves(  # pyright: ignore[reportUnusedFunction]
-        plan_name: str
+        plan_name: str,
     ) -> dict[str, Any]:
         """Return the aggregated liquid, invested, liabilities, and net worth Curves
         for all percentile paths of the plan's last path audit (see core_run_path_audit).
@@ -595,7 +623,9 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
         - total_net: Net wealth (liquid + invested - liabilities)
         """
         plan = load_plan(working_directory, plan_name)
-        audit = load_result(working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult)
+        audit = load_result(
+            working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult
+        )
         curves = get_percentile_curves(plan, audit)
         logger.info("finance_get_percentile_curves: plan=%r status=ok", plan_name)
         return {"curves": curves}
