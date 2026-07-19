@@ -184,6 +184,12 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
   - [ ] Ist/Soll-Report: neues MCP-Tool, das je Anlageklasse und Position die Ist-Gewichtung der Soll-Gewichtung (BIP-Zielallokation) gegenüberstellt, ergänzt um unrealisierten Gewinn/Verlust in Euro und Prozent je Position, aufgeteilt in Bestandsschutz- und reguläre Lots.
   - [ ] Einzelverkaufs-Steuerschätzer: neues MCP-Tool, das für eine konkrete Position (oder eine angegebene Verkaufssumme) die anfallende Steuer bei einem gedachten Verkauf heute schätzt – Komposition der bereits vorhandenen Steuer-Bausteine (Abgeltungsteuer, Teilfreistellung, Sparerpauschbetrag, Bestandsschutz, siehe 03-Feature-Finanzen-Domaenenmodell.md) auf den aktuellen Lot-Bestand der Position, ohne einen Simulationslauf zu benötigen.
   - [ ] Plan-Ist-Vergleich: neues MCP-Tool, das den heutigen tatsächlichen Gesamtwert (Positionen + Cash-Bucket) dem Wert an derselben Stelle (Alter/Schritt) der zuvor berechneten p10/p50/p90-Kurven aus `finance_get_percentile_curves` gegenüberstellt – ein einzelner Stichtagsvergleich („bin ich noch im Plan?"), keine Nachbildung eines historischen Ist-Verlaufs über die Zeit (dafür fehlt eine fortlaufende Kurs-Historie, siehe 08-Offene-Fragen.md).
+- [ ] **Epic 4.11 – Frequenz- & Intervall-Ausgaben (Periodische Dauer- & Turnusausgaben)**
+  - [ ] **Kern-Erweiterung (`compute_to_ai.engine`)**: `BaseEffect` (und Unterklassen wie `GrowingFixedEffect`) erhält `interval_steps: int = 1` und `first_occurrence_step: int = 0`. Ein Effekt ist nur in Zeitschritten aktiv, in denen `(step - first_occurrence_step) % interval_steps == 0` gilt.
+  - [ ] **Finance-Erweiterung (`compute_to_ai.features.finance`)**: `add_expense` / `finance_add_expense` (sowie `add_income_stream`) unterstützen den Parameter `frequency` (`"monthly"`, `"quarterly"`, `"yearly"`, `"every_n_years"`) inklusive automatischer Umrechnung von Monatsbeträgen auf die Jahres-Schrittweite der Simulation.
+  - [ ] **Wachstums- & Inflationskopplung**: Wahlmöglichkeit zwischen eigener Steigerungsrate (z. B. KFZ-Versicherungsindex) oder dynamischer Anbindung an die allgemeine Plan-Inflation.
+  - [ ] **Unit- & E2E-Tests**: Abdeckung von monatlichen Dauerläufern sowie mehrjährigen Turnusausgaben (z. B. 3-Jahres-Takt) inklusive Pfad-Audit-Klassifikation.
+
 
 ## Meilenstein 5 – Benutzerprofil-Speicher & Prompt-Restrukturierung (Lebensberater)
 
