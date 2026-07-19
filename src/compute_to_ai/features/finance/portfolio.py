@@ -280,6 +280,7 @@ def add_cash_bucket(
     effect = ComputedEffect(
         name="Cash Bucket Manager",
         function_name="cash_bucket_manager",
+        order=0,  # runs between pension tax (-10) and capital gains tax (10), see tax.py
         parameters=params.model_dump(),
     )
     plan.effects.append(effect)

@@ -72,6 +72,7 @@ class ComputedEffect(BaseEffect):
     store_name: str | None = None
     function_name: str
     parameters: dict[str, Any] = {}
+    order: int = 0  # lower runs first within Phase 2; ties keep append order
 
 
 # Discriminated Union for Pydantic to cleanly serialize/deserialize effects

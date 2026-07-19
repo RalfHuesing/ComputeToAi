@@ -206,17 +206,21 @@ def _apply_capital_gains_taxation(
         balances[cash_store] = balances.get(cash_store, 0.0) - cap_gains_tax
 
 
-@register_computed_effect("tax_manager")
-def tax_manager_func(  # pyright: ignore[reportUnusedFunction]
+@register_computed_effect("pension_income_tax_manager")
+def pension_income_tax_manager_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], step: int, parameters: dict[str, Any], plan: Plan
 ) -> None:
-    """Computed effect implementing capital gains and progressive pension income taxation."""
+    """Computed effect implementing progressive pension income taxation."""
     params = TaxManagerParameters.model_validate(parameters)
-
-    # 1. Progressive Renten-Besteuerung und KVdR/PV
     _apply_pension_taxation(balances, step, plan, params)
 
-    # 2. Kapitalertragssteuer & Vorabpauschale
+
+@register_computed_effect("capital_gains_tax_manager")
+def capital_gains_tax_manager_func(  # pyright: ignore[reportUnusedFunction]
+    balances: dict[str, float], _step: int, parameters: dict[str, Any], plan: Plan
+) -> None:
+    """Computed effect implementing capital gains tax (withholding tax, Vorabpauschale)."""
+    params = TaxManagerParameters.model_validate(parameters)
     _apply_capital_gains_taxation(balances, plan, params)
 
 
@@ -251,9 +255,27 @@ def add_tax_manager(
         asset_classes=asset_classes or {},
     )
 
-    effect = ComputedEffect(
-        name="Tax Manager",
-        function_name="tax_manager",
-        parameters=params.model_dump(),
+    # Split into two effects with an explicit execution order (rather than
+    # one "tax manager" effect) because the two halves need opposite
+    # positions relative to the Cash-Bucket-Manager (order=0, see
+    # portfolio.py): pension tax must be deducted before the bucket sweeps
+    # cash to its target, or the cash balance always lands short by the tax
+    # amount; capital gains tax must run after, since it taxes
+    # `store.withdrawn_lots_this_step`, which is only populated once the
+    # bucket manager has actually sold something in this step.
+    plan.effects.append(
+        ComputedEffect(
+            name="Pension Income Tax Manager",
+            function_name="pension_income_tax_manager",
+            order=-10,
+            parameters=params.model_dump(),
+        )
     )
-    plan.effects.append(effect)
+    plan.effects.append(
+        ComputedEffect(
+            name="Capital Gains Tax Manager",
+            function_name="capital_gains_tax_manager",
+            order=10,
+            parameters=params.model_dump(),
+        )
+    )

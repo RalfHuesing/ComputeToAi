@@ -157,10 +157,11 @@ def _execute_computed_effects(
     active_phase: str | None,
     plan: Plan,
 ) -> None:
-    """Execute computed effects and update balances and lots in sim_stores."""
+    """Execute computed effects (sorted by `order`) and update balances/lots in sim_stores."""
     current_balances = {name: store.balance for name, store in sim_stores.items()}
-    for effect in effects:
-        if getattr(effect, "type", None) == "computed" and effect.is_active(t, active_phase):
+    computed = [e for e in effects if getattr(e, "type", None) == "computed"]
+    for effect in sorted(computed, key=lambda e: getattr(e, "order", 0)):
+        if effect.is_active(t, active_phase):
             func_name = getattr(effect, "function_name", "")
             params = getattr(effect, "parameters", {})
 

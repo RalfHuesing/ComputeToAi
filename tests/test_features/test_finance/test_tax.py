@@ -16,7 +16,7 @@ from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.simulation import run_simulation
 from compute_to_ai.engine.store import Lot, Store
 from compute_to_ai.engine.timeline import Phase, Timeline
-from compute_to_ai.features.finance.portfolio import add_asset_class
+from compute_to_ai.features.finance.portfolio import add_asset_class, add_cash_bucket
 from compute_to_ai.features.finance.tax import AssetClassTaxConfig, IncomeTaxTariff, add_tax_manager
 
 
@@ -142,7 +142,7 @@ def test_vorabpauschale_increases_basis() -> None:
     # Phase 1: equity_acc grows by 10% to 1210.
     # Phase 2:
     #   sell_all_step1 runs: cash becomes 96.3075 + 1210 = 1306.3075, equity_acc becomes 0.
-    #   tax_manager runs:
+    #   capital_gains_tax_manager runs:
     #     withdraw 1210. Raw gain = 1210 - 1000 = 210.
     #     taxable_gain = max(0, 210 - 14.0) = 196.0.
     #     Tax = 196.0 * 0.25 * 1.055 = 51.695.
@@ -225,3 +225,79 @@ def test_progressive_rent_taxation() -> None:
     # Tax = (914.51 * 0.3724 + 1400.0) * 0.3724 = 648.18585634
     # Final cash = 40000.0 - 5180.0 - 648.18585634 = 34171.81414366
     assert pytest.approx(result.final_balances["cash"]) == 34171.81414366
+
+
+def test_pension_tax_is_deducted_before_cash_bucket_sweeps_to_target() -> None:
+    """Regression test: the pension income tax manager must run before the
+    Cash-Bucket-Manager, or the bucket sweeps cash to its full target before
+    tax is deducted, permanently landing short of the target by the tax
+    amount every step."""
+    plan = Plan(
+        name="pension-tax-before-bucket-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+        effects=[GrowingFixedEffect(name="Rente", store_name="cash", amount_per_step=40000.0)],
+    )
+
+    add_tax_manager(
+        plan=plan,
+        cash_store_name="cash",
+        tariff=IncomeTaxTariff(basic_allowance=12348.0),
+        retirement_step=0,
+        start_year=2026,
+    )
+    add_cash_bucket(
+        plan=plan,
+        portfolio_weights={},
+        emergency_buffer_months={"": 12.0},
+        monthly_expenses=1000.0,
+        cash_store_name="cash",
+    )
+
+    result = run_simulation(plan)
+
+    # Rent income 40000, insurance 5180.0, income tax 648.18585634 (same
+    # calculation as test_progressive_rent_taxation) deducted first, then the
+    # bucket manager sweeps cash to its target of 12 * 1000 = 12000 - not
+    # 12000 minus the tax amount.
+    assert pytest.approx(result.final_balances["cash"]) == 12000.0
+
+
+def test_capital_gains_tax_fires_on_same_step_cash_bucket_sale() -> None:
+    """Regression test: the capital gains tax manager must run after the
+    Cash-Bucket-Manager, since it taxes `withdrawn_lots_this_step` - a
+    withdrawal the bucket manager triggers in the same step."""
+    plan = Plan(
+        name="capital-gains-same-step-sale-test",
+        timeline=Timeline(step_count=1),
+        stores=[
+            Store(name="cash", balance=0.0),
+            Store(
+                name="equity",
+                balance=2000.0,
+                lots=[Lot(quantity=2000.0, cost_basis=1000.0, created_step=0)],
+            ),
+        ],
+    )
+
+    add_tax_manager(
+        plan=plan,
+        cash_store_name="cash",
+        sparerpauschbetrag=0.0,
+        asset_classes={"equity": AssetClassTaxConfig(partial_exemption_rate=0.0)},
+    )
+    add_cash_bucket(
+        plan=plan,
+        portfolio_weights={"equity": 1.0},
+        emergency_buffer_months={"": 12.0},
+        monthly_expenses=100.0,
+        cash_store_name="cash",
+    )
+
+    result = run_simulation(plan)
+
+    # Bucket target = 12 * 100 = 1200; withdraws 1200 from equity (gain 600
+    # of the 1200 withdrawn, cost basis 1000/2000 * 1200 = 600). Capital
+    # gains tax = 600 * 0.25 * 1.055 = 158.25, deducted the same step.
+    assert pytest.approx(result.final_balances["cash"]) == 1041.75
+    assert pytest.approx(result.final_balances["equity"]) == 800.0

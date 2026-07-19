@@ -134,6 +134,17 @@ def _test_tax_func(  # pyright: ignore[reportUnusedFunction]
     balances["tax_account"] = balances.get("tax_account", 0.0) + taxable
 
 
+# Records execution order: each run appends its "digit" to "log" as the next
+# least-significant decimal digit, so the final value's digit sequence (most
+# significant first) is exactly the effects' execution order.
+@register_computed_effect("order_marker")
+def _order_marker_func(  # pyright: ignore[reportUnusedFunction]
+    balances: dict[str, float], _step: int, parameters: dict[str, Any], _plan: Plan
+) -> None:
+    digit = int(parameters["digit"])
+    balances["log"] = balances.get("log", 0.0) * 10 + digit
+
+
 def test_computed_effect_runs_in_phase2() -> None:
     # Depot grows by 10% in Phase 1.
     # Then computed tax of 20% runs in Phase 2.
@@ -156,6 +167,37 @@ def test_computed_effect_runs_in_phase2() -> None:
     result = run_simulation(plan)
     assert pytest.approx(result.final_balances["depot"]) == 88.0
     assert pytest.approx(result.final_balances["tax_account"]) == 22.0
+
+
+def test_computed_effects_execute_in_order_regardless_of_append_order() -> None:
+    plan = Plan(
+        name="computed-effect-order-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="log", balance=0.0)],
+        effects=[
+            # Appended out of order - execution must follow `order`, not this.
+            ComputedEffect(function_name="order_marker", parameters={"digit": 2}, order=10),
+            ComputedEffect(function_name="order_marker", parameters={"digit": 1}, order=-10),
+        ],
+    )
+
+    result = run_simulation(plan)
+    assert result.final_balances["log"] == 12.0
+
+
+def test_computed_effects_with_equal_order_keep_append_order() -> None:
+    plan = Plan(
+        name="computed-effect-tie-order-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="log", balance=0.0)],
+        effects=[
+            ComputedEffect(function_name="order_marker", parameters={"digit": 1}),
+            ComputedEffect(function_name="order_marker", parameters={"digit": 2}),
+        ],
+    )
+
+    result = run_simulation(plan)
+    assert result.final_balances["log"] == 12.0
 
 
 def test_ruin_checking() -> None:
