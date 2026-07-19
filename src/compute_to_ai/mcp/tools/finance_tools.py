@@ -28,7 +28,11 @@ from compute_to_ai.features.finance.cashflow import (
     add_income_stream,
 )
 from compute_to_ai.features.finance.liability import ScheduledExtraPayment, add_liability
-from compute_to_ai.features.finance.path_audit import build_event_log, compute_category_series
+from compute_to_ai.features.finance.path_audit import (
+    audit_plan,
+    build_event_log,
+    compute_category_series,
+)
 from compute_to_ai.features.finance.pension import (
     add_statutory_pension,
     calculate_pension_adjustment_factor,
@@ -503,3 +507,31 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
         events = build_event_log(plan, result)
         logger.info("finance_get_path_event_log: plan=%r path=%r status=ok", plan_name, path)
         return {"events": [event.model_dump() for event in events]}
+
+    @mcp.tool()
+    def finance_audit_plan(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str, path: str = "deterministic"
+    ) -> dict[str, Any]:
+        """Run a fixed set of structural/logical consistency checks on one
+        path of the plan's last path audit (see core_run_path_audit) and
+        return the findings as advisory hints - not hard errors, since the
+        flagged configuration may be entirely intentional.
+
+        Checks: overlapping income effects hitting the same store in the
+        same step, a phase with no income activity on a target-condition
+        store, a growing income next to a flat expense (or vice versa)
+        within a phase, a store never touched by any effect, and a
+        liability not fully paid off by the end of the timeline (see
+        Docs/10-Roadmap.md, Epic 3.10, for the full rationale). No
+        magnitude/domain-knowledge judgment is made here - that remains the
+        agent's own job.
+        """
+        plan, result = _load_audited_path(working_directory, plan_name, path)
+        findings = audit_plan(plan, result)
+        logger.info(
+            "finance_audit_plan: plan=%r path=%r findings=%d status=ok",
+            plan_name,
+            path,
+            len(findings),
+        )
+        return {"findings": [finding.model_dump() for finding in findings]}

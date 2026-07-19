@@ -134,6 +134,9 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
             path="p50",
             granularity="monthly_average",
         )
+        audit_text = await _call_ok(
+            session, "finance_audit_plan", plan_name=plan_name, path="deterministic"
+        )
 
     category_payload = json.loads(category_text)
     steps = category_payload["steps"]
@@ -151,6 +154,12 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
 
     p50_payload = json.loads(p50_category_text)
     assert len(p50_payload["steps"]) == 10
+
+    audit_payload = json.loads(audit_text)
+    # The liability is fully amortized within the 10-step timeline (see the
+    # liability_paid_off event asserted above), so no unpaid-liability
+    # finding should fire for it.
+    assert not any("kredit" in finding["message"] for finding in audit_payload["findings"])
 
 
 @pytest.mark.anyio
