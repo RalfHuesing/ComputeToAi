@@ -1,6 +1,6 @@
 # Konzept: Task 4.13 – Graduelle Kapitalsicherung vor bekannten Entnahmen (De-Risking Glidepath)
 
-**Status**: IN_PROGRESS  
+**Status**: DONE  
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.13  
 **Erstellt am**: 2026-07-21  
 
@@ -54,8 +54,8 @@ class CashBucketParameters:
 
 ## 5. Definition of Done (DoD) & Kontrollkriterien für Review-Agent
 
-- [ ] Steps (`01-step-cash-bucket-glidepath.md`, `02-step-anschaffungen-glidepath-migration.md`, `03-step-golden-tests-de-risking.md`) umgesetzt.
-- [ ] Tests in `test_glidepath.py` grün.
-- [ ] Doku in `Docs/04-Feature-Finanzen-Methodik.md` aktualisiert.
-- [ ] `review.md` gegengezeichnet.
-- [ ] `Docs/10-Roadmap.md` abgehakt `[x]`.
+- [x] Steps (`01-step-cash-bucket-glidepath.md`, `02-step-anschaffungen-glidepath-migration.md`, `03-step-golden-tests-de-risking.md`) umgesetzt.
+- [x] Tests in `test_glidepath.py` grün.
+- [x] Doku in `Docs/04-Feature-Finanzen-Methodik.md` aktualisiert.
+- [x] `review.md` gegengezeichnet.
+- [x] `Docs/10-Roadmap.md` abgehakt `[x]`.
