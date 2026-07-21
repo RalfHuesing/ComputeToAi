@@ -137,7 +137,7 @@ def _income_expense_rates_in_phase(
         if not _effect_overlaps_phase(effect, phase, step_count):
             continue
         amount = effect.amount_per_step
-        rate = effect.growth_rate
+        rate = plan.resolve_rate(effect.growth_rate)
         if amount > 0.0:
             income_rates.append(rate)
         elif amount < 0.0:

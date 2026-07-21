@@ -59,7 +59,7 @@ class GrowingFixedEffect(BaseEffect):
     type: Literal["growing_fixed"] = "growing_fixed"
     store_name: str
     amount_per_step: float
-    growth_rate: float = 0.0
+    growth_rate: float | str = 0.0
 
 
 class PercentageGrowthEffect(BaseEffect):
@@ -67,7 +67,7 @@ class PercentageGrowthEffect(BaseEffect):
 
     type: Literal["percentage_growth"] = "percentage_growth"
     store_names: list[str]
-    growth_rate: float
+    growth_rate: float | str
 
 
 class CorrelatedReturnEffect(BaseEffect):
@@ -109,7 +109,7 @@ class TransferEffect(BaseEffect):
     from_store_name: str
     to_store_weights: dict[str, float]
     amount_per_step: float
-    growth_rate: float = 0.0
+    growth_rate: float | str = 0.0
 
 
 # Discriminated Union for Pydantic to cleanly serialize/deserialize effects

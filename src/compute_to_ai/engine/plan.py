@@ -1,6 +1,6 @@
 """Plan - see Docs/01-Kern-Domaenenmodell.md."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from compute_to_ai.engine.effect import Effect
 from compute_to_ai.engine.store import Store
@@ -36,6 +36,21 @@ class Plan(BaseModel):
     ruin_stores: list[str] = []
     ruin_threshold: float = 0.0
     description: str | None = None
+    parameters: dict[str, float] = Field(default_factory=dict)
+
+    def set_parameter(self, key: str, value: float) -> None:
+        """Set or update a central plan parameter."""
+        self.parameters[key] = float(value)
+
+    def resolve_rate(self, rate: float | str) -> float:
+        """Resolve a rate value, either as float literal or via parameter reference 'ref:key'."""
+        if isinstance(rate, str) and rate.startswith("ref:"):
+            key = rate[4:]
+            if key not in self.parameters:
+                msg = f"Plan parameter {key!r} is not defined in plan {self.name!r}."
+                raise ValueError(msg)
+            return self.parameters[key]
+        return float(rate)
 
     def store(self, name: str) -> Store:
         """Find a Store by its name or raise KeyError."""

@@ -252,7 +252,7 @@ class CashBucketParameters(BaseModel):
     portfolio_weights: dict[str, float]
     emergency_buffer_months: dict[str, float]
     monthly_expenses: float
-    inflation_rate: float = 0.0
+    inflation_rate: float | str = 0.0
     near_horizon_steps: int = 2
     withdrawal_years: float = 3.0
     withdrawal_phase_names: list[str] = []
@@ -272,7 +272,8 @@ def _calculate_near_horizon_outlook(
             if effect.is_active(s, s_phase) and getattr(effect, "store_name", None) == cash_store:
                 amount = getattr(effect, "amount_per_step", 0.0)
                 if amount < 0.0:
-                    rate = getattr(effect, "growth_rate", 0.0)
+                    raw_rate = getattr(effect, "growth_rate", 0.0)
+                    rate = plan.resolve_rate(raw_rate)
                     buffer_2 += -amount * ((1.0 + rate) ** s)
     return buffer_2
 
@@ -302,7 +303,8 @@ def _calculate_withdrawal_buffer(
             and getattr(effect, "store_name", None) == cash_store
         ):
             amount = getattr(effect, "amount_per_step", 0.0)
-            rate = getattr(effect, "growth_rate", 0.0)
+            raw_rate = getattr(effect, "growth_rate", 0.0)
+            rate = plan.resolve_rate(raw_rate)
             val = amount * ((1.0 + rate) ** step)
             if val < 0.0:
                 e_val += -val
@@ -378,7 +380,8 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
 
     # 1. Einkommensausfallpuffer
     months = params.emergency_buffer_months.get(active_phase or "", 0.0)
-    monthly_expenses_inflated = params.monthly_expenses * ((1.0 + params.inflation_rate) ** step)
+    resolved_inflation_rate = plan.resolve_rate(params.inflation_rate)
+    monthly_expenses_inflated = params.monthly_expenses * ((1.0 + resolved_inflation_rate) ** step)
     buffer_1 = months * monthly_expenses_inflated
 
     # 2. Nahsicht-Komponente

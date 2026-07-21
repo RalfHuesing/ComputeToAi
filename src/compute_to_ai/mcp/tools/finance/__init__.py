@@ -9,6 +9,7 @@ from compute_to_ai.mcp.tools.finance._contribution import _register_contribution
 from compute_to_ai.mcp.tools.finance._goal_mc import _register_goal_and_monte_carlo_tools
 from compute_to_ai.mcp.tools.finance._liability import _register_liability_tools
 from compute_to_ai.mcp.tools.finance._live_price import _register_live_price_tools
+from compute_to_ai.mcp.tools.finance._parameter import _register_parameter_tools
 from compute_to_ai.mcp.tools.finance._path_audit import _register_path_audit_tools
 from compute_to_ai.mcp.tools.finance._phase import _register_phase_tools
 from compute_to_ai.mcp.tools.finance._portfolio import _register_portfolio_tools
@@ -30,3 +31,4 @@ def register_finance_tools(mcp: FastMCP, working_directory: Path) -> None:
     _register_goal_and_monte_carlo_tools(mcp, working_directory)
     _register_path_audit_tools(mcp, working_directory)
     _register_report_tools(mcp, working_directory)
+    _register_parameter_tools(mcp, working_directory)

@@ -4,6 +4,8 @@ Transfer, growing fixed, percentage growth, and correlated return effects.
 See Docs/01-Kern-Domaenenmodell.md.
 """
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from compute_to_ai.engine.effect import (
@@ -14,6 +16,19 @@ from compute_to_ai.engine.effect import (
     TransferEffect,
 )
 from compute_to_ai.engine.result import LedgerEffectType, LedgerEntry
+
+if TYPE_CHECKING:
+    from compute_to_ai.engine.plan import Plan
+
+
+def _resolve_rate(plan: "Plan | None", rate: float | str) -> float:
+    """Helper to resolve a rate value as float or via plan parameter reference."""
+    if plan is not None:
+        return plan.resolve_rate(rate)
+    if isinstance(rate, str) and rate.startswith("ref:"):
+        msg = f"Cannot resolve parameter reference {rate!r} without a Plan instance."
+        raise ValueError(msg)
+    return float(rate)
 
 
 def _ledger_entry(
@@ -47,10 +62,11 @@ def _apply_transfer_effect(
     t: int,
     fixed_additions: dict[str, float],
     ledger: list[LedgerEntry] | None = None,
+    plan: "Plan | None" = None,
 ) -> None:
     from_name = effect.from_store_name
     amount = effect.amount_per_step
-    rate = effect.growth_rate
+    rate = _resolve_rate(plan, effect.growth_rate)
     val = amount * ((1.0 + rate) ** t)
     if from_name in fixed_additions:
         fixed_additions[from_name] -= val
@@ -67,11 +83,12 @@ def _apply_growing_fixed_effect(
     t: int,
     fixed_additions: dict[str, float],
     ledger: list[LedgerEntry] | None,
+    plan: "Plan | None" = None,
 ) -> None:
     store_name = effect.store_name
     if store_name in fixed_additions:
         amount = effect.amount_per_step
-        rate = effect.growth_rate
+        rate = _resolve_rate(plan, effect.growth_rate)
         val = amount * ((1.0 + rate) ** t)
         fixed_additions[store_name] += val
         _record_ledger_entry(ledger, effect, "growing_fixed", t, store_name, val)
@@ -108,16 +125,18 @@ def _apply_phase1_effect(
     fixed_additions: dict[str, float],
     total_growth_rates: dict[str, float],
     ledger: list[LedgerEntry] | None = None,
+    plan: "Plan | None" = None,
 ) -> None:
     if isinstance(effect, TransferEffect):
-        _apply_transfer_effect(effect, t, fixed_additions, ledger)
+        _apply_transfer_effect(effect, t, fixed_additions, ledger, plan=plan)
     elif isinstance(effect, GrowingFixedEffect):
-        _apply_growing_fixed_effect(effect, t, fixed_additions, ledger)
+        _apply_growing_fixed_effect(effect, t, fixed_additions, ledger, plan=plan)
     elif isinstance(effect, PercentageGrowthEffect):
+        rate = _resolve_rate(plan, effect.growth_rate)
         _apply_growth_rate_to_stores(
             effect,
             "percentage_growth",
-            effect.growth_rate,
+            rate,
             t,
             store_balances,
             fixed_additions,
@@ -150,6 +169,7 @@ def _calculate_phase1_updates(
     store_names: list[str],
     store_balances: dict[str, float],
     ledger: list[LedgerEntry] | None = None,
+    plan: "Plan | None" = None,
 ) -> tuple[dict[str, float], dict[str, float]]:
     """Accumulate all Phase 1 effects into per-store fixed additions and total growth rates."""
     fixed_additions = dict.fromkeys(store_names, 0.0)
@@ -166,6 +186,7 @@ def _calculate_phase1_updates(
             fixed_additions,
             total_growth_rates,
             ledger,
+            plan=plan,
         )
 
     return fixed_additions, total_growth_rates

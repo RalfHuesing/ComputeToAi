@@ -114,7 +114,8 @@ def _apply_pension_taxation(
             and getattr(effect, "store_name", None) == cash_store
         ):
             amount = getattr(effect, "amount_per_step", 0.0)
-            rate = getattr(effect, "growth_rate", 0.0)
+            raw_rate = getattr(effect, "growth_rate", 0.0)
+            rate = plan.resolve_rate(raw_rate)
             val = amount * ((1.0 + rate) ** step)
             if val > 0.0:
                 rent_income += val

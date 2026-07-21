@@ -272,6 +272,7 @@ def _run_single_simulation(
             store_names,
             store_balances_before,
             ledger if record_ledger else None,
+            plan=sim_plan,
         )
 
         # Apply Phase 1 updates to simulated stores
