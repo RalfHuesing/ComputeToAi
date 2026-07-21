@@ -76,7 +76,20 @@ Der Wechsel der phasenspezifischen Parameter (z. B. Notfallpuffer-Monate) bei ei
 
 **Rückfall-Mechanismus**: Fällt der Bucket unter seine Zielgröße, wird er in den Folgejahren vorrangig wieder aufgefüllt; reicht die Sparquote dafür nicht, kann ergänzend aus dem Portfolio verkauft werden.
 
-Der Cash-Bucket wird mit einem eigenen, niedrigen und risikoarmen Zinssatz verzinst (siehe 05-Feature-Finanzen-Parameter.md).
+ Der Cash-Bucket wird mit einem eigenen, niedrigen und risikoarmen Zinssatz verzinst (siehe 05-Feature-Finanzen-Parameter.md).
+
+## Periodische Cashflows & Turnusausgaben
+
+In der Lebensplanung fallen Einnahmen und Ausgaben in unterschiedlichen Rhythmen an:
+- **Monatlich (`monthly`)**: Schrittweite 1 Monat.
+- **Quartalsweise (`quarterly`)**: Schrittweite 3 Monate.
+- **Jährlich (`yearly` / `annual`)**: Schrittweite 12 Monate.
+- **Mehrjähriger Turnus (`every_n_years`)**: Schrittweite `interval_years * 12` Monate (z. B. Autokauf alle 5 Jahre oder Dachsanierung alle 20 Jahre).
+
+**Fachliches Prinzip**:
+Statt mehrjährige Turnusausgaben auf künstliche Monats- oder Jahresdurchschnitte umzurechnen (was Liquiditätsspitzen verschleiern würde), lässt die Engine Ausgaben exakt in den Zeitschritten wirksam werden, in denen sie tatsächlich anfallen (`interval_steps`). 
+
+Über den Parameter `first_occurrence_step` bzw. `first_occurrence_year` lässt sich der zeitliche Versatz des Erstauftritts festlegen. Die Steigerung durch Inflation oder Wertsicherungsklauseln wird dynamisch für jeden Zeitschritt $t$ als $(1 + r)^t$ berechnet und kommt genau in den aktiven Intervallschritten zum Tragen.
 
 ## Besteuerung (deutsches Steuerrecht)
 

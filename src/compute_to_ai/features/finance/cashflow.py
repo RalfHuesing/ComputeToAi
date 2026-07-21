@@ -14,6 +14,31 @@ from compute_to_ai.engine.effect import (
 )
 from compute_to_ai.engine.plan import Plan
 
+FREQUENCY_MAP: dict[str, int] = {
+    "monthly": 1,
+    "quarterly": 3,
+    "yearly": 12,
+    "annual": 12,
+}
+
+
+def parse_frequency_to_interval(
+    frequency: str = "monthly",
+    interval_years: int | None = None,
+) -> int:
+    """Parse frequency string and optional interval_years into step count (months)."""
+    freq = frequency.lower()
+    if freq in FREQUENCY_MAP:
+        return FREQUENCY_MAP[freq]
+    if freq == "every_n_years":
+        if interval_years is None or interval_years < 1:
+            msg = "interval_years must be at least 1 when frequency is 'every_n_years'"
+            raise ValueError(msg)
+        return interval_years * 12
+    supported = [*FREQUENCY_MAP.keys(), "every_n_years"]
+    msg = f"Unknown frequency: {frequency!r}. Supported values: {supported}"
+    raise ValueError(msg)
+
 
 def add_income_stream(
     plan: Plan,
@@ -25,9 +50,17 @@ def add_income_stream(
     start_step: int | None = None,
     end_step: int | None = None,
     description: str | None = None,
+    frequency: str = "monthly",
+    interval_years: int | None = None,
+    first_occurrence_step: int = 0,
+    first_occurrence_year: float | None = None,
 ) -> None:
     """Add a growing fixed income stream (positive cashflow) to the plan."""
     plan.validate_active_phases(active_phases)
+    interval_steps = parse_frequency_to_interval(frequency, interval_years)
+    if first_occurrence_year is not None:
+        first_occurrence_step = round(first_occurrence_year * 12)
+
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,
@@ -37,6 +70,8 @@ def add_income_stream(
         start_step=start_step,
         end_step=end_step,
         description=description,
+        interval_steps=interval_steps,
+        first_occurrence_step=first_occurrence_step,
     )
     plan.effects.append(effect)
 
@@ -51,9 +86,17 @@ def add_expense(
     start_step: int | None = None,
     end_step: int | None = None,
     description: str | None = None,
+    frequency: str = "monthly",
+    interval_years: int | None = None,
+    first_occurrence_step: int = 0,
+    first_occurrence_year: float | None = None,
 ) -> None:
     """Add an inflation-adjusted expense (negative cashflow) to the plan."""
     plan.validate_active_phases(active_phases)
+    interval_steps = parse_frequency_to_interval(frequency, interval_years)
+    if first_occurrence_year is not None:
+        first_occurrence_step = round(first_occurrence_year * 12)
+
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,
@@ -63,6 +106,8 @@ def add_expense(
         start_step=start_step,
         end_step=end_step,
         description=description,
+        interval_steps=interval_steps,
+        first_occurrence_step=first_occurrence_step,
     )
     plan.effects.append(effect)
 
