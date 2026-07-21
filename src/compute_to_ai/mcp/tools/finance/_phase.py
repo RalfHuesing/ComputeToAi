@@ -21,7 +21,13 @@ def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:
         life_expectancy_age: int,
         education_end_age: int | None = None,
     ) -> str:
-        """Set the plan's phases to the standard life-phase sequence."""
+        """Set the plan's phases to the standard life-phase sequence.
+
+        Phase step boundaries are derived from the given ages relative to the
+        plan's Timeline.steps_per_year (e.g. employment ending 37 years from
+        now starts retirement at step 444 on a monthly-step plan, step 37 on
+        an annual-step plan).
+        """
         plan = load_plan(working_directory, plan_name)
         plan.phases = build_standard_life_phases(
             current_age=current_age,
@@ -29,6 +35,7 @@ def _register_phase_tools(mcp: FastMCP, working_directory: Path) -> None:
             statutory_pension_start_age=statutory_pension_start_age,
             life_expectancy_age=life_expectancy_age,
             education_end_age=education_end_age,
+            steps_per_year=plan.timeline.steps_per_year,
         )
         save_plan(working_directory, plan)
         logger.info("finance_set_life_phases: plan=%r status=ok", plan_name)

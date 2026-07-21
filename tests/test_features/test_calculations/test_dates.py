@@ -58,3 +58,33 @@ def test_age_to_step_is_inverse_of_step_to_age() -> None:
 def test_age_to_step_rejects_age_before_current_age() -> None:
     with pytest.raises(ValueError, match="before current_age"):
         age_to_step(40, current_age=47)
+
+
+def test_step_to_age_with_monthly_steps_counts_twelve_steps_as_one_year() -> None:
+    assert step_to_age(12, current_age=30, steps_per_year=12) == 31.0
+
+
+def test_step_to_age_with_monthly_steps_is_fractional_mid_year() -> None:
+    assert step_to_age(6, current_age=30, steps_per_year=12) == pytest.approx(30.5)
+
+
+def test_step_to_age_with_explicit_annual_steps_matches_default() -> None:
+    assert step_to_age(20, current_age=47, steps_per_year=1) == step_to_age(20, current_age=47)
+
+
+def test_step_to_age_rejects_non_positive_steps_per_year() -> None:
+    with pytest.raises(ValueError, match="steps_per_year"):
+        step_to_age(1, current_age=47, steps_per_year=0)
+
+
+def test_age_to_step_with_monthly_steps_counts_one_year_as_twelve_steps() -> None:
+    assert age_to_step(31, current_age=30, steps_per_year=12) == 12
+
+
+def test_age_to_step_with_explicit_annual_steps_matches_default() -> None:
+    assert age_to_step(67, current_age=47, steps_per_year=1) == age_to_step(67, current_age=47)
+
+
+def test_age_to_step_rejects_non_positive_steps_per_year() -> None:
+    with pytest.raises(ValueError, match="steps_per_year"):
+        age_to_step(48, current_age=47, steps_per_year=-1)

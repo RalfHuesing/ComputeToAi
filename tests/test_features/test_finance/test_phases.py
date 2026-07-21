@@ -1,5 +1,7 @@
 from itertools import pairwise
 
+import pytest
+
 from compute_to_ai.features.finance.phases import build_standard_life_phases
 
 
@@ -48,3 +50,46 @@ def test_standard_phases_are_contiguous_and_gapless() -> None:
         assert earlier.end_step == later.start_step
     assert phases[0].start_step == 0
     assert phases[-1].end_step == 95 - 18
+
+
+def test_standard_phases_with_monthly_steps_scale_boundaries() -> None:
+    phases = build_standard_life_phases(
+        current_age=30,
+        employment_end_age=67,
+        statutory_pension_start_age=67,
+        life_expectancy_age=85,
+        steps_per_year=12,
+    )
+
+    assert [(p.name, p.start_step, p.end_step) for p in phases] == [
+        ("Erwerbsphase", 0, (67 - 30) * 12),
+        ("Rentenphase", (67 - 30) * 12, (85 - 30) * 12),
+    ]
+
+
+def test_standard_phases_with_explicit_annual_steps_match_default() -> None:
+    explicit = build_standard_life_phases(
+        current_age=20,
+        employment_end_age=63,
+        statutory_pension_start_age=67,
+        life_expectancy_age=90,
+        steps_per_year=1,
+    )
+    default = build_standard_life_phases(
+        current_age=20,
+        employment_end_age=63,
+        statutory_pension_start_age=67,
+        life_expectancy_age=90,
+    )
+    assert explicit == default
+
+
+def test_standard_phases_reject_non_positive_steps_per_year() -> None:
+    with pytest.raises(ValueError, match="steps_per_year"):
+        build_standard_life_phases(
+            current_age=20,
+            employment_end_age=63,
+            statutory_pension_start_age=67,
+            life_expectancy_age=90,
+            steps_per_year=0,
+        )

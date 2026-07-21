@@ -22,19 +22,31 @@ def age_in_years(birth_date: date, as_of: date) -> int:
     return years if had_birthday_this_year else years - 1
 
 
-def step_to_age(step: int, current_age: int) -> int:
-    """Age at a given simulation step, given step 0 == current_age and one
-    step == one year (see Docs/04-Feature-Finanzen-Methodik.md) - translates
-    a Plan's 0-based step index into the age a human thinks in."""
+def step_to_age(step: int, current_age: int, steps_per_year: int = 1) -> float:
+    """Age at a given simulation step, given step 0 == current_age - translates
+    a Plan's 0-based step index into the age a human thinks in.
+
+    `steps_per_year` makes the conversion explicit instead of assuming a
+    fixed one-step-one-year cadence (see Timeline.steps_per_year,
+    Docs/01-Kern-Domaenenmodell.md, "Zeitstrahl"). The result is fractional
+    when `step` is not a whole multiple of `steps_per_year` (e.g. step 6 on
+    a monthly-step plan is half a year past `current_age`).
+    """
     if step < 0:
         msg = f"step must be >= 0, got {step}"
         raise ValueError(msg)
-    return current_age + step
+    if steps_per_year <= 0:
+        msg = f"steps_per_year must be > 0, got {steps_per_year}"
+        raise ValueError(msg)
+    return current_age + step / steps_per_year
 
 
-def age_to_step(age: int, current_age: int) -> int:
-    """Inverse of step_to_age: the step at which a given age is reached."""
+def age_to_step(age: float, current_age: int, steps_per_year: int = 1) -> int:
+    """Inverse of step_to_age: the (rounded) step at which a given age is reached."""
     if age < current_age:
         msg = f"age {age} is before current_age {current_age}"
         raise ValueError(msg)
-    return age - current_age
+    if steps_per_year <= 0:
+        msg = f"steps_per_year must be > 0, got {steps_per_year}"
+        raise ValueError(msg)
+    return round((age - current_age) * steps_per_year)

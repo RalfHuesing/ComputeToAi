@@ -65,7 +65,9 @@ async def test_anna_example_plan_end_to_end(server_params: StdioServerParameters
         await session.initialize()
 
         # 20 to 90 years old, yearly steps.
-        await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=70)
+        await _call_ok(
+            session, "core_create_plan", plan_name=plan_name, step_count=70, steps_per_year=1
+        )
         await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="cash")
 
         await _call_ok(
@@ -291,6 +293,39 @@ async def test_finance_add_income_stream_rejects_unknown_phase_name(
         )
 
     assert result.isError
+
+
+@pytest.mark.anyio
+async def test_finance_set_life_phases_scales_with_steps_per_year(
+    server_params: StdioServerParameters,
+) -> None:
+    """On a monthly-step plan, the same ages must yield monthly phase boundaries."""
+    plan_name = "monthly-phases-test"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        await _call_ok(
+            session, "core_create_plan", plan_name=plan_name, step_count=720, steps_per_year=12
+        )
+        await _call_ok(
+            session,
+            "finance_set_life_phases",
+            plan_name=plan_name,
+            current_age=30,
+            employment_end_age=67,
+            statutory_pension_start_age=67,
+            life_expectancy_age=90,
+        )
+        phases_text = await _call_ok(session, "core_list_phases", plan_name=plan_name)
+
+    payload = json.loads(phases_text)
+    boundaries = [(p["name"], p["start_step"], p["end_step"]) for p in payload["phases"]]
+    assert boundaries == [
+        ("Erwerbsphase", 0, (67 - 30) * 12),
+        ("Rentenphase", (67 - 30) * 12, (90 - 30) * 12),
+    ]
 
 
 @pytest.mark.anyio

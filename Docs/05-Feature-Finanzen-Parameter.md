@@ -6,7 +6,7 @@ Alle Größen, die das Finanzen-Feature konfigurierbar macht. Konkrete Zahlenwer
 
 | Parameter | Beschreibung |
 |---|---|
-| Phasenliste | geordnete, lückenlose Folge von Lebensphasen (Name, Start, Ende) über den gesamten Zeitstrahl der Primärperson |
+| Phasenliste | geordnete, lückenlose Folge von Lebensphasen (Name, Start, Ende) über den gesamten Zeitstrahl der Primärperson; Schrittgrenzen werden aus den Altersangaben relativ zu `Timeline.steps_per_year` berechnet (siehe `Docs/01-Kern-Domaenenmodell.md`, „Zeitstrahl") |
 | Notfallpuffer-Monate je Phase | phasenspezifischer Wert statt einer einzelnen globalen Zahl; z. B. 0 in einer Ausbildungsphase ohne eigenes Einkommen, 6–12 in der Erwerbsphase, 0 in der Rentenphase |
 | Erwerbsende / gesetzlicher Rentenbeginn | die beiden fachlich wichtigsten Phasengrenzen; lösen zusätzlich zum Phasenwechsel auch den Einkommensquellenwechsel und die Rentenabschlag/-zuschlag-Berechnung aus |
 
