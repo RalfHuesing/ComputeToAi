@@ -1,7 +1,7 @@
 # Step 3: Golden-Tests für De-Risking & Sequence-of-Returns Absicherung
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.13-graduelle-kapitalsicherung-glidepath/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 
