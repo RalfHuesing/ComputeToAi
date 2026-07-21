@@ -33,7 +33,7 @@ def sample_plan() -> Plan:
     add_portfolio_rebalancing(
         plan,
         name="Target Rebalancing",
-        weights={"Rendite etf_world": 0.70, "Rendite etf_bonds": 0.30},
+        weights={"etf_world": 0.70, "etf_bonds": 0.30},
     )
     return plan
 
@@ -102,7 +102,7 @@ def test_get_asset_allocation_report_zero_total_value() -> None:
     plan.store("etf_zero").lots = []
     plan.store("etf_zero").balance = 0.0
 
-    add_portfolio_rebalancing(plan, name="Rebal", weights={"Rendite etf_zero": 1.0})
+    add_portfolio_rebalancing(plan, name="Rebal", weights={"etf_zero": 1.0})
 
     report = get_asset_allocation_report(plan)
     assert report["total_portfolio_value"] == 0.0

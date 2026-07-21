@@ -102,7 +102,13 @@ def add_portfolio_rebalancing(
     end_step: int | None = None,
     description: str | None = None,
 ) -> None:
-    """Add a computed rebalancing effect to the plan."""
+    """Add a computed rebalancing effect to the plan.
+
+    Every key in `weights` references an existing Store and is validated up
+    front - a typo'd name would otherwise silently rebalance against a
+    nonexistent position.
+    """
+    plan.validate_store_names(weights.keys())
     params = PortfolioRebalancingParameters(weights=weights)
     effect = ComputedEffect(
         name=name,
@@ -455,15 +461,13 @@ def add_cash_bucket(
     target size - without it, any cash above the computed target is always
     swept into the portfolio in full, with no way to let it accumulate
     beyond that target.
+
+    `cash_store_name` and every key in `portfolio_weights` reference
+    existing Stores and are validated up front - a typo'd name would
+    otherwise create a phantom store or silently sweep against a
+    nonexistent position.
     """
-    # Ensure the cash store exists
-    store_exists = False
-    for st in plan.stores:
-        if st.name == cash_store_name:
-            store_exists = True
-            break
-    if not store_exists:
-        plan.stores.append(Store(name=cash_store_name, balance=0.0, description=description))
+    plan.validate_store_names([cash_store_name, *portfolio_weights])
 
     params = CashBucketParameters(
         cash_store_name=cash_store_name,

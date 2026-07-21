@@ -19,6 +19,63 @@ from compute_to_ai.features.finance.positions_rebalancing import add_position_re
 from compute_to_ai.mcp.tools.plan_storage import load_plan, plan_file, save_plan
 
 
+def test_add_portfolio_rebalancing_rejects_unknown_weight_keys() -> None:
+    plan = Plan(
+        name="rebalance-unknown-store",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="equity", balance=70.0)],
+    )
+
+    # Both unknown keys must appear in the message, not just the first one.
+    with pytest.raises(ValueError, match=r"\['bondd', 'equityy'\]"):
+        add_portfolio_rebalancing(
+            plan=plan,
+            name="Portfolio Rebalancing",
+            weights={"equityy": 0.70, "bondd": 0.30},
+        )
+    assert plan.effects == []
+
+
+def test_add_cash_bucket_rejects_unknown_portfolio_weight_key() -> None:
+    plan = Plan(
+        name="cash-bucket-unknown-weight-key",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="stockss"):
+        add_cash_bucket(
+            plan=plan,
+            portfolio_weights={"stockss": 1.0},
+            emergency_buffer_months={},
+            monthly_expenses=1000.0,
+        )
+    assert plan.effects == []
+
+
+def test_add_cash_bucket_rejects_unknown_cash_store_name() -> None:
+    """A typo'd cash_store_name must fail instead of silently creating a
+    phantom store (the former auto-create behavior)."""
+    plan = Plan(
+        name="cash-bucket-unknown-cash-store",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="stocks", balance=100.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_cash_bucket(
+            plan=plan,
+            portfolio_weights={"stocks": 1.0},
+            emergency_buffer_months={},
+            monthly_expenses=1000.0,
+            cash_store_name="kasse",
+        )
+
+    # No partial state: no phantom store, no effect.
+    assert [store.name for store in plan.stores] == ["stocks"]
+    assert plan.effects == []
+
+
 def test_portfolio_rebalancing_deterministic() -> None:
     plan = Plan(
         name="rebalance-deterministic",

@@ -57,6 +57,39 @@ def sell_all_alt_func(  # pyright: ignore[reportUnusedFunction]
     balances["equity"] = 0.0
 
 
+def test_add_tax_manager_rejects_unknown_cash_store_name() -> None:
+    """A typo'd cash_store_name must fail at configuration time - the tax
+    deduction would otherwise accumulate in a phantom balance that is never
+    written back to the plan."""
+    plan = Plan(
+        name="tax-unknown-cash-store",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=100.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_tax_manager(plan=plan, cash_store_name="kasse")
+    assert plan.effects == []
+
+
+def test_add_tax_manager_rejects_unknown_asset_class_key() -> None:
+    """A typo'd asset_classes key must fail at configuration time instead of
+    only raising a KeyError during the simulation run."""
+    plan = Plan(
+        name="tax-unknown-asset-class",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=100.0), Store(name="equity", balance=100.0)],
+    )
+
+    with pytest.raises(ValueError, match="equityy"):
+        add_tax_manager(
+            plan=plan,
+            cash_store_name="cash",
+            asset_classes={"equityy": AssetClassTaxConfig()},
+        )
+    assert plan.effects == []
+
+
 def test_withholding_tax_and_allowance() -> None:
     plan = Plan(
         name="withholding-tax-test",

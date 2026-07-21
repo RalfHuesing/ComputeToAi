@@ -235,7 +235,15 @@ def add_tax_manager(
     asset_classes: dict[str, AssetClassTaxConfig] | None = None,
     description: str | None = None,
 ) -> None:
-    """Add a computed tax manager to the plan."""
+    """Add a computed tax manager to the plan.
+
+    `cash_store_name` and every key in `asset_classes` reference existing
+    Stores and are validated up front - a typo'd cash store would otherwise
+    accumulate tax deductions in a phantom balance that is never written
+    back to the plan, and a typo'd asset class key would only fail at
+    simulation time.
+    """
+    plan.validate_store_names([cash_store_name, *(asset_classes or {})])
     params = TaxManagerParameters(
         cash_store_name=cash_store_name,
         sparerpauschbetrag=sparerpauschbetrag,

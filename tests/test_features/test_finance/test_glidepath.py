@@ -3,6 +3,7 @@
 import pytest
 
 from compute_to_ai.engine.plan import Phase, Plan, Timeline
+from compute_to_ai.engine.store import Store
 from compute_to_ai.features.finance.portfolio import (
     add_cash_bucket,
     cash_bucket_manager_func,
@@ -16,7 +17,12 @@ def test_cash_bucket_glidepath_linear_increase() -> None:
         Phase(name="Erwerb", start_step=0, end_step=120),
         Phase(name="Ruhestand", start_step=120, end_step=180),
     ]
-    plan = Plan(name="Glidepath Plan", timeline=timeline, phases=phases)
+    plan = Plan(
+        name="Glidepath Plan",
+        timeline=timeline,
+        phases=phases,
+        stores=[Store(name="cash", balance=0.0), Store(name="stocks", balance=0.0)],
+    )
 
     add_cash_bucket(
         plan=plan,
@@ -56,7 +62,12 @@ def test_cash_bucket_glidepath_dynamic_shortening() -> None:
         Phase(name="Erwerb", start_step=0, end_step=24),
         Phase(name="Ruhestand", start_step=24, end_step=60),
     ]
-    plan = Plan(name="Short Ramp Plan", timeline=timeline, phases=phases)
+    plan = Plan(
+        name="Short Ramp Plan",
+        timeline=timeline,
+        phases=phases,
+        stores=[Store(name="cash", balance=0.0), Store(name="stocks", balance=0.0)],
+    )
 
     # Requested 36 steps, but only 24 steps exist in Erwerbsphase
     add_cash_bucket(
@@ -93,7 +104,12 @@ def test_sequence_of_returns_glidepath_protection() -> None:
     ]
 
     # Scenario A: Abrupt (no glidepath)
-    plan_abrupt = Plan(name="Abrupt", timeline=timeline, phases=phases)
+    plan_abrupt = Plan(
+        name="Abrupt",
+        timeline=timeline,
+        phases=phases,
+        stores=[Store(name="cash", balance=0.0), Store(name="stocks", balance=0.0)],
+    )
     add_cash_bucket(
         plan=plan_abrupt,
         portfolio_weights={"stocks": 1.0},
@@ -115,7 +131,12 @@ def test_sequence_of_returns_glidepath_protection() -> None:
     total_abrupt = bal_abrupt["cash"] + bal_abrupt["stocks"]
 
     # Scenario B: Glidepath (36 steps de-risking)
-    plan_glidepath = Plan(name="Glidepath", timeline=timeline, phases=phases)
+    plan_glidepath = Plan(
+        name="Glidepath",
+        timeline=timeline,
+        phases=phases,
+        stores=[Store(name="cash", balance=0.0), Store(name="stocks", balance=0.0)],
+    )
     add_cash_bucket(
         plan=plan_glidepath,
         portfolio_weights={"stocks": 1.0},
