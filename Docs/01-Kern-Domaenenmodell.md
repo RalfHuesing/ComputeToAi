@@ -54,7 +54,12 @@ Ein Simulationslauf **läuft nach Eintritt eines Ruins weiter** statt abzubreche
 
 ## Plan
 
-Ein Plan ist eine vollständige, benannte Konfiguration aus Speichern, Effekten (inkl. aktivierter Bausteine und deren Parametrisierung), Zeitstrahl, Phasen und Zielbedingung – die Instanz, die tatsächlich simuliert wird. Ein Plan ist jederzeit kopierbar; eine Kopie kann verändert und mit dem Original verglichen werden (Was-wäre-wenn). Für einen fairen Vergleich zweier Pläne sollten dieselben Zufallsziehungen verwendet werden (Common-Random-Numbers-Technik), damit ein Unterschied im Ergebnis tatsächlich die geänderte Konfiguration widerspiegelt und nicht nur zufälliges Rauschen zwischen unabhängigen Läufen. Ein Plan ersetzt den früheren, finanzspezifischen Begriff „Simulationsszenario".
+Ein Plan ist eine vollständige, benannte Konfiguration aus Speichern, Effekten (inkl. aktivierter Bausteine und deren Parametrisierung), Zeitstrahl, Phasen, Zielbedingung und einer **zentralen Parameter-Registry** – die Instanz, die tatsächlich simuliert wird.
+
+**Zentrale Parameter-Registry (Single Source of Truth)**:
+Ein Plan hält ein zentrales Wörterbuch makroökonomischer oder allgemeiner Parameter (`parameters: dict[str, float]`, z. B. `{"inflation_general": 0.02, "gehalt_growth": 0.005}`). Effekte können Raten-Parameter entweder als numerischen Wert (z. B. `0.02`) oder als Referenz-String (`"ref:inflation_general"`) angeben. Bei der Simulation löst die Engine solche Referenzen dynamisch über den Plan auf. Wird ein Parameter zentral im Plan geändert, passen sich alle verknüpften Effekte in der Simulation automatisch an.
+
+Ein Plan ist jederzeit kopierbar; eine Kopie kann verändert und mit dem Original verglichen werden (Was-wäre-wenn). Für einen fairen Vergleich zweier Pläne sollten dieselben Zufallsziehungen verwendet werden (Common-Random-Numbers-Technik), damit ein Unterschied im Ergebnis tatsächlich die geänderte Konfiguration widerspiegelt und nicht nur zufälliges Rauschen zwischen unabhängigen Läufen. Ein Plan ersetzt den früheren, finanzspezifischen Begriff „Simulationsszenario".
 
 ## Simulationslauf & Simulationsergebnis
 

@@ -1,7 +1,7 @@
 # Step 2: Referenz-Auflösung in Effekten
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.14-zentrale-parameter-registry/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 

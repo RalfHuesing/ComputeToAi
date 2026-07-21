@@ -1,6 +1,6 @@
 # Konzept: Task 4.14 – Zentrale Parameter- & Raten-Registry (Single Source of Truth)
 
-**Status**: READY  
+**Status**: DONE  
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.14  
 **Erstellt am**: 2026-07-21  
 
