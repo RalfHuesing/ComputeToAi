@@ -14,6 +14,7 @@ from compute_to_ai.features.finance.reports import (
 )
 from compute_to_ai.mcp.tools.plan_storage import (
     PATH_AUDIT_RESULT_FILENAME,
+    ResultNotFoundError,
     load_plan,
     load_result,
 )
@@ -71,7 +72,7 @@ def _register_report_tools(mcp: FastMCP, working_directory: Path) -> None:
             audit = load_result(
                 working_directory, plan_name, PATH_AUDIT_RESULT_FILENAME, PathAuditResult
             )
-        except Exception:
+        except ResultNotFoundError:
             audit = None
 
         result = compare_plan_actuals(plan, audit_result=audit, current_step=current_step)

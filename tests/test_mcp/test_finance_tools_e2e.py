@@ -356,6 +356,65 @@ async def test_add_tools_echo_stored_values(server_params: StdioServerParameters
 
 
 @pytest.mark.anyio
+async def test_finance_add_fixed_acquisition_supports_glidepath(
+    server_params: StdioServerParameters,
+) -> None:
+    """With glidepath_years/risky_store_name, the MCP tool must create a
+    flexible_acquisition computed effect (de-risking before the purchase),
+    not just a one-step outflow; without them, behavior is unchanged."""
+    plan_name = "glidepath-acquisition-test"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        await _call_ok(
+            session, "core_create_plan", plan_name=plan_name, step_count=20, steps_per_year=1
+        )
+        await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="cash")
+        await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="depot")
+
+        glidepath_text = await _call_ok(
+            session,
+            "finance_add_fixed_acquisition",
+            plan_name=plan_name,
+            name="Auto",
+            store_name="cash",
+            amount=25000.0,
+            step=10,
+            glidepath_years=3.0,
+            risky_store_name="depot",
+        )
+        glidepath_echo = json.loads(glidepath_text)
+        assert glidepath_echo["effect_type"] == "flexible_acquisition"
+        assert glidepath_echo["target_step"] == 10
+        assert glidepath_echo["glidepath_start_step"] == 7
+        assert glidepath_echo["risky_store_name"] == "depot"
+        assert glidepath_echo["safe_store_name"] == "cash"
+
+        plain_text = await _call_ok(
+            session,
+            "finance_add_fixed_acquisition",
+            plan_name=plan_name,
+            name="Küche",
+            store_name="cash",
+            amount=15000.0,
+            step=5,
+        )
+        plain_echo = json.loads(plain_text)
+        assert plain_echo["effect_type"] == "growing_fixed"
+        assert plain_echo["amount_per_step"] == pytest.approx(-15000.0)
+
+        effects_text = await _call_ok(session, "core_list_effects", plan_name=plan_name)
+
+    effects = json.loads(effects_text)["effects"]
+    auto = next(effect for effect in effects if effect["name"] == "Auto")
+    assert auto["function_name"] == "flexible_acquisition"
+    kueche = next(effect for effect in effects if effect["name"] == "Küche")
+    assert "function_name" not in kueche or kueche.get("function_name") is None
+
+
+@pytest.mark.anyio
 async def test_finance_set_life_phases_scales_with_steps_per_year(
     server_params: StdioServerParameters,
 ) -> None:

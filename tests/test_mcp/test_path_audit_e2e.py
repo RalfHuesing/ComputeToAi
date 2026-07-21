@@ -251,6 +251,91 @@ async def test_finance_get_path_category_series_on_unknown_path_is_a_tool_error(
 
 
 @pytest.mark.anyio
+async def test_finance_compare_plans_without_results_still_compares_configs(
+    server_params: StdioServerParameters,
+) -> None:
+    """Missing Monte-Carlo results are the expected "not simulated yet" state -
+    the comparison must succeed with configuration data only."""
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="compare-a", step_count=3)
+        await _call_ok(session, "core_add_store", plan_name="compare-a", store_name="cash")
+        await _call_ok(session, "core_create_plan", plan_name="compare-b", step_count=3)
+        await _call_ok(session, "core_add_store", plan_name="compare-b", store_name="cash")
+
+        result = await session.call_tool(
+            "finance_compare_plans",
+            {"plan_name_a": "compare-a", "plan_name_b": "compare-b"},
+        )
+
+    assert not result.isError, result.content
+
+
+@pytest.mark.anyio
+async def test_finance_compare_plans_with_corrupted_result_is_a_tool_error(
+    server_params: StdioServerParameters, tmp_path: Path
+) -> None:
+    """A present-but-broken result file is a real error and must propagate,
+    not silently degrade into the "no result yet" behavior."""
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="corrupt-a", step_count=3)
+        await _call_ok(session, "core_add_store", plan_name="corrupt-a", store_name="cash")
+        await _call_ok(session, "core_create_plan", plan_name="corrupt-b", step_count=3)
+        await _call_ok(session, "core_add_store", plan_name="corrupt-b", store_name="cash")
+
+        # The server's working directory is tmp_path/"work" (see server_params).
+        corrupted = tmp_path / "work" / "corrupt-a" / "monte_carlo_result.json"
+        corrupted.write_text("{ this is not valid json", encoding="utf-8")
+
+        result = await session.call_tool(
+            "finance_compare_plans",
+            {"plan_name_a": "corrupt-a", "plan_name_b": "corrupt-b"},
+        )
+
+    assert result.isError
+
+
+@pytest.mark.anyio
+async def test_finance_compare_plan_actuals_with_corrupted_audit_is_a_tool_error(
+    server_params: StdioServerParameters, tmp_path: Path
+) -> None:
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        await _call_ok(session, "core_create_plan", plan_name="actuals-corrupt", step_count=3)
+        await _call_ok(session, "core_add_store", plan_name="actuals-corrupt", store_name="cash")
+
+        # Regression: with no audit result at all, the tool degrades gracefully.
+        missing_ok = await session.call_tool(
+            "finance_compare_plan_actuals",
+            {"plan_name": "actuals-corrupt", "current_step": 0},
+        )
+        assert not missing_ok.isError, missing_ok.content
+
+        corrupted = tmp_path / "work" / "actuals-corrupt" / "path_audit_result.json"
+        corrupted.write_text('{"paths": "wrong-shape"}', encoding="utf-8")
+
+        result = await session.call_tool(
+            "finance_compare_plan_actuals",
+            {"plan_name": "actuals-corrupt", "current_step": 0},
+        )
+
+    assert result.isError
+
+
+@pytest.mark.anyio
 async def test_finance_get_path_event_log_without_a_path_audit_is_a_tool_error(
     server_params: StdioServerParameters,
 ) -> None:

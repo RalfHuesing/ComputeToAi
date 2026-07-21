@@ -17,6 +17,7 @@ from compute_to_ai.features.finance.path_audit import (
 )
 from compute_to_ai.mcp.tools.plan_storage import (
     PATH_AUDIT_RESULT_FILENAME,
+    ResultNotFoundError,
     load_audited_path,
     load_plan,
     load_result,
@@ -87,14 +88,14 @@ def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
             result_a = load_result(
                 working_directory, plan_name_a, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult
             )
-        except Exception:
+        except ResultNotFoundError:
             result_a = None
 
         try:
             result_b = load_result(
                 working_directory, plan_name_b, _MONTE_CARLO_RESULT_FILENAME, MonteCarloResult
             )
-        except Exception:
+        except ResultNotFoundError:
             result_b = None
 
         comparison = compare_plans(plan_a, result_a, plan_b, result_b)

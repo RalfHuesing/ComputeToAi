@@ -15,6 +15,15 @@ from compute_to_ai.engine.result import PathAuditResult, SimulationResult
 PATH_AUDIT_RESULT_FILENAME = "path_audit_result.json"
 
 
+class ResultNotFoundError(ValueError):
+    """A plan has no stored result file yet (simulation not run).
+
+    Distinct from pydantic's ValidationError (also a ValueError subclass) so
+    a caller treating "no result yet" as an expected, recoverable state does
+    not accidentally swallow a genuinely broken result file with it.
+    """
+
+
 def plan_dir(working_directory: Path, plan_name: str) -> Path:
     return working_directory / plan_name
 
@@ -47,7 +56,7 @@ def load_result[ResultT: BaseModel](
     file = result_file(working_directory, plan_name, filename)
     if not file.exists():
         msg = f"no {filename} for plan {plan_name!r}; run the simulation first"
-        raise ValueError(msg)
+        raise ResultNotFoundError(msg)
     return model.model_validate_json(file.read_text(encoding="utf-8"))
 
 

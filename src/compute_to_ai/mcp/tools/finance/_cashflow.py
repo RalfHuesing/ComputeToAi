@@ -145,20 +145,49 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         step: int,
         inflation_rate: float = 0.0,
         description: str | None = None,
+        glidepath_years: float = 0.0,
+        risky_store_name: str | None = None,
     ) -> dict[str, Any]:
         """Add a one-time fixed acquisition (always an outflow, magnitude only).
 
-        Returns the stored effect's values, including the negated
-        `amount_per_step` actually applied at `step`.
+        With `glidepath_years > 0` and a `risky_store_name`, capital is
+        gradually shifted from `risky_store_name` into `store_name` over the
+        glidepath window preceding `step` (stored as a `flexible_acquisition`
+        computed effect); otherwise a plain one-step outflow is stored.
+
+        Returns the stored effect's values, including which effect type was
+        created and the negated `amount_per_step` for the plain variant.
         """
         plan = load_plan(working_directory, plan_name)
-        add_fixed_acquisition(plan, name, store_name, amount, step, inflation_rate, description)
+        add_fixed_acquisition(
+            plan,
+            name,
+            store_name,
+            amount,
+            step,
+            inflation_rate,
+            description,
+            glidepath_years,
+            risky_store_name,
+        )
         save_plan(working_directory, plan)
         effect = plan.effects[-1]
         logger.info("finance_add_fixed_acquisition: plan=%r name=%r status=ok", plan_name, name)
         logger.debug("finance_add_fixed_acquisition stored effect: %s", effect.model_dump())
+        parameters = getattr(effect, "parameters", None)
+        if parameters is not None:
+            return {
+                "name": effect.name,
+                "effect_type": "flexible_acquisition",
+                "amount": parameters.get("amount"),
+                "target_step": parameters.get("target_step"),
+                "glidepath_start_step": parameters.get("glidepath_start_step"),
+                "risky_store_name": parameters.get("risky_store_name"),
+                "safe_store_name": parameters.get("safe_store_name"),
+            }
         return {
             "name": effect.name,
+            "effect_type": "growing_fixed",
             "store_name": store_name,
             "amount_per_step": getattr(effect, "amount_per_step", None),
             "start_step": effect.start_step,
