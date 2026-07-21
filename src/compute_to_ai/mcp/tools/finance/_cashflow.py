@@ -33,7 +33,14 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         first_occurrence_step: int = 0,
         first_occurrence_year: float | None = None,
     ) -> str:
-        """Add a growing income stream (positive cashflow) to the plan."""
+        """Add a growing income stream (positive cashflow) to the plan.
+
+        `frequency`/`interval_years` are relative to the plan's own step
+        granularity (`Timeline.steps_per_year`, set via core_create_plan),
+        not to calendar months - e.g. "monthly" on a plan with one step per
+        year folds 12 months into the full annual `amount_per_step`, applied
+        every step, rather than spacing it out.
+        """
         plan = load_plan(working_directory, plan_name)
         add_income_stream(
             plan,
@@ -70,7 +77,12 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         first_occurrence_step: int = 0,
         first_occurrence_year: float | None = None,
     ) -> str:
-        """Add an inflation-adjusted expense (negative cashflow) to the plan."""
+        """Add an inflation-adjusted expense (negative cashflow) to the plan.
+
+        `frequency`/`interval_years` are relative to the plan's own step
+        granularity (`Timeline.steps_per_year`, set via core_create_plan),
+        not to calendar months - see finance_add_income_stream.
+        """
         plan = load_plan(working_directory, plan_name)
         add_expense(
             plan,

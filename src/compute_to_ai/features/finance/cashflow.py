@@ -14,30 +14,48 @@ from compute_to_ai.engine.effect import (
 )
 from compute_to_ai.engine.plan import Plan
 
-FREQUENCY_MAP: dict[str, int] = {
-    "monthly": 1,
-    "quarterly": 3,
-    "yearly": 12,
-    "annual": 12,
+FREQUENCY_PERIODS_PER_YEAR: dict[str, float] = {
+    "monthly": 12.0,
+    "quarterly": 4.0,
+    "yearly": 1.0,
+    "annual": 1.0,
 }
 
 
-def parse_frequency_to_interval(
+def resolve_frequency(
     frequency: str = "monthly",
+    steps_per_year: int = 12,
     interval_years: int | None = None,
-) -> int:
-    """Parse frequency string and optional interval_years into step count (months)."""
+) -> tuple[int, float]:
+    """Resolve a frequency string into (interval_steps, amount_multiplier).
+
+    A Plan's step is its finest resolvable unit of time (see
+    `Timeline.steps_per_year`), so a frequency is never both scaled and
+    spaced out. A frequency finer than one step (e.g. "monthly" on a
+    Plan with `steps_per_year=1`) folds its occurrences within one step
+    into `amount_multiplier`, applied every step (`interval_steps=1`). A
+    frequency coarser than one step (e.g. "yearly" on a Plan with
+    `steps_per_year=12`) instead spaces occurrences via `interval_steps`,
+    leaving `amount_multiplier=1.0` since only one occurrence happens per
+    firing.
+    """
     freq = frequency.lower()
-    if freq in FREQUENCY_MAP:
-        return FREQUENCY_MAP[freq]
-    if freq == "every_n_years":
+    if freq in FREQUENCY_PERIODS_PER_YEAR:
+        periods_per_year = FREQUENCY_PERIODS_PER_YEAR[freq]
+    elif freq == "every_n_years":
         if interval_years is None or interval_years < 1:
             msg = "interval_years must be at least 1 when frequency is 'every_n_years'"
             raise ValueError(msg)
-        return interval_years * 12
-    supported = [*FREQUENCY_MAP.keys(), "every_n_years"]
-    msg = f"Unknown frequency: {frequency!r}. Supported values: {supported}"
-    raise ValueError(msg)
+        periods_per_year = 1.0 / interval_years
+    else:
+        supported = [*FREQUENCY_PERIODS_PER_YEAR.keys(), "every_n_years"]
+        msg = f"Unknown frequency: {frequency!r}. Supported values: {supported}"
+        raise ValueError(msg)
+
+    occurrences_per_step = periods_per_year / steps_per_year
+    if occurrences_per_step >= 1.0:
+        return 1, occurrences_per_step
+    return round(1.0 / occurrences_per_step), 1.0
 
 
 def add_income_stream(
@@ -57,14 +75,15 @@ def add_income_stream(
 ) -> None:
     """Add a growing fixed income stream (positive cashflow) to the plan."""
     plan.validate_active_phases(active_phases)
-    interval_steps = parse_frequency_to_interval(frequency, interval_years)
+    steps_per_year = plan.timeline.steps_per_year
+    interval_steps, amount_multiplier = resolve_frequency(frequency, steps_per_year, interval_years)
     if first_occurrence_year is not None:
-        first_occurrence_step = round(first_occurrence_year * 12)
+        first_occurrence_step = round(first_occurrence_year * steps_per_year)
 
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,
-        amount_per_step=amount,
+        amount_per_step=amount * amount_multiplier,
         growth_rate=growth_rate,
         active_phases=active_phases,
         start_step=start_step,
@@ -93,14 +112,15 @@ def add_expense(
 ) -> None:
     """Add an inflation-adjusted expense (negative cashflow) to the plan."""
     plan.validate_active_phases(active_phases)
-    interval_steps = parse_frequency_to_interval(frequency, interval_years)
+    steps_per_year = plan.timeline.steps_per_year
+    interval_steps, amount_multiplier = resolve_frequency(frequency, steps_per_year, interval_years)
     if first_occurrence_year is not None:
-        first_occurrence_step = round(first_occurrence_year * 12)
+        first_occurrence_step = round(first_occurrence_year * steps_per_year)
 
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,
-        amount_per_step=-amount,
+        amount_per_step=-amount * amount_multiplier,
         growth_rate=inflation_rate,
         active_phases=active_phases,
         start_step=start_step,
@@ -136,7 +156,7 @@ def add_fixed_acquisition(
     `glidepath_years` window preceding `step`.
     """
     if glidepath_years > 0.0 and risky_store_name is not None:
-        glidepath_steps = round(glidepath_years * 12)
+        glidepath_steps = round(glidepath_years * plan.timeline.steps_per_year)
         glidepath_start_step = max(0, step - glidepath_steps)
         add_flexible_acquisition(
             plan=plan,

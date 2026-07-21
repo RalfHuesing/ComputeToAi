@@ -81,15 +81,19 @@ Die Ziel-Größe des Cash-Bucket-Speichers wird jedes Simulationsjahr neu berech
 ## Periodische Cashflows & Turnusausgaben
 
 In der Lebensplanung fallen Einnahmen und Ausgaben in unterschiedlichen Rhythmen an:
-- **Monatlich (`monthly`)**: Schrittweite 1 Monat.
-- **Quartalsweise (`quarterly`)**: Schrittweite 3 Monate.
-- **Jährlich (`yearly` / `annual`)**: Schrittweite 12 Monate.
-- **Mehrjähriger Turnus (`every_n_years`)**: Schrittweite `interval_years * 12` Monate (z. B. Autokauf alle 5 Jahre oder Dachsanierung alle 20 Jahre).
+- **Monatlich (`monthly`)**: 12 Vorkommen pro Jahr.
+- **Quartalsweise (`quarterly`)**: 4 Vorkommen pro Jahr.
+- **Jährlich (`yearly` / `annual`)**: 1 Vorkommen pro Jahr.
+- **Mehrjähriger Turnus (`every_n_years`)**: 1 Vorkommen alle `interval_years` Jahre (z. B. Autokauf alle 5 Jahre oder Dachsanierung alle 20 Jahre).
+
+Diese Rhythmen sind relativ zum Kalenderjahr definiert, nicht zum Zeitschritt selbst – die tatsächliche Umrechnung erfolgt relativ zu `Timeline.steps_per_year` (siehe 01-Kern-Domaenenmodell.md, „Zeitstrahl"), der Schrittweite des jeweiligen Plans:
+- Ist ein Rhythmus **feiner** als ein Zeitschritt (z. B. `monthly` bei `steps_per_year=1`, einem Plan mit Jahresschritten), lässt sich der Rhythmus nicht auf mehrere Schritte verteilen – stattdessen werden alle Vorkommen innerhalb eines Schritts zum vollen Pro-Schritt-Betrag zusammengefasst (12 Monatsbeträge = 1 Jahresbetrag pro Schritt) und dieser wird in jedem Schritt wirksam.
+- Ist ein Rhythmus **gröber** als ein Zeitschritt (z. B. `yearly` bei `steps_per_year=12`, einem Plan mit Monatsschritten), wird der volle Betrag stattdessen über `interval_steps` auf die entsprechend selteneren Schritte verteilt.
 
 **Fachliches Prinzip**:
-Statt mehrjährige Turnusausgaben auf künstliche Monats- oder Jahresdurchschnitte umzurechnen (was Liquiditätsspitzen verschleiern würde), lässt die Engine Ausgaben exakt in den Zeitschritten wirksam werden, in denen sie tatsächlich anfallen (`interval_steps`). 
+Statt mehrjährige Turnusausgaben auf künstliche Monats- oder Jahresdurchschnitte umzurechnen (was Liquiditätsspitzen verschleiern würde), lässt die Engine Ausgaben exakt in den Zeitschritten wirksam werden, in denen sie tatsächlich anfallen (`interval_steps`).
 
-Über den Parameter `first_occurrence_step` bzw. `first_occurrence_year` lässt sich der zeitliche Versatz des Erstauftritts festlegen. Die Steigerung durch Inflation oder Wertsicherungsklauseln wird dynamisch für jeden Zeitschritt $t$ als $(1 + r)^t$ berechnet und kommt genau in den aktiven Intervallschritten zum Tragen.
+Über den Parameter `first_occurrence_step` bzw. `first_occurrence_year` (ebenfalls relativ zu `steps_per_year` umgerechnet) lässt sich der zeitliche Versatz des Erstauftritts festlegen. Die Steigerung durch Inflation oder Wertsicherungsklauseln wird dynamisch für jeden Zeitschritt $t$ als $(1 + r)^t$ berechnet und kommt genau in den aktiven Intervallschritten zum Tragen.
 
 ## Besteuerung (deutsches Steuerrecht)
 

@@ -10,23 +10,36 @@ from compute_to_ai.engine.simulation import run_simulation
 from compute_to_ai.features.finance.cashflow import (
     add_expense,
     add_income_stream,
-    parse_frequency_to_interval,
+    resolve_frequency,
 )
 
 
-def test_parse_frequency_to_interval() -> None:
-    """Test frequency string conversion to step counts."""
-    assert parse_frequency_to_interval("monthly") == 1
-    assert parse_frequency_to_interval("quarterly") == 3
-    assert parse_frequency_to_interval("yearly") == 12
-    assert parse_frequency_to_interval("annual") == 12
-    assert parse_frequency_to_interval("every_n_years", interval_years=5) == 60
+def test_resolve_frequency_on_monthly_step_plan() -> None:
+    """On a plan with steps_per_year=12 (the default), coarser-than-a-step
+    frequencies space out occurrences via interval_steps; the amount is
+    applied unscaled since only one occurrence happens per firing."""
+    assert resolve_frequency("monthly", steps_per_year=12) == (1, 1.0)
+    assert resolve_frequency("quarterly", steps_per_year=12) == (3, 1.0)
+    assert resolve_frequency("yearly", steps_per_year=12) == (12, 1.0)
+    assert resolve_frequency("annual", steps_per_year=12) == (12, 1.0)
+    assert resolve_frequency("every_n_years", steps_per_year=12, interval_years=5) == (60, 1.0)
 
     with pytest.raises(ValueError, match="interval_years must be at least 1"):
-        parse_frequency_to_interval("every_n_years", interval_years=0)
+        resolve_frequency("every_n_years", steps_per_year=12, interval_years=0)
 
     with pytest.raises(ValueError, match="Unknown frequency"):
-        parse_frequency_to_interval("invalid_freq")
+        resolve_frequency("invalid_freq", steps_per_year=12)
+
+
+def test_resolve_frequency_on_yearly_step_plan() -> None:
+    """On a plan with steps_per_year=1 (one step per simulated year, e.g. a
+    long-horizon retirement plan), frequencies finer than a step fold their
+    occurrences into amount_multiplier instead, since a step can't be
+    subdivided; every_n_years still spaces out via interval_steps."""
+    assert resolve_frequency("monthly", steps_per_year=1) == (1, 12.0)
+    assert resolve_frequency("quarterly", steps_per_year=1) == (1, 4.0)
+    assert resolve_frequency("yearly", steps_per_year=1) == (1, 1.0)
+    assert resolve_frequency("every_n_years", steps_per_year=1, interval_years=5) == (5, 1.0)
 
 
 def test_yearly_expense_simulation() -> None:
@@ -115,3 +128,29 @@ def test_offset_first_occurrence_income() -> None:
     assert series[6]["cash"] == 1000.0
     # Step 9: +500 -> 1500
     assert series[9]["cash"] == 1500.0
+
+
+def test_yearly_income_on_a_yearly_step_plan() -> None:
+    """A plan with steps_per_year=1 (one step per simulated year) applies a
+    "monthly" salary as its full annual amount every single step, since a
+    step can't be subdivided into months - not once every 12 steps."""
+    plan = Plan(
+        name="yearly_step_income_plan",
+        timeline=Timeline(step_count=3, steps_per_year=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+    add_income_stream(
+        plan,
+        name="Gehalt Netto",
+        store_name="cash",
+        amount=3457.08,
+        frequency="monthly",
+    )
+
+    result = run_simulation(plan)
+    series = result.time_series
+
+    # 3,457.08 EUR/month * 12 = 41,484.96 EUR/year, applied every step.
+    assert pytest.approx(series[0]["cash"]) == 41484.96
+    assert pytest.approx(series[1]["cash"]) == 82969.92
+    assert pytest.approx(series[2]["cash"]) == 124454.88

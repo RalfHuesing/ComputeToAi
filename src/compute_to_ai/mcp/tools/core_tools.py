@@ -41,14 +41,30 @@ def register_core_tools(mcp: FastMCP, working_directory: Path) -> None:
 
 def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
-    def core_create_plan(plan_name: str, step_count: int, description: str | None = None) -> str:  # pyright: ignore[reportUnusedFunction]
-        """Create a new Plan with an empty Timeline of step_count steps."""
+    def core_create_plan(  # pyright: ignore[reportUnusedFunction]
+        plan_name: str,
+        step_count: int,
+        steps_per_year: int = 12,
+        description: str | None = None,
+    ) -> str:
+        """Create a new Plan with an empty Timeline of step_count steps.
+
+        `steps_per_year` fixes how many steps make up one calendar year
+        (default 12, i.e. monthly steps) - feature-module tools that accept a
+        calendar-based `frequency` (e.g. finance_add_income_stream) convert
+        relative to this value, so a Plan built on annual steps (one step per
+        simulated year) must set it to 1.
+        """
         plan = Plan(
-            name=plan_name, timeline=Timeline(step_count=step_count), description=description
+            name=plan_name,
+            timeline=Timeline(step_count=step_count, steps_per_year=steps_per_year),
+            description=description,
         )
         _save_plan(working_directory, plan)
         logger.info("core_create_plan: plan=%r status=ok", plan_name)
-        logger.debug("core_create_plan args: step_count=%d", step_count)
+        logger.debug(
+            "core_create_plan args: step_count=%d steps_per_year=%d", step_count, steps_per_year
+        )
         return f"created plan {plan_name!r} with {step_count} steps"
 
     @mcp.tool()

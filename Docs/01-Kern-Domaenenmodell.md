@@ -38,7 +38,7 @@ Effekte mit einer stochastischen Komponente können paarweise korreliert sein (t
 
 ## Zeitstrahl
 
-Der Zeitstrahl definiert Startzeitpunkt, Dauer und Schrittweite eines Simulationslaufs. Beides ist frei wählbar – eine Finanzsimulation läuft typischerweise über 40–80 Jahre in Jahresschritten, ein anderer Anwendungsfall könnte über Stunden in Minutenschritten laufen. Der Kern selbst trifft keine Annahme über sinnvolle Schrittweiten oder Einheiten; das ist Sache des jeweiligen Feature-Moduls bzw. Plans.
+Der Zeitstrahl definiert Startzeitpunkt, Dauer und Schrittweite eines Simulationslaufs. Beides ist frei wählbar – eine Finanzsimulation läuft typischerweise über 40–80 Jahre in Jahresschritten, ein anderer Anwendungsfall könnte über Stunden in Minutenschritten laufen. Der Kern selbst trifft keine Annahme über sinnvolle Schrittweiten oder Einheiten; das ist Sache des jeweiligen Feature-Moduls bzw. Plans. Das Feld `Timeline.steps_per_year` macht diese Wahl explizit (Default 12, also Monatsschritte) – Feature-Module, die einen kalenderbasierten Rhythmus (z. B. `frequency: "monthly"/"yearly"` bei periodischen Cashflows, siehe 04-Feature-Finanzen-Methodik.md) in Zeitschritte umrechnen müssen, rechnen relativ zu diesem Wert statt eine feste Schrittweite anzunehmen.
 
 ## Phase
 
