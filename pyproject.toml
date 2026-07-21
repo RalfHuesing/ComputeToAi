@@ -60,18 +60,27 @@ select = [
     "RUF",      # ruff-specific checks
     "PERF",     # performance anti-patterns
     "G",        # logging format-string safety
+    "PLR",      # pylint refactoring (complexity, statement limits, branch limits)
 ]
 ignore = [
     "ANN401",   # Any is legitimate for genuinely dynamic JSON-shaped payloads
+    "PLR0913",  # Tool entry points with optional parameters legitimately take >5 args
+    "PLR2004",  # Magic values in assertions/comparisons are expected
 ]
+
 mccabe.max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-branches = 12
+max-statements = 50
+max-returns = 6
+
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]  # assert is the point of a test
-# S310: the whole point of this module is fetching an externally-supplied
-# ISIN/WKN's price page, so the URL is unavoidably dynamic, not user input
-# reaching a filesystem/internal path.
+"src/compute_to_ai/mcp/tools/**" = ["C901", "PLR0915"]  # MCP tool registration functions bundle multiple tools
 "src/compute_to_ai/features/finance/live_price.py" = ["S310"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -89,8 +89,6 @@ def contribution_allocation(
 
     total_weight = sum(bucket.target_weight for bucket in buckets)
     if total_weight > 0.0:
-        return {
-            bucket.name: new_amount * bucket.target_weight / total_weight for bucket in buckets
-        }
+        return {bucket.name: new_amount * bucket.target_weight / total_weight for bucket in buckets}
     equal_share = new_amount / len(buckets)
     return {bucket.name: equal_share for bucket in buckets}

@@ -129,9 +129,7 @@ async def test_finance_update_plan_prices_skips_failing_position_but_updates_oth
 
         bond_should_fail["value"] = True
 
-        result_text = await _call_ok(
-            session, "finance_update_plan_prices", plan_name=plan_name
-        )
+        result_text = await _call_ok(session, "finance_update_plan_prices", plan_name=plan_name)
 
     payload = json.loads(result_text)
     assert [update["store_name"] for update in payload["updated"]] == ["equity"]
@@ -182,14 +180,10 @@ async def test_finance_update_plan_prices_skips_position_whose_store_was_removed
         plan_file = working_directory / plan_name / "plan.json"
         plan_data = json.loads(plan_file.read_text(encoding="utf-8"))
         plan_data["stores"] = [s for s in plan_data["stores"] if s["name"] != "equity"]
-        plan_data["effects"] = [
-            e for e in plan_data["effects"] if e.get("store_name") != "equity"
-        ]
+        plan_data["effects"] = [e for e in plan_data["effects"] if e.get("store_name") != "equity"]
         plan_file.write_text(json.dumps(plan_data), encoding="utf-8")
 
-        result_text = await _call_ok(
-            session, "finance_update_plan_prices", plan_name=plan_name
-        )
+        result_text = await _call_ok(session, "finance_update_plan_prices", plan_name=plan_name)
 
     payload = json.loads(result_text)
     assert payload["updated"] == []

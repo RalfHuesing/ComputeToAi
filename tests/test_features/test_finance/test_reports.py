@@ -145,9 +145,7 @@ def test_get_asset_allocation_report_pre_2009_lots(sample_plan: Plan) -> None:
 # ============================================================================
 
 
-def test_estimate_sale_tax_happy_path(
-    sample_plan: Plan, sample_registry: PositionRegistry
-) -> None:
+def test_estimate_sale_tax_happy_path(sample_plan: Plan, sample_registry: PositionRegistry) -> None:
     """Happy Path: Sale of equity fund with 2000€ gain, 30% exemption, 1000€ saver's allowance."""
     store = sample_plan.store("etf_world")
     store.balance = 7000.0
@@ -187,9 +185,7 @@ def test_estimate_sale_tax_excess_shares_error(
         )
 
 
-def test_estimate_sale_tax_loss_sale(
-    sample_plan: Plan, sample_registry: PositionRegistry
-) -> None:
+def test_estimate_sale_tax_loss_sale(sample_plan: Plan, sample_registry: PositionRegistry) -> None:
     """Edge Case: Sale at a loss results in 0 € tax."""
     store = sample_plan.store("etf_world")
     store.balance = 4000.0
@@ -213,9 +209,7 @@ def test_estimate_sale_tax_pre_2009_bestandsschutz(
     """Edge Case: Sale of pre-2009 lots is tax exempt."""
     store = sample_plan.store("etf_world")
     store.balance = 7000.0
-    store.lots = [
-        Lot(quantity=7000.0, created_step=0, cost_basis=2000.0, rule_version="pre_2009")
-    ]
+    store.lots = [Lot(quantity=7000.0, created_step=0, cost_basis=2000.0, rule_version="pre_2009")]
 
     result = estimate_sale_tax(
         plan=sample_plan,

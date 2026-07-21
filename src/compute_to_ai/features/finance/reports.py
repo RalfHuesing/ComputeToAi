@@ -107,12 +107,14 @@ def _build_pos_details(
         st = plan.store(s_name)
         meta = registry.positions.get(s_name)
         asset_type = meta.asset_type if meta else "equity_fund"
-        pos_details.append({
-            "store_name": s_name,
-            "asset_type": asset_type,
-            "balance": st.balance,
-            **_analyze_lots(st),
-        })
+        pos_details.append(
+            {
+                "store_name": s_name,
+                "asset_type": asset_type,
+                "balance": st.balance,
+                **_analyze_lots(st),
+            }
+        )
     return pos_details
 
 
@@ -143,14 +145,16 @@ def get_asset_allocation_report(
         drift = actual_w - target_w
         pos_details = _build_pos_details(plan, s_names, registry)
 
-        asset_classes_report.append({
-            "asset_class": ac_name,
-            "target_weight": target_w,
-            "actual_value": ac_value,
-            "actual_weight": actual_w,
-            "drift": drift,
-            "positions": pos_details,
-        })
+        asset_classes_report.append(
+            {
+                "asset_class": ac_name,
+                "target_weight": target_w,
+                "actual_value": ac_value,
+                "actual_weight": actual_w,
+                "drift": drift,
+                "positions": pos_details,
+            }
+        )
 
     liability_stores = _liability_store_names(plan)
     all_positions: list[dict[str, Any]] = []
@@ -159,12 +163,14 @@ def get_asset_allocation_report(
             continue
         meta = registry.positions.get(st.name)
         asset_type = meta.asset_type if meta else "equity_fund"
-        all_positions.append({
-            "store_name": st.name,
-            "asset_type": asset_type,
-            "balance": st.balance,
-            **_analyze_lots(st),
-        })
+        all_positions.append(
+            {
+                "store_name": st.name,
+                "asset_type": asset_type,
+                "balance": st.balance,
+                **_analyze_lots(st),
+            }
+        )
 
     return {
         "total_portfolio_value": total_portfolio_value,
@@ -349,7 +355,7 @@ def compare_plan_actuals(
     if current_step < 0 or current_step >= len(p50_curve):
         msg = (
             f"current_step {current_step} is out of bounds for simulation horizon "
-            f"(0-{len(p50_curve)-1})"
+            f"(0-{len(p50_curve) - 1})"
         )
         raise ValueError(msg)
 

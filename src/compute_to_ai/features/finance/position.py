@@ -26,7 +26,6 @@ class PositionMetadata(BaseModel):
     asset_type: str = "equity_fund"
 
 
-
 class PositionPriceUpdate(BaseModel):
     """One store successfully repriced by `finance_update_plan_prices`."""
 
@@ -132,9 +131,7 @@ def apply_transaction_history(store: Store, transactions: list[PositionTransacti
         if transaction.shares > 0:
             cost_basis = transaction.shares * transaction.price
             rule_version = "pre_2009" if transaction.date < _PRE_2009_CUTOFF else None
-            store.add_amount(
-                cost_basis, step=0, cost_basis=cost_basis, rule_version=rule_version
-            )
+            store.add_amount(cost_basis, step=0, cost_basis=cost_basis, rule_version=rule_version)
         elif transaction.shares < 0:
             store.withdraw_amount(-transaction.shares * transaction.price)
 
@@ -212,8 +209,7 @@ def add_position(
         raise ValueError(msg)
     if store_name in effect.store_names:
         msg = (
-            f"store {store_name!r} is already a position of asset class "
-            f"{asset_class_store_name!r}"
+            f"store {store_name!r} is already a position of asset class {asset_class_store_name!r}"
         )
         raise ValueError(msg)
 

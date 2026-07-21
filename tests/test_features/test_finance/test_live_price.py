@@ -10,9 +10,9 @@ import pytest
 from compute_to_ai.features.finance import live_price as live_price_module
 from compute_to_ai.features.finance.live_price import get_live_price
 
-_FIXTURE_HTML = (
-    Path(__file__).parent / "fixtures" / "ariva_instrument_page.html"
-).read_text(encoding="utf-8")
+_FIXTURE_HTML = (Path(__file__).parent / "fixtures" / "ariva_instrument_page.html").read_text(
+    encoding="utf-8"
+)
 _RESOLVED_URL = "https://www.ariva.de/etf/amundi-core-msci-world-swap-ucits-etf-dist"
 
 

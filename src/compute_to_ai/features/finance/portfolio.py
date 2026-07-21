@@ -126,9 +126,7 @@ class ContributionSuggestion(BaseModel):
     warning: str | None = None
 
 
-def _resolve_asset_class_effect(
-    plan: Plan, store_name: str
-) -> CorrelatedReturnEffect | None:
+def _resolve_asset_class_effect(plan: Plan, store_name: str) -> CorrelatedReturnEffect | None:
     """The CorrelatedReturnEffect `store_name` belongs to, or None if it isn't
     part of any tracked asset class."""
     try:
@@ -172,9 +170,7 @@ def _active_position_warning(
     )
 
 
-def suggest_contribution_allocation(
-    plan: Plan, new_amount: float
-) -> list[ContributionSuggestion]:
+def suggest_contribution_allocation(plan: Plan, new_amount: float) -> list[ContributionSuggestion]:
     """Suggest how to split a new contribution across the plan's asset classes
     to move each towards its target weight (see Docs/04-Feature-Finanzen-
     Methodik.md and `compute_to_ai.features.calculations.holdings.
