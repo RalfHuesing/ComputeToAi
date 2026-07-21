@@ -120,6 +120,8 @@ def add_fixed_acquisition(
     step: int,
     inflation_rate: float = 0.0,
     description: str | None = None,
+    glidepath_years: float = 0.0,
+    risky_store_name: str | None = None,
 ) -> None:
     """Add a one-time fixed acquisition (outflow) in exactly one step.
 
@@ -128,7 +130,28 @@ def add_fixed_acquisition(
     the direction by pre-negating it. A one-time windfall (Sondereinnahme,
     e.g. an inheritance) is a positive cashflow, not a negative acquisition -
     use add_income_stream with start_step==end_step for that instead.
+
+    If `glidepath_years > 0` and `risky_store_name` is provided, capital is
+    gradually shifted from `risky_store_name` into `store_name` over the
+    `glidepath_years` window preceding `step`.
     """
+    if glidepath_years > 0.0 and risky_store_name is not None:
+        glidepath_steps = round(glidepath_years * 12)
+        glidepath_start_step = max(0, step - glidepath_steps)
+        add_flexible_acquisition(
+            plan=plan,
+            name=name,
+            amount=amount,
+            target_step=step,
+            tolerance_steps=0,
+            risky_store_name=risky_store_name,
+            safe_store_name=store_name,
+            glidepath_start_step=glidepath_start_step,
+            inflation_rate=inflation_rate,
+            description=description,
+        )
+        return
+
     effect = GrowingFixedEffect(
         name=name,
         store_name=store_name,

@@ -251,3 +251,37 @@ def test_flexible_acquisition_trigger_does_not_leak_across_monte_carlo_runs() ->
     for final_bal in mc_result.raw_final_balances:
         assert pytest.approx(final_bal["portfolio"], 1e-2) == 181.10
         assert final_bal["cash"] == 0.0
+
+
+def test_acquisition_glidepath() -> None:
+    """Test fixed acquisition with 3-year glidepath rebalancing."""
+    plan = Plan(
+        name="fixed-acq-glidepath",
+        timeline=Timeline(step_count=61),
+        stores=[
+            Store(name="portfolio", balance=50000.0),
+            Store(name="cash", balance=0.0),
+        ],
+    )
+
+    # Acquisition of 12000 at step 60 (5 years) with 3 years glidepath (36 steps, start step 24)
+    add_fixed_acquisition(
+        plan=plan,
+        name="Car",
+        store_name="cash",
+        amount=12000.0,
+        step=60,
+        glidepath_years=3.0,
+        risky_store_name="portfolio",
+    )
+
+    result = run_simulation(plan)
+
+    # At step 24: safe_target = 0
+    # At step 42 (halfway): fraction = 18/36 = 0.5 -> cash = 6000, portfolio = 44000
+    assert pytest.approx(result.time_series[42]["cash"]) == 6000.0
+    assert pytest.approx(result.time_series[42]["portfolio"]) == 44000.0
+
+    # At step 60: acquisition triggers! 12000 deducted from cash (which reached 12000).
+    assert pytest.approx(result.final_balances["cash"]) == 0.0
+    assert pytest.approx(result.final_balances["portfolio"]) == 38000.0
