@@ -1,7 +1,7 @@
 # Step 1: Plan.validate_store_names + Cashflow/Liability/Pension-Bausteine
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.18-store-referenz-validierung/00-konzept.md)
-**Status**: PENDING
+**Status**: DONE
 
 ---
 

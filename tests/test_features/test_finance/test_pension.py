@@ -85,6 +85,25 @@ def test_add_statutory_pension_rejects_unknown_phase_name() -> None:
         )
 
 
+def test_add_statutory_pension_rejects_unknown_store_name() -> None:
+    plan = Plan(
+        name="pension-unknown-store-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_statutory_pension(
+            plan=plan,
+            name="Rente",
+            store_name="kasse",
+            annual_amount_at_regular_retirement_age=12000.0,
+            regular_retirement_step=0,
+            actual_retirement_step=0,
+        )
+    assert plan.effects == []
+
+
 def test_income_stream_to_pension_transition_across_early_retirement_gap() -> None:
     """Epic 3.7: Erwerbsende and gesetzlicher Rentenbeginn trigger the income source switch."""
     phases = build_standard_life_phases(

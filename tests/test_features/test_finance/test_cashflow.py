@@ -64,6 +64,30 @@ def test_add_expense_rejects_unknown_phase_name() -> None:
         add_expense(plan, "Rent", "cash", amount=300.0, active_phases=["work"])
 
 
+def test_add_income_stream_rejects_unknown_store_name() -> None:
+    plan = Plan(
+        name="income-unknown-store-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_income_stream(plan, "Salary", "kasse", amount=500.0)
+    assert plan.effects == []
+
+
+def test_add_expense_rejects_unknown_store_name() -> None:
+    plan = Plan(
+        name="expense-unknown-store-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_expense(plan, "Rent", "kasse", amount=300.0)
+    assert plan.effects == []
+
+
 def test_add_fixed_acquisition() -> None:
     plan = Plan(
         name="fixed-acquisition-test",
@@ -98,6 +122,85 @@ def test_add_fixed_acquisition_ignores_a_pre_negated_amount() -> None:
     result = run_simulation(plan)
 
     assert pytest.approx(result.final_balances["cash"]) == 500.0
+
+
+def test_add_fixed_acquisition_rejects_unknown_store_name() -> None:
+    plan = Plan(
+        name="fixed-acquisition-unknown-store-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_fixed_acquisition(plan, "Car", "kasse", amount=500.0, step=0)
+    assert plan.effects == []
+
+
+def test_add_fixed_acquisition_rejects_unknown_risky_store_with_glidepath() -> None:
+    plan = Plan(
+        name="fixed-acquisition-unknown-risky-test",
+        timeline=Timeline(step_count=61),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="portfolioo"):
+        add_fixed_acquisition(
+            plan,
+            "Car",
+            "cash",
+            amount=500.0,
+            step=60,
+            glidepath_years=3.0,
+            risky_store_name="portfolioo",
+        )
+    assert plan.effects == []
+
+
+def test_add_fixed_acquisition_ignores_unused_risky_store_without_glidepath() -> None:
+    """risky_store_name is only validated when the glidepath actually uses it."""
+    plan = Plan(
+        name="fixed-acquisition-unused-risky-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    add_fixed_acquisition(
+        plan, "Car", "cash", amount=500.0, step=0, risky_store_name="portfolioo"
+    )
+
+    assert len(plan.effects) == 1
+
+
+def test_add_flexible_acquisition_rejects_unknown_store_names() -> None:
+    plan = Plan(
+        name="flex-acq-unknown-store-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    with pytest.raises(ValueError, match="portfolioo"):
+        add_flexible_acquisition(
+            plan=plan,
+            name="Boat",
+            amount=120.0,
+            target_step=0,
+            tolerance_steps=0,
+            risky_store_name="portfolioo",
+            safe_store_name="cash",
+            glidepath_start_step=0,
+        )
+    with pytest.raises(ValueError, match="kasse"):
+        add_flexible_acquisition(
+            plan=plan,
+            name="Boat",
+            amount=120.0,
+            target_step=0,
+            tolerance_steps=0,
+            risky_store_name="cash",
+            safe_store_name="kasse",
+            glidepath_start_step=0,
+        )
+    assert plan.effects == []
 
 
 def test_add_flexible_acquisition_ignores_a_pre_negated_amount() -> None:

@@ -50,6 +50,51 @@ def test_loan_amortization_without_extra_payments() -> None:
     assert pytest.approx(result.final_balances["cash"]) == 396.15
 
 
+def test_add_liability_rejects_unknown_cash_store_name() -> None:
+    """A typo'd cash_store_name must fail instead of silently creating a
+    phantom store (the former auto-create behavior)."""
+    plan = Plan(
+        name="liability-unknown-cash-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=1000.0)],
+    )
+
+    with pytest.raises(ValueError, match="kasse"):
+        add_liability(
+            plan=plan,
+            name="Loan",
+            liability_store_name="loan_store",
+            cash_store_name="kasse",
+            principal=500.0,
+            interest_rate=0.10,
+            payment=200.0,
+        )
+
+    # No partial state: neither the liability store nor any effect was added.
+    assert [store.name for store in plan.stores] == ["cash"]
+    assert plan.effects == []
+
+
+def test_add_liability_still_auto_creates_its_own_liability_store() -> None:
+    plan = Plan(
+        name="liability-auto-create-test",
+        timeline=Timeline(step_count=1),
+        stores=[Store(name="cash", balance=1000.0)],
+    )
+
+    add_liability(
+        plan=plan,
+        name="Loan",
+        liability_store_name="loan_store",
+        cash_store_name="cash",
+        principal=500.0,
+        interest_rate=0.10,
+        payment=200.0,
+    )
+
+    assert plan.store("loan_store").balance == 500.0
+
+
 def test_loan_with_scheduled_extra_payments() -> None:
     plan = Plan(
         name="scheduled-extra-payment-test",

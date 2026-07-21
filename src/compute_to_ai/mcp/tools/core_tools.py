@@ -119,10 +119,8 @@ def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> Non
 def _validate_transfer_targets(
     plan: Plan, from_store_name: str, to_store_weights: dict[str, float]
 ) -> None:
-    """Raise KeyError for an unknown store, ValueError if weights don't sum to 1.0."""
-    plan.store(from_store_name)  # raises KeyError if unknown
-    for to_name in to_store_weights:
-        plan.store(to_name)  # raises KeyError if unknown
+    """Raise ValueError for an unknown store or if weights don't sum to 1.0."""
+    plan.validate_store_names([from_store_name, *to_store_weights])
     weight_sum = sum(to_store_weights.values())
     if abs(weight_sum - 1.0) > 1e-9:
         msg = f"to_store_weights must sum to 1.0, got {weight_sum!r}"

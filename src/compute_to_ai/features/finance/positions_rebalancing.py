@@ -156,11 +156,7 @@ def add_position_rebalancing(
         msg = f"active_store_name {active_store_name!r} must be one of store_names {store_names!r}"
         raise ValueError(msg)
 
-    known_store_names = {store.name for store in plan.stores}
-    for name in store_names:
-        if name not in known_store_names:
-            msg = f"no store named {name!r} in plan {plan.name!r}"
-            raise ValueError(msg)
+    plan.validate_store_names(store_names)
 
     new_names = set(store_names)
     if find_positions_rebalancing_effect(plan, new_names) is not None:

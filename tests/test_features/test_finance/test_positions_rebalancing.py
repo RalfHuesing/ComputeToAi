@@ -215,7 +215,7 @@ def test_add_position_rebalancing_rejects_active_not_in_store_names() -> None:
 def test_add_position_rebalancing_rejects_unknown_store() -> None:
     plan = _plan(_store("a", 100.0))
 
-    with pytest.raises(ValueError, match="no store named"):
+    with pytest.raises(ValueError, match="unknown store name"):
         add_position_rebalancing(plan, store_names=["a", "b"], active_store_name="a")
 
 

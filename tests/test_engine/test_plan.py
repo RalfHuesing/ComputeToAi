@@ -27,6 +27,28 @@ def test_store_raises_for_unknown_name() -> None:
         plan.store("unknown")
 
 
+def test_validate_store_names_accepts_known_names() -> None:
+    _plan().validate_store_names(["cash"])
+
+
+def test_validate_store_names_accepts_empty_iterable() -> None:
+    _plan().validate_store_names([])
+
+
+def test_validate_store_names_rejects_unknown_name() -> None:
+    plan = _plan()
+
+    with pytest.raises(ValueError, match="depot"):
+        plan.validate_store_names(["depot"])
+
+
+def test_validate_store_names_lists_all_unknown_names_sorted() -> None:
+    plan = _plan()
+
+    with pytest.raises(ValueError, match=r"\['aktien', 'depot'\]"):
+        plan.validate_store_names(["depot", "cash", "aktien"])
+
+
 def test_validate_active_phases_accepts_none() -> None:
     _plan().validate_active_phases(None)
 

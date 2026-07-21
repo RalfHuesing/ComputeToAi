@@ -1,5 +1,7 @@
 """Plan - see Docs/01-Kern-Domaenenmodell.md."""
 
+from collections.abc import Iterable
+
 from pydantic import BaseModel, Field
 
 from compute_to_ai.engine.effect import Effect
@@ -59,6 +61,21 @@ class Plan(BaseModel):
                 return store
         msg = f"no store named {name!r} in plan {self.name!r}"
         raise KeyError(msg)
+
+    def validate_store_names(self, names: Iterable[str]) -> None:
+        """Raise ValueError if any name is not a registered Store.
+
+        Without this, a typo'd store name is accepted silently and the
+        effect referencing it simply never applies (the simulation skips
+        any store_name it doesn't know, see _simulation_phase1.py),
+        instead of failing at configuration time - the same rationale as
+        validate_active_phases, generalized to store references.
+        """
+        known = {store.name for store in self.stores}
+        unknown = sorted({name for name in names if name not in known})
+        if unknown:
+            msg = f"unknown store name(s) {unknown!r} in plan {self.name!r}"
+            raise ValueError(msg)
 
     def get_active_phase_name(self, step: int) -> str | None:
         """Return the name of the phase that is active at the given step, if any."""

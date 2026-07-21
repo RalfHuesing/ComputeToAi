@@ -121,7 +121,15 @@ def add_liability(
     extra_payments: list[ScheduledExtraPayment] | None = None,
     description: str | None = None,
 ) -> None:
-    """Add a liability to the plan with regular payments and optional extra payments."""
+    """Add a liability to the plan with regular payments and optional extra payments.
+
+    `cash_store_name` references an existing Store and is validated up front
+    (a typo'd name would otherwise create a phantom store the payments drain
+    unnoticed); `liability_store_name` is this liability's own store and is
+    auto-created if missing.
+    """
+    plan.validate_store_names([cash_store_name])
+
     # Ensure the liability store is registered
     store_exists = False
     for st in plan.stores:

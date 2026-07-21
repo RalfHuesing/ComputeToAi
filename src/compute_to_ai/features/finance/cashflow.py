@@ -73,8 +73,14 @@ def add_income_stream(
     first_occurrence_step: int = 0,
     first_occurrence_year: float | None = None,
 ) -> None:
-    """Add a growing fixed income stream (positive cashflow) to the plan."""
+    """Add a growing fixed income stream (positive cashflow) to the plan.
+
+    `store_name` references an existing Store and is validated up front - a
+    typo'd name would otherwise create an effect the simulation silently
+    never applies.
+    """
     plan.validate_active_phases(active_phases)
+    plan.validate_store_names([store_name])
     steps_per_year = plan.timeline.steps_per_year
     interval_steps, amount_multiplier = resolve_frequency(frequency, steps_per_year, interval_years)
     if first_occurrence_year is not None:
@@ -110,8 +116,14 @@ def add_expense(
     first_occurrence_step: int = 0,
     first_occurrence_year: float | None = None,
 ) -> None:
-    """Add an inflation-adjusted expense (negative cashflow) to the plan."""
+    """Add an inflation-adjusted expense (negative cashflow) to the plan.
+
+    `store_name` references an existing Store and is validated up front - a
+    typo'd name would otherwise create an effect the simulation silently
+    never applies.
+    """
     plan.validate_active_phases(active_phases)
+    plan.validate_store_names([store_name])
     steps_per_year = plan.timeline.steps_per_year
     interval_steps, amount_multiplier = resolve_frequency(frequency, steps_per_year, interval_years)
     if first_occurrence_year is not None:
@@ -154,7 +166,17 @@ def add_fixed_acquisition(
     If `glidepath_years > 0` and `risky_store_name` is provided, capital is
     gradually shifted from `risky_store_name` into `store_name` over the
     `glidepath_years` window preceding `step`.
+
+    Both store names reference existing Stores and are validated up front
+    (`risky_store_name` only when the glidepath actually uses it) - a typo'd
+    name would otherwise create an effect the simulation silently never
+    applies.
     """
+    referenced_stores = [store_name]
+    if glidepath_years > 0.0 and risky_store_name is not None:
+        referenced_stores.append(risky_store_name)
+    plan.validate_store_names(referenced_stores)
+
     if glidepath_years > 0.0 and risky_store_name is not None:
         glidepath_steps = round(glidepath_years * plan.timeline.steps_per_year)
         glidepath_start_step = max(0, step - glidepath_steps)
@@ -272,7 +294,12 @@ def add_flexible_acquisition(
     `amount` is always a positive magnitude - it's normalized internally
     regardless of the sign passed in, matching add_fixed_acquisition's
     convention (a flexible acquisition is always an outflow by definition).
+
+    `risky_store_name` and `safe_store_name` reference existing Stores and
+    are validated up front - a typo'd name would otherwise create an effect
+    that silently shifts nothing.
     """
+    plan.validate_store_names([risky_store_name, safe_store_name])
     params = FlexibleAcquisitionParameters(
         target_step=target_step,
         tolerance_steps=tolerance_steps,

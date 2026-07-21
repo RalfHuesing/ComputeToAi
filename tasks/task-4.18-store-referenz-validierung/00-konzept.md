@@ -1,6 +1,6 @@
 # Konzept: Task 4.18 – Store-Referenz-Validierung an Bausteinen (Fail-Fast)
 
-**Status**: READY
+**Status**: IN_PROGRESS
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.18
 **Erstellt am**: 2026-07-21
 

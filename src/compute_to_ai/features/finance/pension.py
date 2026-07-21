@@ -52,8 +52,13 @@ def add_statutory_pension(
     Statutory pension is otherwise the same building block as any other
     income stream (see Docs/01-Kern-Domaenenmodell.md, "Effekt-Arten"): a
     GrowingFixedEffect, only the base amount and start step differ.
+
+    `store_name` references an existing Store and is validated up front - a
+    typo'd name would otherwise create an effect the simulation silently
+    never applies.
     """
     plan.validate_active_phases(active_phases)
+    plan.validate_store_names([store_name])
     months_early = max(0, regular_retirement_step - actual_retirement_step) * 12
     months_late = max(0, actual_retirement_step - regular_retirement_step) * 12
     adjustment_factor = calculate_pension_adjustment_factor(
