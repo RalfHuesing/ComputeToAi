@@ -68,11 +68,11 @@ Die Ziel-Größe des Cash-Bucket-Speichers wird jedes Simulationsjahr neu berech
 
 **3. Entnahmepuffer** = Entnahmehorizont (Jahre) × Entnahmeabhängigkeit(t) × erwartete Jahresausgaben(t).
 
-Der Wechsel der phasenspezifischen Parameter (z. B. Notfallpuffer-Monate) bei einem Phasenübergang erfolgt **schlagartig** zum Stichtag, nicht schrittweise geglättet – der Glidepath-Mechanismus unten deckt den einzigen Fall ab, in dem eine allmähliche Anpassung fachlich gewünscht ist (Vorfinanzierung einer bereits bekannten, terminierten Anschaffung), ein genereller Glättungsmechanismus für alle Phasenwechsel ist nicht vorgesehen.
+**De-Risking Glidepath vor Phasenübergängen**: Über den Parameter `glidepath_steps` (z. B. 36 Schritte / 3 Jahre Vorlauf vor dem Renteneintritt) wird die Zielgröße des Cash-Buckets vor einem Phasenwechsel von der bisherigen auf die neue Zielgröße linear über die Vorlaufschritte aufgebaut. Dadurch wird schlagartiger Verkauf von Aktien am Stichtag vermieden und das Sequence-of-Returns-Risiko geglättet. Reichen die verbleibenden Schritte bis zum Phasenwechsel nicht für die volle Schrittanzahl aus, passt sich der lineare Aufbau dynamisch an die verbleibenden Schritte an.
 
 **Vorrang bei der Sparquote**: In jedem Jahr wird die Sparquote zunächst genutzt, um den Bucket auf seine Zielgröße zu bringen bzw. zu halten; erst der darüber hinausgehende Betrag fließt ins Portfolio.
 
-**Glidepath für flexible Anschaffungen**: Sobald eine flexible Anschaffung in den Bucket-Horizont eintritt, steigt die Ziel-Bucket-Größe schrittweise an, statt im Auslösejahr abrupt aus dem Portfolio zu entnehmen.
+**Glidepath für Anschaffungen**: Sobald eine Anschaffung in den Horizont eintritt, steigt die Ziel-Bucket-Größe bzw. das Cash-Guthaben schrittweise an, statt im Auslösejahr abrupt aus dem Portfolio zu entnehmen.
 
 **Rückfall-Mechanismus**: Fällt der Bucket unter seine Zielgröße, wird er in den Folgejahren vorrangig wieder aufgefüllt; reicht die Sparquote dafür nicht, kann ergänzend aus dem Portfolio verkauft werden.
 

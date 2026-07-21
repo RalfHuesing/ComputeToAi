@@ -1,6 +1,6 @@
 # Konzept: Task 4.13 – Graduelle Kapitalsicherung vor bekannten Entnahmen (De-Risking Glidepath)
 
-**Status**: READY  
+**Status**: IN_PROGRESS  
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.13  
 **Erstellt am**: 2026-07-21  
 

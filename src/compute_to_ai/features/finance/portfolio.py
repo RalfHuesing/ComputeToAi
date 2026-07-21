@@ -257,6 +257,7 @@ class CashBucketParameters(BaseModel):
     withdrawal_years: float = 3.0
     withdrawal_phase_names: list[str] = []
     max_target_cash: float | None = None
+    glidepath_steps: int = 0
 
 
 def _calculate_near_horizon_outlook(
@@ -314,6 +315,56 @@ def _calculate_withdrawal_buffer(
     return 0.0
 
 
+def _calculate_glidepath_target(
+    plan: Plan,
+    step: int,
+    params: CashBucketParameters,
+    monthly_expenses_inflated: float,
+    cash_store: str,
+    buffer_2: float,
+    target_cash: float,
+) -> float:
+    """Calculate interpolated cash bucket target size prior to phase transitions."""
+    if params.glidepath_steps <= 0 or not plan.phases:
+        return target_cash
+
+    next_phase = None
+    for ph in plan.phases:
+        if ph.start_step > step:
+            next_phase = ph
+            break
+
+    if next_phase is None:
+        return target_cash
+
+    ramp_start = next_phase.start_step - params.glidepath_steps
+    if step < max(0, ramp_start):
+        return target_cash
+
+    next_phase_name = next_phase.name
+    fut_b1 = (
+        params.emergency_buffer_months.get(next_phase_name, 0.0)
+        * monthly_expenses_inflated
+    )
+    fut_b2 = buffer_2
+    fut_b3 = _calculate_withdrawal_buffer(
+        plan,
+        cash_store,
+        step,
+        next_phase_name,
+        params.withdrawal_years,
+        params.withdrawal_phase_names,
+    )
+    future_target = fut_b1 + fut_b2 + fut_b3
+    if future_target <= target_cash:
+        return target_cash
+
+    actual_ramp_start = max(0, ramp_start)
+    denom = next_phase.start_step - actual_ramp_start
+    fraction = (step - actual_ramp_start) / denom if denom > 0 else 1.0
+    return target_cash + fraction * (future_target - target_cash)
+
+
 @register_computed_effect("cash_bucket_manager")
 def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
     balances: dict[str, float], step: int, parameters: dict[str, Any], plan: Plan
@@ -343,8 +394,14 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
         params.withdrawal_phase_names,
     )
 
-    # Target Cash-Bucket size
+    # Base target Cash-Bucket size
     target_cash = buffer_1 + buffer_2 + buffer_3
+
+    # Linear De-Risking Glidepath before phase transition
+    target_cash = _calculate_glidepath_target(
+        plan, step, params, monthly_expenses_inflated, cash_store, buffer_2, target_cash
+    )
+
     if params.max_target_cash is not None:
         target_cash = min(target_cash, params.max_target_cash)
     current_cash = balances.get(cash_store, 0.0)
@@ -383,6 +440,7 @@ def add_cash_bucket(
     withdrawal_phase_names: list[str] | None = None,
     max_target_cash: float | None = None,
     description: str | None = None,
+    glidepath_steps: int = 0,
 ) -> None:
     """Add a computed cash bucket manager to the plan.
 
@@ -414,6 +472,7 @@ def add_cash_bucket(
         withdrawal_years=withdrawal_years,
         withdrawal_phase_names=withdrawal_phase_names or [],
         max_target_cash=max_target_cash,
+        glidepath_steps=glidepath_steps,
     )
 
     effect = ComputedEffect(

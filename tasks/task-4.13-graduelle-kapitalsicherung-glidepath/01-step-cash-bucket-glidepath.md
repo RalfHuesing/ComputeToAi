@@ -1,7 +1,7 @@
 # Step 1: Cash-Bucket Glidepath vor Phasenwechseln
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.13-graduelle-kapitalsicherung-glidepath/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 
