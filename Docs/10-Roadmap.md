@@ -180,77 +180,14 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 - [x] **Epic 4.9 – Baustein: Beitrags-Rechner für Sparraten-Verteilung**
   - [x] Neuer generischer Berechnungsbaustein `calculations_contribution_allocation` (`compute_to_ai.features.calculations.holdings`): nimmt je Bucket den aktuellen Wert und das Zielgewicht sowie einen neuen Gesamtbetrag entgegen und verteilt ihn so, dass die Abweichung vom Zielgewicht über alle Buckets minimiert wird – ohne Plan-Bezug, reine Arithmetik (siehe 06-Feature-Berechnungen.md).
   - [x] Finance-Wrapper-Tool, das diesen Baustein mit den tatsächlichen Anlageklassen-Zielgewichten und Positions-Marktwerten eines Plans füttert und das Ergebnis auf die aktive Position je Anlageklasse abbildet – beantwortet direkt „wie viel investiere ich diesen Monat in welchen ETF", ohne einen vollen Monte-Carlo-Lauf zu benötigen (löst den entsprechenden Punkt aus 08-Offene-Fragen.md, „Performance interaktiver Ad-hoc-Anfragen", für diesen konkreten Fall).
-- [ ] **Epic 4.10 – Auswertung: Ist/Soll-Drift- und Gewinn/Bestandsschutz-Report, Einzelverkaufs-Steuerschätzer, Plan-Ist-Vergleich**
-  - [ ] Ist/Soll-Report: neues MCP-Tool, das je Anlageklasse und Position die Ist-Gewichtung der Soll-Gewichtung (BIP-Zielallokation) gegenüberstellt, ergänzt um unrealisierten Gewinn/Verlust in Euro und Prozent je Position, aufgeteilt in Bestandsschutz- und reguläre Lots.
-  - [ ] Einzelverkaufs-Steuerschätzer: neues MCP-Tool, das für eine konkrete Position (oder eine angegebene Verkaufssumme) die anfallende Steuer bei einem gedachten Verkauf heute schätzt – Komposition der bereits vorhandenen Steuer-Bausteine (Abgeltungsteuer, Teilfreistellung, Sparerpauschbetrag, Bestandsschutz, siehe 03-Feature-Finanzen-Domaenenmodell.md) auf den aktuellen Lot-Bestand der Position, ohne einen Simulationslauf zu benötigen.
-  - [ ] Plan-Ist-Vergleich: neues MCP-Tool, das den heutigen tatsächlichen Gesamtwert (Positionen + Cash-Bucket) dem Wert an derselben Stelle (Alter/Schritt) der zuvor berechneten p10/p50/p90-Kurven aus `finance_get_percentile_curves` gegenüberstellt – ein einzelner Stichtagsvergleich („bin ich noch im Plan?"), keine Nachbildung eines historischen Ist-Verlaufs über die Zeit (dafür fehlt eine fortlaufende Kurs-Historie, siehe 08-Offene-Fragen.md).
-- [ ] **Epic 4.11 – Frequenz- & Intervall-Ausgaben (Periodische Dauer- & Turnusausgaben)**
-  - [ ] **Kern-Erweiterung (`compute_to_ai.engine`)**: `BaseEffect` (und Unterklassen wie `GrowingFixedEffect`) erhält `interval_steps: int = 1` und `first_occurrence_step: int = 0`. Ein Effekt ist nur in Zeitschritten aktiv, in denen `(step - first_occurrence_step) % interval_steps == 0` gilt.
-  - [ ] **Finance-Erweiterung (`compute_to_ai.features.finance`)**: `add_expense` / `finance_add_expense` (sowie `add_income_stream`) unterstützen den Parameter `frequency` (`"monthly"`, `"quarterly"`, `"yearly"`, `"every_n_years"`) inklusive automatischer Umrechnung von Monatsbeträgen auf die Jahres-Schrittweite der Simulation.
-  - [ ] **Wachstums- & Inflationskopplung**: Wahlmöglichkeit zwischen eigener Steigerungsrate (z. B. KFZ-Versicherungsindex) oder dynamischer Anbindung an die allgemeine Plan-Inflation.
-  - [ ] **Unit- & E2E-Tests**: Abdeckung von monatlichen Dauerläufern sowie mehrjährigen Turnusausgaben (z. B. 3-Jahres-Takt) inklusive Pfad-Audit-Klassifikation.
-- [ ] **Epic 4.12 – Refactoring & Plan-Audit-Bereinigungen (Code-Review-Erkenntnisse)**
-  - [ ] **Phasenübergang Renteneintritt (Step 20)**: Off-by-one im Plan-Audit prüfen und bereinigen, da im Übergangsjahr "Gehalt Netto" und "Gesetzliche Rente Netto" gleichzeitig greifen.
-  - [ ] **Rentenlücken-Komponente**: Dokumentieren bzw. klarstellen, dass die Komponente nur wiederkehrende Cashflows (Grundausgaben vs. Rente) berücksichtigt, nicht aber Einmalposten (z. B. Autokäufe) und Steuern.
-  - [ ] **Timeline vs. Phasen-Ende**: Harmonisierung von Timeline (läuft bis Step 49) und Lebensphasen-Ende (Step 43 / Alter 90); Entgegenwirken des Effekts, dass nach Step 43 mangels aktiver Phase der Notgroschen des Cash-Buckets auf 0 fällt und ins Depot umgeschichtet wird.
-  - [ ] **Veralteter Rebalancing-Effekt**: Überprüfen und Entfernen des ungenutzten "BIP Portfolio Rebalancing (50/35/15)"-Effekts, der auf leere Alt-Platzhalter-Stores zielt.
-  - [ ] **Unberührte Speicher bereinigen**: Überprüfung der von keinem Effekt berührten Speicher (Girokonto, Bargeld, Smartbroker+ sowie vier leere Asset-Klassen-Platzhalter) – Konsolidierung oder explizite Dokumentation als bewusste Platzhalter.
-- [ ] **Epic 4.13 – Graduelle Kapitalsicherung vor bekannten Entnahmen (Cash-Bucket- & Anschaffungs-Glidepath)**
+- [ ] **Epic 4.10 – Auswertung: Ist/Soll-Drift- und Gewinn/Bestandsschutz-Report, Einzelverkaufs-Steuerschätzer, Plan-Ist-Vergleich** → Details in [tasks/task-4.10-auswertungen-und-reports/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.10-auswertungen-und-reports/00-konzept.md)
+- [ ] **Epic 4.11 – Frequenz- & Intervall-Ausgaben (Periodische Dauer- & Turnusausgaben)** → Details in [tasks/task-4.11-frequenz-und-intervall-ausgaben/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.11-frequenz-und-intervall-ausgaben/00-konzept.md)
+- [ ] **Epic 4.12 – Refactoring & Plan-Audit-Bereinigungen (Code-Review-Erkenntnisse)** → Details in [tasks/task-4.12-refactoring-und-audit-bereinigungen/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.12-refactoring-und-audit-bereinigungen/00-konzept.md)
+- [ ] **Epic 4.13 – Graduelle Kapitalsicherung vor bekannten Entnahmen (Cash-Bucket- & Anschaffungs-Glidepath)** → Details in [tasks/task-4.13-graduelle-kapitalsicherung-glidepath/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.13-graduelle-kapitalsicherung-glidepath/00-konzept.md)
+- [ ] **Epic 4.14 – Zentrale Parameter- & Raten-Registry (Single Source of Truth & Referenz-System)** → Details in [tasks/task-4.14-zentrale-parameter-registry/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.14-zentrale-parameter-registry/00-konzept.md)
+- [ ] **Epic 4.15 & 4.16 – Strikte Cache-Invalidierung & Pre-Flight Konfigurations-Audit** → Details in [tasks/task-4.15-4.16-cache-invalidierung-und-pre-flight-audit/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.15-4.16-cache-invalidierung-und-pre-flight-audit/00-konzept.md)
 
-  Warum: Sowohl der Cash-Bucket-Manager (Notgroschen-/Entnahmepuffer, Epic 3.5) als auch eine schlicht konfigurierte Anschaffung (`add_fixed_acquisition`) stellen den benötigten Betrag entweder abrupt an einer Phasengrenze bzw. exakt im Fälligkeits-Schritt bereit, statt ihn graduell vorher aus dem risikobehafteten Portfolio in sichere Bestände umzuschichten. Fällt der Fälligkeits- bzw. Phasenübergangszeitpunkt zufällig mit einem Markteinbruch zusammen, müsste in einem einzigen Schritt ein großer Betrag aus einem gerade eingebrochenen Depot realisiert werden (Sequence-of-Returns-Risiko) – unnötig, wenn der Bedarf ohnehin lange im Voraus bekannt ist (Renteneintritt, aber genauso eine seit Jahren geplante größere Anschaffung).
-
-  - [ ] Der Baustein `flexible_acquisition` (Epic 3.3) löst dieses Problem für einzelne, punktuelle Anschaffungen bereits über `glidepath_start_step` (lineare Umschichtung von `risky_store_name` nach `safe_store_name` bis zum Zielschritt, siehe `cashflow.py::flexible_acquisition_func`). Pläne, die stattdessen `add_fixed_acquisition` für große, lange im Voraus bekannte Einzelposten nutzen, profitieren davon aktuell nicht – zu prüfen, ob solche Fälle standardmäßig auf `flexible_acquisition` migriert werden sollten, statt es dem Nutzer/Agenten zu überlassen, den passenden Baustein zu wählen.
-  - [ ] Für den Cash-Bucket-Manager (`portfolio.py::cash_bucket_manager_func`) existiert dieser Mechanismus noch nicht: `emergency_buffer_months` und die Entnahmepuffer-Komponente hängen ausschließlich von der aktuell aktiven Phase ab (`CashBucketParameters`) und springen an der Phasengrenze (z. B. Erwerbsphase → Rentenphase) unvermittelt auf ihren vollen Zielwert. Vorschlag: ein neuer, optionaler Parameter (Vorlauf in Schritten vor dem Phasenübergang), ab dem linear zwischen dem aktuellen und dem zukünftigen Zielwert interpoliert wird – nach demselben Fraction-Muster wie in `flexible_acquisition_func`, nur bezogen auf eine sich verändernde Zielgröße statt auf einen fixen Betrag.
-  - [ ] Beide Fälle sind eine Instanz desselben generischen Prinzips („graduelle De-Risking-Rampe vor einer bekannten künftigen Entnahme") – zu prüfen, ob sich daraus ein gemeinsamer, wiederverwendbarer Kern-Baustein statt zweier separater Spezialimplementierungen ableiten lässt (siehe Leitprinzip in Meilenstein 3: wenige generische Effekt-Arten statt fachspezifischer Sonderfälle).
-  - [ ] Golden-Test: Cash-Bucket-Zielgröße wächst nachweisbar linear statt sprunghaft über die letzten Schritte vor einem Phasenübergang.
-- [ ] **Epic 4.14 – Zentrale Parameter- & Raten-Registry (Single Source of Truth & Referenz-System)**
-
-  **Warum**: Im aktuellen Plan-Modell (siehe `examples/ralf/plan.json`) sind Inflations- und Steigerungsraten (`growth_rate`, `inflation_rate`) sowie Zinssätze starr an vielen einzelnen Effekten als Zahlen-Literale hinterlegt (z. B. 20–30-mal `0.02`). Ändert sich eine makroökonomische Annahme (z. B. Inflationserwartung von 2,0 % auf 2,5 % oder der Geldmarktzins/€STR), müssen derzeit Dutzende Effekte einzeln angepasst werden.
-
-  **Ziel**: Einführung einer zentralen Parameter-Registry auf Plan-Ebene (`plan.parameters` / `plan.rates`), auf die Effekte per Referenz verweisen können.
-
-  - [ ] **Kern- & Modell-Erweiterung (`compute_to_ai.engine`)**: `Plan` erhält eine zentrale `parameters: dict[str, float]` Map (z. B. `{"inflation_general": 0.02, "inflation_kfz": 0.035, "gehalt_growth": 0.02, "zins_geldmarkt": 0.025}`).
-  - [ ] **Referenzierung in Effekten**: Effekte (`GrowingFixedEffect`, `PercentageGrowthEffect` etc.) akzeptieren bei Raten entweder ein Float-Literal (z. B. `0.02`) oder einen Referenz-Key (z. B. `"ref:inflation_general"`). Die Simulation löst Referenzen zur Laufzeit dynamisch auf.
-  - [ ] **MCP-Tools zur Parameterpflege**: Neue Tools (z. B. `finance_set_plan_parameter(plan_name, key, value)`) zur zentralen Aktualisierung von Makro-Parametern, die sich per Ein-Klick-Änderung sofort auf alle verknüpften Effekte in der Simulation auswirken.
-  - [ ] **Diskussionsgrundlage & Fragen für die spätere Umsetzung**:
-    - *Frage 1 (Standard-Fallback & Hierarchie)*: Soll `inflation_general` als automatischer Fallback für Ausgaben greifen, sofern keine spezifische Rate (z. B. `inflation_kfz`) angegeben ist?
-    - *Frage 2 (Reichweite & Abgrenzung stochastischer Effekte)*: Welche Parameter gehören in die Registry? (Festverzinsliche Raten, Kreditzinsen, Inflationen, Gehaltssteigerungen vs. stochastische Aktien-Renditen/Vola, die bereits über `CorrelatedReturnEffect` und Korrelationsmatrizen modelliert werden).
-    - *Frage 3 (Zeitvariabilität & Staffelung)*: Reichen statische Werte über die Laufzeit oder soll die Registry auch zeitvariable Raten-Pfade unterstützen (z. B. "Jahre 0–3: 4,0 %, danach 2,0 %")?
-- [ ] **Epic 4.15 – Strikte Cache-Invalidierung & Plan-Hash-Synchronisation (Monte-Carlo & Audit-Cache)**
-
-  **Warum**: Bei Planänderungen (z. B. Hinzufügen/Ändern/Entfernen von Stores, Effekten, Phasen, Parametern oder Zielbedingungen) wurden in Tests veraltete Monte-Carlo-Ergebnisse aus dem Cache zurückgeliefert, wenn der Cache-Key nicht strikt an den aktuellen deterministischen Plan-Zustand gebunden war.
-
-  **Ziel**: Verhindern veralteter Simulationsergebnisse durch striktes Plan-Content-Hashing und automatische Cache-Invalidierung.
-
-  - [ ] **Kern-Erweiterung (`compute_to_ai.engine`)**: Determinische Berechnung eines Content-Hashes für das `Plan`-Objekt (inkl. aller Sub-Komponenten, Parameter, Phasen und Zielbedingungen).
-  - [ ] **Automatische Cache-Invalidierung**: Bei jeder mutierenden MCP-Tool-Operation (`add_*`, `set_*`, `remove_*`) oder Planänderung wird der Cache automatisch entleert bzw. der Plan-Hash aktualisiert.
-  - [ ] **Unit- & Integrationstests**: Nachweis, dass `finance_get_monte_carlo_result` nach einer Planänderung verlässlich neue Simulationen veranlasst und veraltete Ergebnisse verwirft.
-
-- [ ] **Epic 4.16 – Pre-Flight Konfigurations-Audit & Strukturierte Validierung**
-
-  **Warum**: Das System berechnete in der Praxis Ergebnisse auf unvollständig konfigurierten Plänen ohne Warnung – die gefährlichste Fehlerklasse bei einem Finanztool (plausibel aussehende, aber sachlich falsche Zahlen):
-  - `ruin_stores` unkonfiguriert $\rightarrow$ "0 % Ruinwahrscheinlichkeit" wurde ausgegeben, obwohl die Ruin-Bedingung schlicht nie gesetzt war.
-  - Implizite Korrelation 0.0 $\rightarrow$ fehlende Korrelationsmatrix zwischen Aktienregionen führt zu künstlich/unrealistisch niedriger Portfoliovolatilität.
-  - Fehlen eines Cash-Buckets $\rightarrow$ verdecktes Liquiditätsrisiko bei Schwankungen oder Entnahmen.
-  - Phasen-/Timeline-Mismatches $\rightarrow$ unvollständig abgedeckte Zeitabschnitte oder Diskrepanzen zwischen Timeline-Ende und Phasen-Ende.
-
-  **Ziel**: Ein hartes Validierungssystem vor der Ausführung/Ergebnisabgabe, das unvollständige Annahmen explizit ausweist.
-
-  - [ ] **Pre-Flight Validation in `finance_run_monte_carlo` & `core_run_simulation`**:
-    - **Ruin-Bedingung**: Gibt `ruin_probability: null` und Status `"UNCONFIGURED"` / Warnung zurück, wenn `ruin_stores` nicht explizit konfiguriert ist, statt eine irreleitende `0.0` vorzugaukeln.
-    - **Korrelations-Audit**: Erkennt stochastische Effekte derselben Korrelationsgruppe ohne explizite Korrelationsmatrix und gibt eine deutliche Warnung aus ("Implizite Korrelation 0.0 angenommen").
-    - **Cash-Bucket- & Notgroschen-Check**: Warnung, wenn Ausgaben/Entnahmen direkt aus einem risikobehafteten Portfolio getätigt werden, ohne dass ein Cash-Bucket vorgeschaltet ist.
-    - **Phasen- & Timeline-Abdeckungsprüfer**: Warnung bei Zeitschritten außerhalb aktiver Phasen oder mit unvollständiger Zu-/Abflussabdeckung.
-  - [ ] **Erweiterung von `finance_audit_plan`**: Zusammenfassung aller Konfigurations- und Ausführungshinweise in ein strukturiertes Prüfergebnis mit Schweregraden (`CRITICAL_CONFIG_MISSING`, `WARNING`, `INFO`), das vom Agenten vor jeder Zahlenausgabe an den Nutzer ausgewertet werden muss.
-
-- [ ] **Epic 4.17 – Golden-Tests für Fehlkonfigurationen & Audit-Warnungen**
-
-  **Warum**: Die Testsuite prüfte bisher primär valide, vollständig konfigurierte Pläne ("Happy Path"). Systematische Absicherung gegen stille Fehler erfordert Tests, die unvollständige Konfigurationen provozieren.
-
-  **Ziel**: Abdeckung aller Konfigurationsprüfungen und Fehlerfälle in automatisierten Golden-Tests.
-
-  - [ ] **Automatisierte Golden-Tests**: Testfälle für fehlende `ruin_stores`, fehlende Korrelationsmatrizen, Cache-Invalidierung bei Planänderungen sowie Phasen/Timeline-Diskrepanzen.
-  - [ ] **Verifikation**: Nachweis, dass das System in allen diesen Fällen strukturierte Warnungen/Fehler ausgibt, statt stumm plausible falsche Zahlen zu liefern.
+- [ ] **Epic 4.17 – Golden-Tests für Fehlkonfigurationen & Audit-Warnungen** → Details in [tasks/task-4.17-golden-tests-fehlkonfigurationen/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.17-golden-tests-fehlkonfigurationen/00-konzept.md)
 
 
 
@@ -260,43 +197,15 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 
 **Ziel**: Einführung eines plan-spezifischen Benutzerprofil-Speichers (Fact-Store), der es dem Agenten erlaubt, ein detailliertes Profil über den Nutzer (und ggf. weitere Haushaltsmitglieder) aufzubauen. Das Profil wird automatisch bei Was-wäre-wenn-Kopien mitgenommen. Zudem wird die zunehmende Komplexität der System-Prompts durch eine modulare Neustrukturierung gelöst und der Grundstein für die Rolle des "Lebensberaters" gelegt.
 
-- [ ] **Epic 5.1 – Benutzerprofil-Modell & Dateiverwaltung (`profile.json`)**
-  - [ ] Definition des Pydantic-Modells `UserProfile` (mit Feld `owner: str` zur Personenzuordnung) und `ProfileFact` (mit `key`, `value`, `category`, `description`, `source`, `timestamp`).
-  - [ ] Speicherung als eigenständige Datei `profile.json` im jeweiligen Plan-Ordner.
-  - [ ] Erweiterung von `core_duplicate_plan` in `core_tools.py` um das Kopieren der `profile.json` (falls vorhanden).
-- [ ] **Epic 5.2 – MCP-Tools zur Profilverwaltung**
-  - [ ] Implementierung von Tools mit Präfix `profile_`:
-    - [ ] `profile_list_facts(plan_name: str)`: Gibt das Profil und alle gespeicherten Fakten zurück.
-    - [ ] `profile_set_fact(plan_name: str, key: str, value: Any, category: str | None = None, description: str | None = None)`: Fügt einen Fakt hinzu oder aktualisiert ihn (inkl. Timestamp-Generierung).
-    - [ ] `profile_remove_fact(plan_name: str, key: str)`: Löscht einen Fakt anhand seines Keys.
-- [ ] **Epic 5.3 – Prompt-Restrukturierung & Modul-Aufteilung**
-  - [ ] Aufteilung des großen System-Prompts (`finanzberater.md`) in modular ladbare Teilbereiche oder Hierarchien, um die Komplexität ("Brockhaus"-Problem) zu reduzieren.
-  - [ ] Definition eines strukturierten "Profiling-Leitfadens" im Prompt, der das LLM anleitet, wie es bei einem leeren Profil Schritt für Schritt (Demografie -> Einnahmen -> Vermögen -> Lebensziele) Daten abfragt.
-  - [ ] Hinterlegung von Regeln zur transparenten, vollautomatischen Aktualisierung im Hintergrund (z. B. *"Ich habe mir gemerkt, dass..."* im Chat erwähnen).
-- [ ] **Epic 5.4 – Vorbereitung der Rolle "Lebensberater"**
-  - [ ] Integration eines neuen (oder modular abgetrennten) Prompts für die Rolle "Lebensberater".
-  - [ ] Verankerung der Leitprinzipien: Unabhängigkeit, absolute Wissenschaftlichkeit/Seriosität, Freiheit von Interessenkonflikten.
-  - [ ] Verknüpfung des Lebensberater-Prompts mit dem Benutzerprofil-Speicher zur proaktiven Herleitung von Simulations-Effekten (z. B. Instandhaltungs-Rücklagen bei Immobilienbesitz, Altersvorsorge-Bedarfe je nach Lebensstil).
-- [ ] **Epic 5.5 – Tests & E2E-Verifikation**
-  - [ ] Unit-Tests für `UserProfile` Serialisierung/Deserialisierung.
-  - [ ] Integrationstests für die MCP-Tools (`profile_*`).
-  - [ ] E2E-Test: Duplizieren eines Plans mit Profil kopiert das Profil erfolgreich unter den neuen Plan-Namen.
+- [ ] **Epic 5.1 & 5.2 – Wissensspeicher & Profile-Tools (Fact-Store, Bulk-Read Dump & Duplizierung)** → Details in [tasks/task-5.1-5.2-wissensspeicher-und-profile-tools/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-5.1-5.2-wissensspeicher-und-profile-tools/00-konzept.md)
+- [ ] **Epic 5.3 & 5.4 – Prompt-Restrukturierung & Vorbereitung Lebensberater** → Details in [tasks/task-5.3-5.4-prompt-restrukturierung-und-lebensberater/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-5.3-5.4-prompt-restrukturierung-und-lebensberater/00-konzept.md)
 
 ## Meilenstein 6 – Baustein-Katalog & Regelwerk-Templates
 
 **Ziel**: Der Mechanismus für versionierte Regelwerk-Templates (z. B. jährliche Steuerrechtsänderungen) ist umgesetzt, inklusive Bestandsschutz-Handling und einem Vertrauensmodell für extern geladene Templates.
 
-- [ ] Epic 6.1 – Regelwerk-Template-Format und Ladeprozess
-- [ ] Epic 6.2 – Bestandsschutz-Konsistenz bei Regelwerk-Wechsel
-- [ ] Epic 6.3 – Vertrauens-/Prüfmechanismus für Templates (Testfälle, Diff-Vorschau)
+- [ ] **Epic 6.1–6.3 – Regelwerk-Templates & Versionierung (Steuerrecht-Templates, Bestandsschutz-Konsistenz, Diff-Prüfung)** → Details in [tasks/task-6.1-6.3-regelwerk-templates-und-versionierung/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-6.1-6.3-regelwerk-templates-und-versionierung/00-konzept.md)
 
-## Meilenstein 7 – Generizitäts-Probe an einer zweiten Domäne
-
-**Ziel**: Testweise Umsetzung eines zweiten, deutlich andersartigen Anwendungsfalls (z. B. Ausdauersport- oder Startup-Runway-Simulation) auf demselben Kern, um zu prüfen, ob die generische Architektur trägt.
-
-- [ ] Epic 7.1 – Zweite Domäne auswählen und Speicher/Effekte modellieren
-- [ ] Epic 7.2 – Kern-Anpassungen dokumentieren, falls die Domäne finanzspezifische Annahmen im Kern aufdeckt
-
-## Meilenstein 8 – Weitere Ausbaustufen (später, unverbindlich)
+## Meilenstein 7 – Weitere Ausbaustufen (später, unverbindlich)
 
 Regimeabhängige Korrelationsmodelle, Mehrgeräte-/Mehrsitzungs-Konsistenz der lokalen Speicherung, weitere Feature-Module, Vertiefung der in 08-Offene-Fragen.md verbliebenen fachlichen Detailfragen. Denkbar auch: proaktive, marktsignalgetriebene Portfolio-Verkäufe zur Cash-Bucket-Auffüllung (z. B. bei Allzeithochs oder nach überdurchschnittlichen Renditephasen) statt nur regelbasiert nach Zielgröße - **ausdrücklich mit dem Vorbehalt, dass kurzfristiges Markttiming empirisch nicht robust vorhersagbar ist** (Effizienzmarkthypothese); eine mögliche Umsetzung müsste diesen Vorbehalt im Nutzer-Prompt/Ergebnis transparent machen, statt als empfohlene Standardstrategie zu erscheinen.
