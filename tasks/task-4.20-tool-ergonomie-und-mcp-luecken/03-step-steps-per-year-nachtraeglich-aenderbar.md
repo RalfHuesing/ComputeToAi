@@ -1,7 +1,7 @@
 # Step 3: `steps_per_year` nachträglich änderbar machen
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.20-tool-ergonomie-und-mcp-luecken/00-konzept.md)
-**Status**: PENDING
+**Status**: DONE
 
 ---
 

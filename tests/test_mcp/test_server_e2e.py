@@ -306,6 +306,59 @@ async def test_core_add_effect_and_transfer_echo_stored_values(
 
 
 @pytest.mark.anyio
+async def test_core_set_steps_per_year_updates_timeline_without_rescaling_effects(
+    server_params: StdioServerParameters, tmp_path: Path
+) -> None:
+    """core_set_steps_per_year corrects the timeline value on an existing plan
+    but never rescales already-stored effect amounts/intervals."""
+    plan_name = "steps-per-year-fix"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+
+        # Default steps_per_year is 12.
+        await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=24)
+        await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="cash")
+        # "yearly" under steps_per_year=12 stores interval_steps=12.
+        await _call_ok(
+            session,
+            "finance_add_income_stream",
+            plan_name=plan_name,
+            name="Bonus",
+            store_name="cash",
+            amount=1000.0,
+            frequency="yearly",
+        )
+
+        await _call_ok(
+            session, "core_set_steps_per_year", plan_name=plan_name, steps_per_year=1
+        )
+
+        effects_text = await _call_ok(session, "core_list_effects", plan_name=plan_name)
+
+        # 0 and negative values are rejected instead of storing a broken plan.
+        rejected = await session.call_tool(
+            "core_set_steps_per_year", {"plan_name": plan_name, "steps_per_year": 0}
+        )
+
+    plan_payload = json.loads(
+        (tmp_path / "work" / plan_name / "plan.json").read_text(encoding="utf-8")
+    )
+    assert plan_payload["timeline"]["steps_per_year"] == 1
+
+    bonus = next(
+        effect for effect in json.loads(effects_text)["effects"] if effect["name"] == "Bonus"
+    )
+    # Stored values are untouched: still the pre-change conversion result.
+    assert bonus["amount_per_step"] == pytest.approx(1000.0)
+    assert bonus["interval_steps"] == 12
+
+    assert rejected.isError
+
+
+@pytest.mark.anyio
 async def test_core_add_transfer_rejects_unknown_store(
     server_params: StdioServerParameters,
 ) -> None:

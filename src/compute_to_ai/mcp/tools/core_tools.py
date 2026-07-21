@@ -68,6 +68,31 @@ def _register_plan_lifecycle_tools(mcp: FastMCP, working_directory: Path) -> Non
         return f"created plan {plan_name!r} with {step_count} steps"
 
     @mcp.tool()
+    def core_set_steps_per_year(plan_name: str, steps_per_year: int) -> str:  # pyright: ignore[reportUnusedFunction]
+        """Change how many steps make up one calendar year on an existing Plan.
+
+        Does not rescale existing effects - amounts/intervals already stored
+        via finance_add_income_stream etc. keep their stored values, which
+        may now mean something different (e.g. a "yearly"-frequency effect
+        added under steps_per_year=12 keeps firing every 12 steps even after
+        this is changed to 1). Intended for correcting a wrong value early,
+        before effects are added - not for reinterpreting an already-built
+        plan.
+        """
+        if steps_per_year <= 0:
+            msg = f"steps_per_year must be > 0, got {steps_per_year}"
+            raise ValueError(msg)
+        plan = _load_plan(working_directory, plan_name)
+        plan.timeline.steps_per_year = steps_per_year
+        _save_plan(working_directory, plan)
+        logger.info(
+            "core_set_steps_per_year: plan=%r steps_per_year=%d status=ok",
+            plan_name,
+            steps_per_year,
+        )
+        return f"set steps_per_year={steps_per_year} on plan {plan_name!r}"
+
+    @mcp.tool()
     def core_duplicate_plan(plan_name: str, new_plan_name: str) -> str:  # pyright: ignore[reportUnusedFunction]
         """Copy a plan's configuration under a new name (for What-if variants).
 
