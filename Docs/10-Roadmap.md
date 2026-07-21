@@ -188,6 +188,9 @@ Die Live-Kurs-Abfrage und ihre Wiederverwendung fürs manuelle Depot-Update (Epi
 - [ ] **Epic 4.15 & 4.16 – Strikte Cache-Invalidierung & Pre-Flight Konfigurations-Audit** → Details in [tasks/task-4.15-4.16-cache-invalidierung-und-pre-flight-audit/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.15-4.16-cache-invalidierung-und-pre-flight-audit/00-konzept.md)
 
 - [ ] **Epic 4.17 – Golden-Tests für Fehlkonfigurationen & Audit-Warnungen** → Details in [tasks/task-4.17-golden-tests-fehlkonfigurationen/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.17-golden-tests-fehlkonfigurationen/00-konzept.md)
+- [ ] **Epic 4.18 – Store-Referenz-Validierung an Bausteinen (Fail-Fast)** → Details in [tasks/task-4.18-store-referenz-validierung/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.18-store-referenz-validierung/00-konzept.md)
+- [ ] **Epic 4.19 – Schrittgranularität konsistent durchs Finance-Modul ziehen** → Details in [tasks/task-4.19-schrittgranularitaet-finance-module/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.19-schrittgranularitaet-finance-module/00-konzept.md)
+- [ ] **Epic 4.20 – Tool-Ergonomie & MCP-Vollständigkeits-Lücken** → Details in [tasks/task-4.20-tool-ergonomie-und-mcp-luecken/00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.20-tool-ergonomie-und-mcp-luecken/00-konzept.md)
 
 
 
