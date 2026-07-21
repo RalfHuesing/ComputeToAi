@@ -134,3 +134,29 @@ Ein Event-Log fasst drei Ereignistypen chronologisch zusammen:
 - **Anschaffung ausgelöst**: eine fixe Anschaffung (bestätigt durch ihre Ledger-Zeile im Auslöseschritt) oder eine flexible Anschaffung (deren Baustein nach Laufende einen Auslöse-Zeitpunkt im Ledger-Zustand hinterlassen hat, siehe 01-Kern-Domaenenmodell.md, „Ledger").
 
 Kategorie-Aggregation und Event-Log setzen einen zuvor durchgeführten Pfad-Audit voraus (siehe 01, „Ledger") und liefern damit die Grundlage, um einzelne Effekte eines Plans (ein zeitlich versetzter Autokauf, eine Steueränderung, eine Ausgabenerhöhung) im Nachhinein nachvollziehbar zu prüfen, statt sich auf aggregierte Endwerte verlassen zu müssen.
+
+## Auswertungen und Reports
+
+### Ist/Soll-Drift- & Gewinn/Bestandsschutz-Report
+
+Der Ist/Soll-Drift-Report (`get_asset_allocation_report` / `finance_get_asset_allocation_report`) vergleicht die aktuelle Ist-Verteilung der Vermögenswerte über alle Anlageklassen hinweg mit den im Plan definierten Zielgewichtungen (Soll-Gewichtungen).
+
+- **Drift-Berechnung**: Pro Anlageklasse wird der Ist-Marktwert berechnet und ins Verhältnis zum Gesamtportfoliowert gesetzt (`actual_weight`). Die Differenz zur Zielgewichtung ergibt die Drift (`drift = actual_weight - target_weight`). Bei einem Gesamtportfoliowert von 0 € wird eine Division durch Null vermieden und die Drift als `-target_weight` ausgewiesen.
+- **Gewinn- & Bestandsschutz-Aufschlüsselung**: Für jede Position werden alle hinterlegten Lots analysiert. Das Modul schlüsselt Anschaffungskosten, unrealisierte Gewinne in € und % sowie die Aufteilung in steuerlich befreite Alt-Lots (Bestandsschutz für Käufe vor 2009, `pre_2009`) versus reguläre Lots auf.
+
+### Einzelverkaufs-Steuerschätzer
+
+Der Einzelverkaufs-Steuerschätzer (`estimate_sale_tax` / `finance_estimate_sale_tax`) berechnet exakt die Steuerlast und den Nettoerlös bei einem beabsichtigten Teil- oder Vollverkauf einer spezifischen Depotposition.
+
+- **FIFO-Verbrauchsfolge**: Die Simulation baut die Lots der Position in strikter FIFO-Reihenfolge ab, um den genauen steuerpflichtigen Gewinn der verkauften Anteile zu ermitteln.
+- **Teilfreistellung**: Je nach Anlageklasse (`asset_type`) greift die gesetzliche Teilfreistellung nach InvStG: 30 % für Aktienfonds (`equity_fund`), 15 % für Mischfonds (`mixed_fund`), 60 % für Immobilienfonds (`real_estate_fund`) und 0 % für Anleihen/Einzeltitel (`bond_fund`, `stock`).
+- **Bestandsschutz**: Gewinne aus Vor-2009-Lots fließen als steuerfreie Gewinne ein.
+- **Freibeträge & Steuersatz**: Auf den verbleibenden steuerpflichtigen Gewinn wird der verbleibende Sparerpauschbetrag angewendet. Die Steuerlast berechnet sich aus 25 % Abgeltungsteuer zzgl. 5,5 % Solidaritätszuschlag (effektiv 26,375 %) und optionaler Kirchensteuer.
+
+### Plan-Ist-Stichtagsvergleich
+
+Der Plan-Ist-Stichtagsvergleich (`compare_plan_actuals` / `finance_compare_plan_actuals`) führt einen Stichtagsvergleich durch zwischen dem aktuellen Ist-Gesamtvermögen (Summe aller liquiden Mittel und Anlageklassen abzüglich Verbindlichkeiten) und den simulierten Erwartungs-Perzentilen der Monte-Carlo-Simulation (p10, p50, p90) zu einem gewählten Zeitschritt.
+
+- **Klassifizierung**: Das Ist-Vermögen wird in eine von vier Zonen eingeordnet (`BELOW_P10`, `BETWEEN_P10_AND_P50`, `BETWEEN_P50_AND_P90`, `ABOVE_P90`).
+- **Abweichungsanalyse**: Das Tool weist die exakte Abweichung (Euro und %) gegenüber dem Median-Pfad (p50) aus, was dem Berater und Anleger als Frühwarn- und Diagnoseindikator dient.
+

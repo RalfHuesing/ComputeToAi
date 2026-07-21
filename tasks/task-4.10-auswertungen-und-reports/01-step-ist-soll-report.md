@@ -1,7 +1,7 @@
 # Step 1: Ist/Soll-Drift- und Gewinn/Bestandsschutz-Report
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.10-auswertungen-und-reports/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 
@@ -11,10 +11,10 @@ Implementierung der Kernfunktion `get_asset_allocation_report` und des zugehöri
 ---
 
 ## 2. Zu bearbeitende / neu anzulegende Dateien
-- [ ] [NEW] `src/compute_to_ai/features/finance/reports.py`
-- [ ] [MODIFY] `src/compute_to_ai/features/finance/position_metadata.py`
-- [ ] [MODIFY] `src/compute_to_ai/mcp/finance_tools.py`
-- [ ] [NEW] `tests/test_features/test_finance/test_reports.py`
+- [x] [NEW] `src/compute_to_ai/features/finance/reports.py`
+- [x] [MODIFY] `src/compute_to_ai/features/finance/position.py`
+- [x] [MODIFY] `src/compute_to_ai/mcp/tools/finance_tools.py`
+- [x] [NEW] `tests/test_features/test_finance/test_reports.py`
 
 ---
 
@@ -25,11 +25,11 @@ Implementierung der Kernfunktion `get_asset_allocation_report` und des zugehöri
 
 from typing import Any
 from compute_to_ai.engine.plan import Plan
-from compute_to_ai.features.finance.position_metadata import PositionMetadataStore
+from compute_to_ai.features.finance.position import PositionRegistry
 
 def get_asset_allocation_report(
     plan: Plan,
-    metadata_store: PositionMetadataStore
+    metadata_store: PositionRegistry
 ) -> dict[str, Any]:
     """Computes target vs actual asset allocation, drift, and unrealized gains breakdown."""
     total_portfolio_value = 0.0
@@ -60,4 +60,5 @@ pytest tests/test_features/test_finance/test_reports.py -k test_get_asset_alloca
 ---
 
 ## 5. Doku-Aktualisierungs-Auftrag (Living Documentation)
-- [ ] In `Docs/04-Feature-Finanzen-Methodik.md` das Unterkapitel `Ist/Soll-Drift-Report` ergänzen.
+- [x] In `Docs/04-Feature-Finanzen-Methodik.md` das Unterkapitel `Ist/Soll-Drift-Report` ergänzen.
+

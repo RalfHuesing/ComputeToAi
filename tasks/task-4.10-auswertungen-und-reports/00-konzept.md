@@ -1,6 +1,6 @@
 # Konzept: Task 4.10 – Auswertung: Ist/Soll-Drift- & Gewinn/Bestandsschutz-Report, Einzelverkaufs-Steuerschätzer, Plan-Ist-Vergleich
 
-**Status**: READY  
+**Status**: DONE  
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.10  
 **Erstellt am**: 2026-07-21  
 
@@ -28,9 +28,9 @@ Dieses Task-Paket stellt drei essenzielle Auswertungs- und Diagnose-Werkzeuge f�
 
 - **`src/compute_to_ai/features/finance/reports.py`** [NEW]:
   Enthält die Kernfunktionen `get_asset_allocation_report`, `estimate_sale_tax`, `compare_plan_actuals`.
-- **`src/compute_to_ai/features/finance/position_metadata.py`** [MODIFY]:
+- **`src/compute_to_ai/features/finance/position.py`** [MODIFY]:
   Erweiterung von `PositionMetadata` um `asset_type` (`"equity_fund"`, `"mixed_fund"`, `"real_estate_fund"`, `"bond_fund"`, `"stock"`), um die passende Teilfreistellung automatisch abzuleiten.
-- **`src/compute_to_ai/mcp/finance_tools.py`** [MODIFY]:
+- **`src/compute_to_ai/mcp/tools/finance_tools.py`** [MODIFY]:
   Registrierung der drei MCP-Tools `finance_get_asset_allocation_report`, `finance_estimate_sale_tax`, `finance_compare_plan_actuals`.
 - **`tests/test_features/test_finance/test_reports.py`** [NEW]:
   Umfassende Unit- und Integrationstests inkl. aller Edge Cases.
@@ -42,12 +42,12 @@ Dieses Task-Paket stellt drei essenzielle Auswertungs- und Diagnose-Werkzeuge f�
 ```python
 # reports.py
 
-def get_asset_allocation_report(plan: Plan, metadata_store: PositionMetadataStore) -> dict[str, Any]:
+def get_asset_allocation_report(plan: Plan, metadata_store: PositionRegistry) -> dict[str, Any]:
     ...
 
 def estimate_sale_tax(
     plan: Plan,
-    metadata_store: PositionMetadataStore,
+    metadata_store: PositionRegistry,
     store_name: str,
     shares_to_sell: float | None = None,
     amount_to_sell: float | None = None,
@@ -85,9 +85,10 @@ def compare_plan_actuals(
 
 ## 5. Definition of Done (DoD) & Kontrollkriterien für Review-Agent
 
-- [ ] Alle 3 Steps (`01-step-ist-soll-report.md`, `02-step-steuerschaetzer.md`, `03-step-plan-ist-vergleich.md`) vollständig umgesetzt.
-- [ ] Tests in `tests/test_features/test_finance/test_reports.py` sind zu 100% grün (`pytest`).
-- [ ] Edge Cases systematisch durch Unit-Tests abgedeckt.
-- [ ] MCP-Tools registriert und E2E getestet.
-- [ ] Living Documentation in `Docs/04-Feature-Finanzen-Methodik.md` nachgezogen.
-- [ ] `review.md` durch den Kontroll-Agenten erstellt.
+- [x] Alle 3 Steps (`01-step-ist-soll-report.md`, `02-step-steuerschaetzer.md`, `03-step-plan-ist-vergleich.md`) vollständig umgesetzt.
+- [x] Tests in `tests/test_features/test_finance/test_reports.py` sind zu 100% grün (`pytest`).
+- [x] Edge Cases systematisch durch Unit-Tests abgedeckt.
+- [x] MCP-Tools registriert und E2E getestet.
+- [x] Living Documentation in `Docs/04-Feature-Finanzen-Methodik.md` nachgezogen.
+- [x] `review.md` durch den Kontroll-Agenten erstellt.
+

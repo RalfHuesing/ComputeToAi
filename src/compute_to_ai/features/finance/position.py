@@ -23,6 +23,8 @@ class PositionMetadata(BaseModel):
     shares: float
     exchange: str
     last_updated: str
+    asset_type: str = "equity_fund"
+
 
 
 class PositionPriceUpdate(BaseModel):

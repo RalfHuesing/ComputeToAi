@@ -1,7 +1,7 @@
 # Step 3: Plan-Ist-Vergleich
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.10-auswertungen-und-reports/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 
@@ -11,9 +11,9 @@ Implementierung der Funktion `compare_plan_actuals` in `reports.py` und des MCP-
 ---
 
 ## 2. Zu bearbeitende / neu anzulegende Dateien
-- [ ] [MODIFY] `src/compute_to_ai/features/finance/reports.py`
-- [ ] [MODIFY] `src/compute_to_ai/mcp/finance_tools.py`
-- [ ] [MODIFY] `tests/test_features/test_finance/test_reports.py`
+- [x] [MODIFY] `src/compute_to_ai/features/finance/reports.py`
+- [x] [MODIFY] `src/compute_to_ai/mcp/tools/finance_tools.py`
+- [x] [MODIFY] `tests/test_features/test_finance/test_reports.py`
 
 ---
 
@@ -57,4 +57,5 @@ pytest tests/test_features/test_finance/test_reports.py -k test_compare_plan_act
 ---
 
 ## 5. Doku-Aktualisierungs-Auftrag (Living Documentation)
-- [ ] In `Docs/04-Feature-Finanzen-Methodik.md` das Unterkapitel `Plan-Ist-Stichtagsvergleich` ergänzen.
+- [x] In `Docs/04-Feature-Finanzen-Methodik.md` das Unterkapitel `Plan-Ist-Stichtagsvergleich` ergänzen.
+

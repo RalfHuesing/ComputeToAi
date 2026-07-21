@@ -1,7 +1,7 @@
 # Step 2: Einzelverkaufs-Steuerschätzer
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.10-auswertungen-und-reports/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 
@@ -11,9 +11,9 @@ Implementierung der Funktion `estimate_sale_tax` in `reports.py` und des MCP-Too
 ---
 
 ## 2. Zu bearbeitende / neu anzulegende Dateien
-- [ ] [MODIFY] `src/compute_to_ai/features/finance/reports.py`
-- [ ] [MODIFY] `src/compute_to_ai/mcp/finance_tools.py`
-- [ ] [MODIFY] `tests/test_features/test_finance/test_reports.py`
+- [x] [MODIFY] `src/compute_to_ai/features/finance/reports.py`
+- [x] [MODIFY] `src/compute_to_ai/mcp/tools/finance_tools.py`
+- [x] [MODIFY] `tests/test_features/test_finance/test_reports.py`
 
 ---
 
@@ -61,4 +61,5 @@ pytest tests/test_features/test_finance/test_reports.py -k test_estimate_sale_ta
 ---
 
 ## 5. Doku-Aktualisierungs-Auftrag (Living Documentation)
-- [ ] In `Docs/04-Feature-Finanzen-Methodik.md` das Unterkapitel `Einzelverkaufs-Steuerschätzer` ergänzen.
+- [x] In `Docs/04-Feature-Finanzen-Methodik.md` das Unterkapitel `Einzelverkaufs-Steuerschätzer` ergänzen.
+
