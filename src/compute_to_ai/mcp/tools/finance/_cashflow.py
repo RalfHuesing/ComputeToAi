@@ -28,6 +28,10 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         start_step: int | None = None,
         end_step: int | None = None,
         description: str | None = None,
+        frequency: str = "monthly",
+        interval_years: int | None = None,
+        first_occurrence_step: int = 0,
+        first_occurrence_year: float | None = None,
     ) -> str:
         """Add a growing income stream (positive cashflow) to the plan."""
         plan = load_plan(working_directory, plan_name)
@@ -41,6 +45,10 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
             start_step,
             end_step,
             description,
+            frequency,
+            interval_years,
+            first_occurrence_step,
+            first_occurrence_year,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_income_stream: plan=%r name=%r status=ok", plan_name, name)
@@ -57,6 +65,10 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         start_step: int | None = None,
         end_step: int | None = None,
         description: str | None = None,
+        frequency: str = "monthly",
+        interval_years: int | None = None,
+        first_occurrence_step: int = 0,
+        first_occurrence_year: float | None = None,
     ) -> str:
         """Add an inflation-adjusted expense (negative cashflow) to the plan."""
         plan = load_plan(working_directory, plan_name)
@@ -70,6 +82,10 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
             start_step,
             end_step,
             description,
+            frequency,
+            interval_years,
+            first_occurrence_step,
+            first_occurrence_year,
         )
         save_plan(working_directory, plan)
         logger.info("finance_add_expense: plan=%r name=%r status=ok", plan_name, name)

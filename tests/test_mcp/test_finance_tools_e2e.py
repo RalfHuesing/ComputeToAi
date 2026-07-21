@@ -312,3 +312,48 @@ async def test_finance_calculate_pension_adjustment_needs_no_plan(
         )
 
     assert pytest.approx(float(result_text)) == 1800.0 * 0.856
+
+
+@pytest.mark.anyio
+async def test_finance_add_expense_frequency_e2e(
+    server_params: StdioServerParameters,
+) -> None:
+    """Verify finance_add_expense and finance_add_income_stream accept frequency parameters."""
+    plan_name = "freq_test_plan"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=24)
+        await _call_ok(
+            session,
+            "core_add_store",
+            plan_name=plan_name,
+            store_name="cash",
+            initial_balance=10000.0,
+        )
+
+        await _call_ok(
+            session,
+            "finance_add_expense",
+            plan_name=plan_name,
+            name="KFZ-Versicherung",
+            store_name="cash",
+            amount=1200.0,
+            frequency="yearly",
+        )
+        await _call_ok(
+            session,
+            "finance_add_income_stream",
+            plan_name=plan_name,
+            name="Bonus",
+            store_name="cash",
+            amount=5000.0,
+            frequency="every_n_years",
+            interval_years=2,
+        )
+
+        res_text = await _call_ok(session, "core_run_simulation", plan_name=plan_name, runs=1)
+        assert "freq_test_plan" in res_text
+
