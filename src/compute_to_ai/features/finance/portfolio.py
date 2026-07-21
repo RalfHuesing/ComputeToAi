@@ -326,6 +326,8 @@ def cash_bucket_manager_func(  # pyright: ignore[reportUnusedFunction]
     params = CashBucketParameters.model_validate(parameters)
     cash_store = params.cash_store_name
     active_phase = plan.get_active_phase_name(step)
+    if active_phase is None and plan.phases and step >= plan.phases[-1].start_step:
+        active_phase = plan.phases[-1].name
 
     # 1. Einkommensausfallpuffer
     months = params.emergency_buffer_months.get(active_phase or "", 0.0)

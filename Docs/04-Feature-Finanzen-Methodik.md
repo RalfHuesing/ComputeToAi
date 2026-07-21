@@ -102,6 +102,8 @@ Konkrete Steuersätze stehen in 05-Feature-Finanzen-Parameter.md, Belege in 09-Q
 
 **Stufe 2 – gesetzlicher Rentenbeginn**: Wird die Rente vor dem Regelrenteneintrittsalter in Anspruch genommen, gilt ein Rentenabschlag von 0,3 % pro Monat vorzeitiger Inanspruchnahme (max. 14,4 %); bei späterer Inanspruchnahme ein Rentenzuschlag von 0,5 % pro Monat Aufschub. Beide Effekte wirken dauerhaft auf die gesamte weitere Rentenhöhe.
 
+**Phasengrenzen & Timeline-Harmonisierung**: Lebensphasen sind halboffene Intervalle \([start\_step, end\_step)\). Die Erwerbsphase endet bei Zeitschritt \(N - 1\) (bezogen auf das Erwerbsende-Alter \(N\)), sodass Erwerbseinkommen letztmalig in Step \(N - 1\) anfällt und die Rentenphase ab Step \(N\) beginnt. Die letzte Phase (Rentenphase) erstreckt sich stets bis zum Ende des Simulationshorizonts (`timeline.step_count`), damit der Notgroschen-Puffer des Cash-Buckets bis zum letzten Zeitschritt aktiv bleibt.
+
 ## Aggregation über alle Läufe
 
 Nach Abschluss aller Läufe eines Plans werden berechnet: Perzentile des Endvermögens, Anteil der Läufe mit Ruin (Ruin-Wahrscheinlichkeit) und ggf. Alter bei Ruin, sowie – falls eine Zielvorgabe definiert ist – der Anteil der Läufe, die dieses Ziel erreichen.

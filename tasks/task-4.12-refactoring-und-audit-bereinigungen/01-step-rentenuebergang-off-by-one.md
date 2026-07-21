@@ -1,7 +1,7 @@
 # Step 1: Bereinigung Off-By-One beim Rentenübergang
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.12-refactoring-und-audit-bereinigungen/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 

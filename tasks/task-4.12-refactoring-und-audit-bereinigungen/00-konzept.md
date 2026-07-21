@@ -1,6 +1,6 @@
 # Konzept: Task 4.12 – Refactoring & Plan-Audit-Bereinigungen
 
-**Status**: READY  
+**Status**: DONE  
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.12  
 **Erstellt am**: 2026-07-21  
 
@@ -59,8 +59,8 @@ def build_standard_life_phases(
 
 ## 5. Definition of Done (DoD) & Kontrollkriterien für Review-Agent
 
-- [ ] Steps (`01-step-rentenuebergang-off-by-one.md`, `02-step-timeline-phasen-harmonisierung.md`, `03-step-alt-stores-und-rebalancing-cleanup.md`) ausgeführt.
-- [ ] Pytest-Suite grün.
-- [ ] Living Documentation in `Docs/04-Feature-Finanzen-Methodik.md` aktualisiert.
-- [ ] `review.md` gegengezeichnet.
-- [ ] `Docs/10-Roadmap.md` abgehakt `[x]`.
+- [x] Steps (`01-step-rentenuebergang-off-by-one.md`, `02-step-timeline-phasen-harmonisierung.md`, `03-step-alt-stores-und-rebalancing-cleanup.md`) ausgeführt.
+- [x] Pytest-Suite grün.
+- [x] Living Documentation in `Docs/04-Feature-Finanzen-Methodik.md` aktualisiert.
+- [x] `review.md` gegengezeichnet.
+- [x] `Docs/10-Roadmap.md` abgehakt `[x]`.
