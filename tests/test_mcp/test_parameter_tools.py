@@ -20,8 +20,9 @@ def test_mcp_parameter_tools(tmp_path: Path) -> None:
     register_finance_tools(mcp, tmp_path)
 
     # FastMCP tools can be called via their inner python function
-    set_tool = mcp._tool_manager._tools["finance_set_plan_parameter"].fn
-    get_tool = mcp._tool_manager._tools["finance_get_plan_parameters"].fn
+    # FastMCP provides no public test API for direct fn access - type: ignore is the sanctioned workaround
+    set_tool = mcp._tool_manager._tools["finance_set_plan_parameter"].fn  # type: ignore[reportPrivateUsage]
+    get_tool = mcp._tool_manager._tools["finance_get_plan_parameters"].fn  # type: ignore[reportPrivateUsage]
 
     # 1. Initially parameters dict is empty
     params = get_tool("mcp_param_plan")

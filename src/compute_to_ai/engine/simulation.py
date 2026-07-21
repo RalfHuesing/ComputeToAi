@@ -8,7 +8,7 @@ import copy
 
 import numpy as np
 
-from compute_to_ai.engine._simulation_phase1 import _calculate_phase1_updates, _ledger_entry
+from compute_to_ai.engine._simulation_phase1 import calculate_phase1_updates, ledger_entry
 from compute_to_ai.engine.effect import ComputedEffect, CorrelatedReturnEffect, Effect
 from compute_to_ai.engine.monte_carlo import (
     find_closest_run_to_percentile,
@@ -39,12 +39,12 @@ def _reconcile_balances(
                 store.withdraw_amount(-diff)
 
 
-def _default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
+def default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
     """Auto-derive an identity-matrix group for any correlation_group a
     CorrelatedReturnEffect references but that was never registered.
 
     Without this, a store's return would silently fall back to its
-    (non-random) expected_return in _calculate_phase1_updates - a single
+    (non-random) expected_return in calculate_phase1_updates - a single
     unconfigured asset class would make an entire Monte-Carlo run
     deterministic instead of erroring or asking, which is far more
     dangerous than either.
@@ -71,7 +71,7 @@ def _default_correlation_groups(plan: Plan) -> dict[str, CorrelationGroup]:
     }
 
 
-def _pre_draw_correlated_returns(
+def pre_draw_correlated_returns(
     plan: Plan,
     all_groups: dict[str, CorrelationGroup],
     num_runs: int,
@@ -94,7 +94,7 @@ def _pre_draw_correlated_returns(
             # `store_name` here is an axis identifier of the correlation
             # matrix, matched against each CorrelatedReturnEffect's
             # representative store (store_names[0]) - see
-            # _default_correlation_groups.
+            # default_correlation_groups.
             effect = None
             for eff in plan.effects:
                 if (
@@ -166,7 +166,7 @@ def _execute_computed_effects(
                 for name, value in current_balances.items():
                     diff = value - before.get(name, 0.0)
                     if diff != 0.0:
-                        ledger.append(_ledger_entry(effect, "computed", t, name, diff))
+                        ledger.append(ledger_entry(effect, "computed", t, name, diff))
 
 
 def _cap_and_check_ruin(
@@ -222,7 +222,7 @@ def _collect_computed_effect_final_states(effects: list[Effect]) -> list[Compute
     return states
 
 
-def _run_single_simulation(
+def run_single_simulation(
     plan: Plan,
     drawn_rates: dict[str, np.ndarray] | None = None,
     record_ledger: bool = False,
@@ -264,7 +264,7 @@ def _run_single_simulation(
 
         # Phase 1: Growth and fixed additive effects
         store_balances_before = {name: store.balance for name, store in sim_stores.items()}
-        fixed_additions, total_growth_rates = _calculate_phase1_updates(
+        fixed_additions, total_growth_rates = calculate_phase1_updates(
             sim_plan.effects,
             t,
             active_phase,
@@ -320,7 +320,7 @@ def run_simulation(plan: Plan, record_ledger: bool = False) -> SimulationResult:
     `record_ledger=True` additionally instruments the run with a per-step
     ledger and computed-effect final states (see Docs/01, "Ledger").
     """
-    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = _run_single_simulation(
+    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = run_single_simulation(
         plan, None, record_ledger
     )
     return SimulationResult(
@@ -334,9 +334,12 @@ def run_simulation(plan: Plan, record_ledger: bool = False) -> SimulationResult:
 
 
 __all__ = [
+    "default_correlation_groups",
     "find_closest_run_to_percentile",
+    "pre_draw_correlated_returns",
     "run_monte_carlo",
     "run_monte_carlo_path",
     "run_path_audit",
     "run_simulation",
+    "run_single_simulation",
 ]

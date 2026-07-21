@@ -36,7 +36,7 @@ def _load_audited_path(
     return plan, result
 
 
-def _register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
+def register_path_audit_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_get_path_category_series(  # pyright: ignore[reportUnusedFunction]
         plan_name: str,

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 _MONTE_CARLO_RESULT_FILENAME = "monte_carlo_result.json"
 
 
-def _register_goal_and_monte_carlo_tools(mcp: FastMCP, working_directory: Path) -> None:
+def register_goal_and_monte_carlo_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_set_target_condition(  # pyright: ignore[reportUnusedFunction]
         plan_name: str, ruin_stores: list[str], ruin_threshold: float = 0.0

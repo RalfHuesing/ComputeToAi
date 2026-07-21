@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from compute_to_ai.engine.effect import (
+    ComputedEffect,
     CorrelatedReturnEffect,
     Effect,
     GrowingFixedEffect,
@@ -31,7 +32,7 @@ def _resolve_rate(plan: "Plan | None", rate: float | str) -> float:
     return float(rate)
 
 
-def _ledger_entry(
+def ledger_entry(
     effect: Effect, eff_type: LedgerEffectType, t: int, store_name: str, delta: float
 ) -> LedgerEntry:
     """Build a LedgerEntry for one Effect's contribution to one Store this step."""
@@ -39,7 +40,7 @@ def _ledger_entry(
         step=t,
         effect_name=effect.name if effect.name is not None else eff_type,
         effect_type=eff_type,
-        function_name=effect.function_name if hasattr(effect, "function_name") else None,
+        function_name=effect.function_name if isinstance(effect, ComputedEffect) else None,
         store_name=store_name,
         delta=delta,
     )
@@ -54,7 +55,7 @@ def _record_ledger_entry(
     delta: float,
 ) -> None:
     if ledger is not None and delta != 0.0:
-        ledger.append(_ledger_entry(effect, eff_type, t, store_name, delta))
+        ledger.append(ledger_entry(effect, eff_type, t, store_name, delta))
 
 
 def _apply_transfer_effect(
@@ -161,7 +162,7 @@ def _apply_phase1_effect(
         )
 
 
-def _calculate_phase1_updates(
+def calculate_phase1_updates(
     effects: list[Effect],
     t: int,
     active_phase: str | None,

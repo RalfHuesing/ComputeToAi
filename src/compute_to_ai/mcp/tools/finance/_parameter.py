@@ -10,7 +10,7 @@ from compute_to_ai.mcp.tools.plan_storage import load_plan, save_plan
 logger = logging.getLogger(__name__)
 
 
-def _register_parameter_tools(mcp: FastMCP, working_directory: Path) -> None:
+def register_parameter_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_set_plan_parameter(  # pyright: ignore[reportUnusedFunction]
         plan_name: str,

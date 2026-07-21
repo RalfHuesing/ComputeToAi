@@ -2,6 +2,7 @@
 
 import pytest
 
+from compute_to_ai.engine.effect import ComputedEffect
 from compute_to_ai.engine.plan import Phase, Plan, Timeline
 from compute_to_ai.engine.store import Store
 from compute_to_ai.features.finance.portfolio import (
@@ -34,6 +35,8 @@ def test_cash_bucket_glidepath_linear_increase() -> None:
 
     # Initial balance at step 0
     balances = {"cash": 6000.0, "stocks": 100000.0}
+
+    assert isinstance(plan.effects[0], ComputedEffect)
 
     # Step 0 to 83: before ramp start (120 - 36 = 84)
     for step in range(84):
@@ -80,6 +83,8 @@ def test_cash_bucket_glidepath_dynamic_shortening() -> None:
 
     balances = {"cash": 6000.0, "stocks": 100000.0}
 
+    assert isinstance(plan.effects[0], ComputedEffect)
+
     # Step 0: start of shortened ramp -> target = 6000
     cash_bucket_manager_func(balances, 0, plan.effects[0].parameters, plan)
     assert balances["cash"] == 6000.0
@@ -119,6 +124,8 @@ def test_sequence_of_returns_glidepath_protection() -> None:
     )
     bal_abrupt = {"cash": 6000.0, "stocks": 100000.0}
 
+    assert isinstance(plan_abrupt.effects[0], ComputedEffect)
+
     # Simulate up to step 119
     for s in range(120):
         cash_bucket_manager_func(bal_abrupt, s, plan_abrupt.effects[0].parameters, plan_abrupt)
@@ -145,6 +152,8 @@ def test_sequence_of_returns_glidepath_protection() -> None:
         glidepath_steps=36,
     )
     bal_glidepath = {"cash": 6000.0, "stocks": 100000.0}
+
+    assert isinstance(plan_glidepath.effects[0], ComputedEffect)
 
     # Simulate up to step 119 (linear de-risking builds cash to 48000 before crash)
     for s in range(120):

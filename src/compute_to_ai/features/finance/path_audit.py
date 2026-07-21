@@ -30,6 +30,7 @@ __all__ = [
     "build_event_log",
     "compute_category_series",
     "get_percentile_curves",
+    "liability_store_names",
 ]
 
 CategoryName = Literal["income", "expenses", "taxes", "returns", "reallocations"]
@@ -64,7 +65,7 @@ class PathEvent(BaseModel):
     description: str
 
 
-def _liability_store_names(plan: Plan) -> set[str]:
+def liability_store_names(plan: Plan) -> set[str]:
     """Collect every store backing a `liability_manager` building block.
 
     Deltas on these stores (interest accrual, principal reduction) restate
@@ -111,7 +112,7 @@ def _find_plan_inflation_rate(plan: Plan) -> float:
                 return val
     for effect in plan.effects:
         if isinstance(effect, GrowingFixedEffect) and effect.name == "Lebenshaltung":
-            return effect.growth_rate
+            return float(effect.growth_rate)
     return 0.0
 
 
@@ -129,7 +130,7 @@ def compute_category_series(
     category (not `balances`, a point-in-time snapshot) by 12, for easier
     comparison against a monthly household budget.
     """
-    liability_stores = _liability_store_names(plan)
+    liability_stores = liability_store_names(plan)
     steps = {
         t: CategoryStep(step=t, balances=dict(balances))
         for t, balances in enumerate(result.time_series)
@@ -281,7 +282,7 @@ def build_event_log(plan: Plan, result: SimulationResult) -> list[PathEvent]:
 
 def get_percentile_curves(plan: Plan, audit: PathAuditResult) -> dict[str, list[dict[str, float]]]:
     """Classify all plan stores and return aggregated balance curves for each audited path."""
-    liability_stores = _liability_store_names(plan)
+    liability_stores = liability_store_names(plan)
     invested_stores = {
         store_name
         for eff in plan.effects

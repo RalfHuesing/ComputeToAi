@@ -12,7 +12,7 @@ from compute_to_ai.mcp.tools.plan_storage import load_plan
 logger = logging.getLogger(__name__)
 
 
-def _register_contribution_tools(mcp: FastMCP, working_directory: Path) -> None:
+def register_contribution_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_suggest_contribution_allocation(  # pyright: ignore[reportUnusedFunction]
         plan_name: str, new_amount: float

@@ -35,14 +35,14 @@ def _drawn_rates_for_run(
 def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> MonteCarloResult:
     """Run a Monte-Carlo simulation with stochastically drawn correlated returns."""
     from compute_to_ai.engine.simulation import (
-        _default_correlation_groups,
-        _pre_draw_correlated_returns,
-        _run_single_simulation,
+        default_correlation_groups,
+        pre_draw_correlated_returns,
+        run_single_simulation,
     )
 
     rng = np.random.default_rng(seed)
-    all_groups = {**_default_correlation_groups(plan), **plan.correlation_groups}
-    group_draws = _pre_draw_correlated_returns(plan, all_groups, num_runs, rng)
+    all_groups = {**default_correlation_groups(plan), **plan.correlation_groups}
+    group_draws = pre_draw_correlated_returns(plan, all_groups, num_runs, rng)
 
     raw_final_balances: list[dict[str, float]] = []
     ruin_step_counts: dict[int, int] = {}
@@ -53,7 +53,7 @@ def run_monte_carlo(plan: Plan, num_runs: int, seed: int | None = None) -> Monte
     for run_idx in range(num_runs):
         run_drawn_rates = _drawn_rates_for_run(all_groups, group_draws, run_idx)
 
-        final_bal, _, r_step, r_shortfall, _, _ = _run_single_simulation(plan, run_drawn_rates)
+        final_bal, _, r_step, r_shortfall, _, _ = run_single_simulation(plan, run_drawn_rates)
         raw_final_balances.append(final_bal)
 
         for name, bal in final_bal.items():
@@ -103,17 +103,17 @@ def run_monte_carlo_path(
 ) -> SimulationResult:
     """Re-run one specific Monte-Carlo run index with full ledger instrumentation."""
     from compute_to_ai.engine.simulation import (
-        _default_correlation_groups,
-        _pre_draw_correlated_returns,
-        _run_single_simulation,
+        default_correlation_groups,
+        pre_draw_correlated_returns,
+        run_single_simulation,
     )
 
     rng = np.random.default_rng(seed)
-    all_groups = {**_default_correlation_groups(plan), **plan.correlation_groups}
-    group_draws = _pre_draw_correlated_returns(plan, all_groups, num_runs, rng)
+    all_groups = {**default_correlation_groups(plan), **plan.correlation_groups}
+    group_draws = pre_draw_correlated_returns(plan, all_groups, num_runs, rng)
     run_drawn_rates = _drawn_rates_for_run(all_groups, group_draws, run_idx)
 
-    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = _run_single_simulation(
+    final_balances, time_series, ruin_step, ruin_shortfall, ledger, states = run_single_simulation(
         plan, run_drawn_rates, record_ledger=True
     )
     return SimulationResult(

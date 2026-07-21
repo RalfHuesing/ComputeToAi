@@ -10,7 +10,7 @@ from compute_to_ai.features.finance.live_price import LivePrice, get_live_price
 logger = logging.getLogger(__name__)
 
 
-def _register_live_price_tools(mcp: FastMCP, _working_directory: Path) -> None:
+def register_live_price_tools(mcp: FastMCP, _working_directory: Path) -> None:
     @mcp.tool()
     def finance_get_live_price(  # pyright: ignore[reportUnusedFunction]
         isin_or_wkn: str, exchange: str = "Xetra"

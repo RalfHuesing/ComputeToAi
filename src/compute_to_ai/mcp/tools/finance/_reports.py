@@ -23,7 +23,7 @@ from compute_to_ai.mcp.tools.position_storage import load_position_registry
 logger = logging.getLogger(__name__)
 
 
-def _register_report_tools(mcp: FastMCP, working_directory: Path) -> None:
+def register_report_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_get_asset_allocation_report(  # pyright: ignore[reportUnusedFunction]
         plan_name: str,

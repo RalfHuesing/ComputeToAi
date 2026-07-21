@@ -28,7 +28,7 @@ from compute_to_ai.mcp.tools.position_storage import load_position_registry, sav
 logger = logging.getLogger(__name__)
 
 
-def _register_position_tools(mcp: FastMCP, working_directory: Path) -> None:
+def register_position_tools(mcp: FastMCP, working_directory: Path) -> None:
     @mcp.tool()
     def finance_set_asset_shares(  # pyright: ignore[reportUnusedFunction]
         plan_name: str,

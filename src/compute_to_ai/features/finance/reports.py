@@ -9,7 +9,7 @@ from compute_to_ai.engine.effect import ComputedEffect, CorrelatedReturnEffect
 from compute_to_ai.engine.plan import Plan
 from compute_to_ai.engine.result import PathAuditResult
 from compute_to_ai.engine.simulation import run_path_audit
-from compute_to_ai.features.finance.path_audit import _liability_store_names, get_percentile_curves
+from compute_to_ai.features.finance.path_audit import liability_store_names, get_percentile_curves
 from compute_to_ai.features.finance.position import PositionRegistry
 
 
@@ -84,10 +84,12 @@ def _collect_asset_class_stores(plan: Plan) -> tuple[dict[str, list[str]], set[s
     invested_stores: set[str] = set()
     for effect in plan.effects:
         if isinstance(effect, CorrelatedReturnEffect):
+            if effect.name is None:
+                continue
             asset_class_stores[effect.name] = list(effect.store_names)
             invested_stores.update(effect.store_names)
 
-    liability_stores = _liability_store_names(plan)
+    liability_stores = liability_store_names(plan)
     if not asset_class_stores:
         for store in plan.stores:
             if store.name not in liability_stores:
@@ -156,7 +158,7 @@ def get_asset_allocation_report(
             }
         )
 
-    liability_stores = _liability_store_names(plan)
+    liability_stores = liability_store_names(plan)
     all_positions: list[dict[str, Any]] = []
     for st in plan.stores:
         if st.name in liability_stores:
@@ -362,7 +364,7 @@ def compare_plan_actuals(
     p10_curve = curves.get("p10") or p50_curve
     p90_curve = curves.get("p90") or p50_curve
 
-    liability_stores = _liability_store_names(plan)
+    liability_stores = liability_store_names(plan)
     total_net_worth = sum(
         st.balance if st.name not in liability_stores else -st.balance for st in plan.stores
     )
