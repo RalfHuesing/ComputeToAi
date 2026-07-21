@@ -66,7 +66,7 @@ Die Ziel-Größe des Cash-Bucket-Speichers wird jedes Simulationsjahr neu berech
 
 **2. Nahsicht-Komponente** = Summe der geplanten Fixausgaben und Urlaube innerhalb eines kurzen rollierenden Nah-Horizonts plus Vorfinanzierungsanteil für flexible Anschaffungen, deren frühester möglicher Zeitpunkt bereits in diesen Horizont fällt.
 
-**3. Entnahmepuffer** = Entnahmehorizont (Jahre) × Entnahmeabhängigkeit(t) × erwartete Jahresausgaben(t).
+**3. Entnahmepuffer** = Entnahmehorizont (Jahre) × Entnahmeabhängigkeit(t) × erwartete Jahresausgaben(t). Die erwarteten Jahresausgaben werden aus den Pro-Schritt-Beträgen des Plans über `Timeline.steps_per_year` (siehe 01-Kern-Domaenenmodell.md, „Zeitstrahl") annualisiert – derselbe fachliche Sachverhalt ergibt damit denselben Pufferbetrag, unabhängig davon, ob der Plan in Monats- oder Jahresschritten rechnet.
 
 **De-Risking Glidepath vor Phasenübergängen**: Über den Parameter `glidepath_steps` (z. B. 36 Schritte / 3 Jahre Vorlauf vor dem Renteneintritt) wird die Zielgröße des Cash-Buckets vor einem Phasenwechsel von der bisherigen auf die neue Zielgröße linear über die Vorlaufschritte aufgebaut. Dadurch wird schlagartiger Verkauf von Aktien am Stichtag vermieden und das Sequence-of-Returns-Risiko geglättet. Reichen die verbleibenden Schritte bis zum Phasenwechsel nicht für die volle Schrittanzahl aus, passt sich der lineare Aufbau dynamisch an die verbleibenden Schritte an.
 

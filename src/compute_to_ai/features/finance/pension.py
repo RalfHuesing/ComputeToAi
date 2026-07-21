@@ -56,11 +56,17 @@ def add_statutory_pension(
     `store_name` references an existing Store and is validated up front - a
     typo'd name would otherwise create an effect the simulation silently
     never applies.
+
+    `regular_retirement_step`/`actual_retirement_step` are step indices; the
+    Rentenabschlag/-zuschlag formula needs their distance in months, so the
+    conversion goes through the plan's Timeline.steps_per_year (12 months per
+    step on an annual-step plan, 1 month per step on a monthly-step plan).
     """
     plan.validate_active_phases(active_phases)
     plan.validate_store_names([store_name])
-    months_early = max(0, regular_retirement_step - actual_retirement_step) * 12
-    months_late = max(0, actual_retirement_step - regular_retirement_step) * 12
+    months_per_step = 12.0 / plan.timeline.steps_per_year
+    months_early = max(0, regular_retirement_step - actual_retirement_step) * months_per_step
+    months_late = max(0, actual_retirement_step - regular_retirement_step) * months_per_step
     adjustment_factor = calculate_pension_adjustment_factor(
         months_early=months_early,
         months_late=months_late,

@@ -24,7 +24,7 @@ Alle Größen, die das Finanzen-Feature konfigurierbar macht. Konkrete Zahlenwer
 |---|---|
 | Aktuelles Alter | Primärperson |
 | Erwerbsende | Primärperson; Zeitpunkt, ab dem kein Erwerbseinkommen mehr fließt |
-| Gesetzlicher Rentenbeginn | Primärperson; separat vom Erwerbsende, inkl. Rentenabschlag (0,3 %/Monat vorzeitig, max. 14,4 %) bzw. Rentenzuschlag (0,5 %/Monat Aufschub) |
+| Gesetzlicher Rentenbeginn | Primärperson; separat vom Erwerbsende, inkl. Rentenabschlag (0,3 %/Monat vorzeitig, max. 14,4 %) bzw. Rentenzuschlag (0,5 %/Monat Aufschub); der Monatsabstand zwischen regulärem und tatsächlichem Rentenbeginn wird aus der Schrittdifferenz relativ zu `Timeline.steps_per_year` berechnet |
 | Lebenserwartungsannahme | Primärperson, bestimmt das Ende des Zeitstrahls |
 | Partnerbeitrag | Netto-Cashflow weiterer Haushaltsmitglieder |
 

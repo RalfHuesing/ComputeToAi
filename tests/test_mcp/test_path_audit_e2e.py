@@ -59,7 +59,9 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
     ):
         await session.initialize()
 
-        await _call_ok(session, "core_create_plan", plan_name=plan_name, step_count=10)
+        await _call_ok(
+            session, "core_create_plan", plan_name=plan_name, step_count=10, steps_per_year=1
+        )
         await _call_ok(
             session, "core_add_store", plan_name=plan_name, store_name="cash", initial_balance=0.0
         )
@@ -81,6 +83,7 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
             store_name="cash",
             amount=30000.0,
             active_phases=["Erwerbsphase"],
+            frequency="yearly",
         )
         await _call_ok(
             session,
@@ -89,6 +92,7 @@ async def test_path_audit_end_to_end(server_params: StdioServerParameters) -> No
             name="Lebenshaltung",
             store_name="cash",
             amount=18000.0,
+            frequency="yearly",
         )
         await _call_ok(
             session,

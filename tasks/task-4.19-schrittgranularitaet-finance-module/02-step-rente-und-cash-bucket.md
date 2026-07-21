@@ -1,7 +1,7 @@
 # Step 2: Gesetzliche Rente und Cash-Bucket-Entnahmepuffer
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.19-schrittgranularitaet-finance-module/00-konzept.md)
-**Status**: PENDING
+**Status**: DONE
 
 ---
 

@@ -373,7 +373,7 @@ def test_cash_bucket_entnahme_buffer_ignores_phase_name() -> None:
 
     plan = Plan(
         name="cash-bucket-entnahme-test",
-        timeline=Timeline(step_count=1),
+        timeline=Timeline(step_count=1, steps_per_year=1),
         stores=[Store(name="cash", balance=0.0)],
         phases=[Phase(name="Ruhestand", start_step=0, end_step=10)],
         effects=[GrowingFixedEffect(name="Ausgaben", store_name="cash", amount_per_step=-1000.0)],
@@ -399,6 +399,45 @@ def test_cash_bucket_entnahme_buffer_ignores_phase_name() -> None:
     assert pytest.approx(result.final_balances["cash"]) == 3000.0
     assert pytest.approx(result.final_balances["equity"]) == 1200.0
     assert pytest.approx(result.final_balances["bond"]) == 800.0
+
+
+def test_cash_bucket_entnahme_buffer_is_step_granularity_invariant() -> None:
+    """The same yearly expenses and withdrawal_years must yield the same
+    Entnahmepuffer amount on a monthly-step plan as on an annual-step plan -
+    the buffer means "N years of expected net expenses", not "N steps".
+    """
+    from compute_to_ai.engine.effect import GrowingFixedEffect
+    from compute_to_ai.engine.timeline import Phase
+
+    def _final_cash(steps_per_year: int, expense_per_step: float) -> float:
+        plan = Plan(
+            name=f"cash-bucket-entnahme-invariance-{steps_per_year}",
+            timeline=Timeline(step_count=1, steps_per_year=steps_per_year),
+            stores=[Store(name="cash", balance=0.0)],
+            phases=[Phase(name="Ruhestand", start_step=0, end_step=100)],
+            effects=[
+                GrowingFixedEffect(
+                    name="Ausgaben", store_name="cash", amount_per_step=expense_per_step
+                )
+            ],
+        )
+        add_asset_class(plan, "equity", 40000.0, 0.0, 0.0)
+        add_asset_class(plan, "bond", 20000.0, 0.0, 0.0)
+        add_cash_bucket(
+            plan=plan,
+            portfolio_weights={"equity": 0.70, "bond": 0.30},
+            emergency_buffer_months={"Ruhestand": 0.0},
+            monthly_expenses=0.0,
+            withdrawal_years=3.0,
+            withdrawal_phase_names=["Ruhestand"],
+        )
+        result = run_simulation(plan)
+        return result.final_balances["cash"]
+
+    # 12,000/year of expenses either way: -12,000 per annual step, or
+    # -1,000 per monthly step. Buffer = 3 years * 12,000 = 36,000 in both.
+    assert pytest.approx(_final_cash(1, -12000.0)) == 36000.0
+    assert pytest.approx(_final_cash(12, -1000.0)) == 36000.0
 
 
 def test_cash_bucket_entnahme_buffer_skips_unlisted_phase() -> None:

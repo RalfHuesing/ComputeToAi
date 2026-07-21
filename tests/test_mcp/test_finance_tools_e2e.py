@@ -89,6 +89,7 @@ async def test_anna_example_plan_end_to_end(server_params: StdioServerParameters
             amount=33600.0,
             growth_rate=0.02,
             active_phases=["Erwerbsphase"],
+            frequency="yearly",
         )
         await _call_ok(
             session,
@@ -98,6 +99,7 @@ async def test_anna_example_plan_end_to_end(server_params: StdioServerParameters
             store_name="cash",
             amount=19200.0,
             inflation_rate=0.02,
+            frequency="yearly",
         )
 
         # Car loan at 25 (step 5): 20,000 EUR, 4%, ~5-year annual payment.

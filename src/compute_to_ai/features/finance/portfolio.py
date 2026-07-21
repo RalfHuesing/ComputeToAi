@@ -297,6 +297,10 @@ def _calculate_withdrawal_buffer(
     Which phases count towards this buffer is decided solely by the explicit
     `withdrawal_phase_names` parameter, never by inspecting a phase's name -
     a Phase's name is an opaque label (see Docs/01-Kern-Domaenenmodell.md).
+
+    `withdrawal_years` is calendar years; per-step amounts are annualized via
+    Timeline.steps_per_year, so the buffer means "N years of expected net
+    expenses" regardless of the plan's step granularity.
     """
     if active_phase is None or active_phase not in withdrawal_phase_names:
         return 0.0
@@ -319,7 +323,8 @@ def _calculate_withdrawal_buffer(
 
     if e_val > 0.0:
         dependency = max(0.0, (e_val - i_val) / e_val)
-        return withdrawal_years * dependency * e_val
+        annual_e_val = e_val * plan.timeline.steps_per_year
+        return withdrawal_years * dependency * annual_e_val
     return 0.0
 
 
@@ -456,6 +461,9 @@ def add_cash_bucket(
     `withdrawal_phase_names` names the phases (e.g. the retirement phase)
     whose withdrawal dependency feeds the Entnahmepuffer component; phases
     not listed there never contribute to it, regardless of how they're named.
+    `withdrawal_years` is calendar years - the buffer annualizes the plan's
+    per-step expenses via Timeline.steps_per_year, so the same yearly
+    expenses yield the same buffer at any step granularity.
 
     `max_target_cash` caps the otherwise unbounded, dynamically computed
     target size - without it, any cash above the computed target is always

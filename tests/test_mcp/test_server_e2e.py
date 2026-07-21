@@ -331,7 +331,13 @@ async def test_core_list_phases(server_params: StdioServerParameters) -> None:
     ):
         await session.initialize()
 
-        await _call_ok(session, "core_create_plan", plan_name="phases-list-test", step_count=100)
+        await _call_ok(
+            session,
+            "core_create_plan",
+            plan_name="phases-list-test",
+            step_count=100,
+            steps_per_year=1,
+        )
 
         # Initially empty
         phases_text = await _call_ok(session, "core_list_phases", plan_name="phases-list-test")

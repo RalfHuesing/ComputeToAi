@@ -43,7 +43,7 @@ def test_adjustment_factor_rejects_both_early_and_late_months() -> None:
 def test_add_statutory_pension_applies_adjustment_and_starts_on_time() -> None:
     plan = Plan(
         name="pension-test",
-        timeline=Timeline(step_count=45),
+        timeline=Timeline(step_count=45, steps_per_year=1),
         stores=[Store(name="cash", balance=0.0)],
     )
 
@@ -63,6 +63,50 @@ def test_add_statutory_pension_applies_adjustment_and_starts_on_time() -> None:
     # Annual amount = 1000 * 12 * 0.856 = 10272.0, paid for 2 steps (43, 44).
     assert result.time_series[42]["cash"] == 0.0
     assert pytest.approx(result.final_balances["cash"]) == 10272.0 * 2
+
+
+def test_add_statutory_pension_on_monthly_step_plan_counts_step_distance_in_months() -> None:
+    """6 monthly steps early must mean 6 months early, not 72."""
+    plan = Plan(
+        name="pension-monthly-test",
+        timeline=Timeline(step_count=500, steps_per_year=12),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    add_statutory_pension(
+        plan=plan,
+        name="Rente",
+        store_name="cash",
+        annual_amount_at_regular_retirement_age=12000.0,
+        regular_retirement_step=450,
+        actual_retirement_step=444,
+    )
+
+    effect = plan.effects[0]
+    # months_early = 6 -> factor 1 - 6 * 0.003 = 0.982.
+    assert getattr(effect, "amount_per_step", None) == pytest.approx(12000.0 * 0.982)
+
+
+def test_add_statutory_pension_on_annual_step_plan_counts_step_distance_in_years() -> None:
+    """Explicit steps_per_year=1 regression: 4 annual steps early = 48 months."""
+    plan = Plan(
+        name="pension-annual-test",
+        timeline=Timeline(step_count=50, steps_per_year=1),
+        stores=[Store(name="cash", balance=0.0)],
+    )
+
+    add_statutory_pension(
+        plan=plan,
+        name="Rente",
+        store_name="cash",
+        annual_amount_at_regular_retirement_age=12000.0,
+        regular_retirement_step=47,
+        actual_retirement_step=43,
+    )
+
+    effect = plan.effects[0]
+    # months_early = 48 -> capped 14.4% reduction -> factor 0.856.
+    assert getattr(effect, "amount_per_step", None) == pytest.approx(12000.0 * 0.856)
 
 
 def test_add_statutory_pension_rejects_unknown_phase_name() -> None:
@@ -114,12 +158,19 @@ def test_income_stream_to_pension_transition_across_early_retirement_gap() -> No
     )
     plan = Plan(
         name="transition-test",
-        timeline=Timeline(step_count=10),
+        timeline=Timeline(step_count=10, steps_per_year=1),
         stores=[Store(name="cash", balance=0.0)],
         phases=phases,
     )
 
-    add_income_stream(plan, "Gehalt", "cash", amount=3000.0, active_phases=["Erwerbsphase"])
+    add_income_stream(
+        plan,
+        "Gehalt",
+        "cash",
+        amount=3000.0,
+        active_phases=["Erwerbsphase"],
+        frequency="yearly",
+    )
     add_statutory_pension(
         plan=plan,
         name="Rente",
