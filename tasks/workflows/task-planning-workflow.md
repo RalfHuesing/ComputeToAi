@@ -26,6 +26,20 @@ tasks/
 
 ---
 
+## 1.1 Einhaltung der Agent-Rules (`.agents/rules/`)
+
+Sowohl beim Erstellen von Konzepten und Steps als auch bei deren Umsetzung sind **zwingend** alle im Projekt definierten Agenten-Regeln unter [.agents/rules/](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules) zu berücksichtigen:
+- [.agents/rules/code-standards.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/code-standards.mdc): Vorgaben für Python 3.12+, Typisierung, Pydantic v2 & Docstrings im Konzept & Code verankern.
+- [.agents/rules/language.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/language.mdc): Code, Docstrings, Kommentare und Commits ausschließlich in **Englisch**.
+- [.agents/rules/testing.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/testing.mdc): Pflicht-Abdeckung von Happy Path & **Edge Cases** (Grenzwerte, Fehleingaben) in allen Steps verankern.
+- [.agents/rules/living-documentation.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/living-documentation.mdc): Doku-Aufträge für `Docs/` in allen Steps eingeplant.
+- [.agents/rules/git-workflow.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/git-workflow.mdc): Atomare Commits mit Conventional Commits Syntax vorsehen.
+- [.agents/rules/mcp-server-architecture.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/mcp-server-architecture.mdc): Schichten-Trennung (Engine / Feature / MCP Tools) im Architekturteil des Konzepts beachten.
+- [.agents/rules/sources-and-concept.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/sources-and-concept.mdc): Belege in `Docs/09-Quellen.md` und Konzeptionierung vor Code.
+- [.agents/rules/proactive-questions.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/proactive-questions.mdc): Prägnante Abstimmungen und klare Entscheidungsfragen.
+
+---
+
 ## 2. Ablauf des Planungs-Workflows
 
 ### Schritt 1: Detaillierte Besprechung & Prägnante Abstimmung

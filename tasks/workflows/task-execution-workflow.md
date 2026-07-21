@@ -13,6 +13,19 @@ Der Nutzer startet einen frischen Chat mit dem Befehl:
 
 ---
 
+## 1.1 Einhaltung der Agent-Rules (`.agents/rules/`)
+
+Bei der Ausführung jedes Steps müssen **zwingend** alle im Projekt definierten Agenten-Regeln unter [.agents/rules/](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules) strikt beachtet und eingehalten werden:
+- [.agents/rules/code-standards.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/code-standards.mdc): Python 3.12+, strikte Typisierung, Pydantic v2, Google Docstring-Style.
+- [.agents/rules/language.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/language.mdc): Code, Docstrings, Kommentare und Commit-Messages ausschließlich auf **Englisch**.
+- [.agents/rules/testing.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/testing.mdc): Verpflichtende Test-Abdeckung für Happy Path und ausdrücklich **Edge Cases** (z. B. 0, ungültige Eingaben, Grenzwerte).
+- [.agents/rules/living-documentation.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/living-documentation.mdc): Betroffene Konzeptdokumente in `Docs/` direkt im selben Step nachziehen (Living Documentation).
+- [.agents/rules/git-workflow.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/git-workflow.mdc): Atomare Commits mit Conventional Commits Syntax (`feat(...)`, `fix(...)`, `docs(...)`).
+- [.agents/rules/mcp-server-architecture.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/mcp-server-architecture.mdc): Strikte Trennung von Engine, Feature und MCP-Tools.
+- [.agents/rules/environment.mdc](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/.agents/rules/environment.mdc): Ausführung in der virtuellen Python-Umgebung (`.venv`).
+
+---
+
 ## 2. Ablauf der autonomen Umsetzung
 
 ```mermaid
