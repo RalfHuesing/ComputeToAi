@@ -1,7 +1,13 @@
-"""Liabilities and extra payments MCP tools."""
+"""Liabilities and extra payments MCP tools.
+
+Mutating tools echo the actually stored values back as a structured dict
+instead of a plain confirmation string (see Docs/02-Architektur-und-MCP.md,
+"Baustein-Katalog").
+"""
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -28,9 +34,14 @@ def _register_liability_tools(mcp: FastMCP, working_directory: Path) -> None:
         extra_payment_min_cash: float = 0.0,
         extra_payments: list[ScheduledExtraPayment] | None = None,
         description: str | None = None,
-    ) -> str:
-        """Add a liability (loan/mortgage) with regular payments and optional Sondertilgung."""
+    ) -> dict[str, Any]:
+        """Add a liability (loan/mortgage) with regular payments and optional Sondertilgung.
+
+        Returns the stored values, including the liability store's opening
+        balance and the names of the effects the building block created.
+        """
         plan = load_plan(working_directory, plan_name)
+        effect_count_before = len(plan.effects)
         add_liability(
             plan,
             name,
@@ -48,5 +59,20 @@ def _register_liability_tools(mcp: FastMCP, working_directory: Path) -> None:
             description,
         )
         save_plan(working_directory, plan)
+        added_effects = plan.effects[effect_count_before:]
         logger.info("finance_add_liability: plan=%r name=%r status=ok", plan_name, name)
-        return f"added liability {name!r} to plan {plan_name!r}"
+        logger.debug(
+            "finance_add_liability stored effects: %s",
+            [effect.model_dump() for effect in added_effects],
+        )
+        return {
+            "name": name,
+            "liability_store_name": liability_store_name,
+            "liability_balance": plan.store(liability_store_name).balance,
+            "cash_store_name": cash_store_name,
+            "interest_rate": interest_rate,
+            "payment_per_step": payment,
+            "start_step": start_step,
+            "end_step": end_step,
+            "effects_added": [effect.name for effect in added_effects],
+        }

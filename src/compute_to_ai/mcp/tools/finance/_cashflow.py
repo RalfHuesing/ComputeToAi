@@ -1,7 +1,14 @@
-"""Cashflow (income, expenses, acquisitions) MCP tools."""
+"""Cashflow (income, expenses, acquisitions) MCP tools.
+
+Mutating tools echo the actually stored (possibly converted) values back as
+a structured dict instead of a plain confirmation string, so the caller can
+verify e.g. the frequency-folded `amount_per_step` against its own input
+(see Docs/02-Architektur-und-MCP.md, "Baustein-Katalog").
+"""
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -32,7 +39,7 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         interval_years: int | None = None,
         first_occurrence_step: int = 0,
         first_occurrence_year: float | None = None,
-    ) -> str:
+    ) -> dict[str, Any]:
         """Add a growing income stream (positive cashflow) to the plan.
 
         `frequency`/`interval_years` are relative to the plan's own step
@@ -40,6 +47,9 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         not to calendar months - e.g. "monthly" on a plan with one step per
         year folds 12 months into the full annual `amount_per_step`, applied
         every step, rather than spacing it out.
+
+        Returns the stored effect's values, including the frequency-folded
+        `amount_per_step` (which may differ from `amount`).
         """
         plan = load_plan(working_directory, plan_name)
         add_income_stream(
@@ -58,8 +68,18 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
             first_occurrence_year,
         )
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
         logger.info("finance_add_income_stream: plan=%r name=%r status=ok", plan_name, name)
-        return f"added income stream {name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_income_stream stored effect: %s", effect.model_dump())
+        return {
+            "name": effect.name,
+            "store_name": store_name,
+            "amount_per_step": getattr(effect, "amount_per_step", None),
+            "interval_steps": effect.interval_steps,
+            "first_occurrence_step": effect.first_occurrence_step,
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def finance_add_expense(  # pyright: ignore[reportUnusedFunction]
@@ -76,12 +96,15 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         interval_years: int | None = None,
         first_occurrence_step: int = 0,
         first_occurrence_year: float | None = None,
-    ) -> str:
+    ) -> dict[str, Any]:
         """Add an inflation-adjusted expense (negative cashflow) to the plan.
 
         `frequency`/`interval_years` are relative to the plan's own step
         granularity (`Timeline.steps_per_year`, set via core_create_plan),
         not to calendar months - see finance_add_income_stream.
+
+        Returns the stored effect's values, including the frequency-folded,
+        negated `amount_per_step` (which may differ from `amount`).
         """
         plan = load_plan(working_directory, plan_name)
         add_expense(
@@ -100,8 +123,18 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
             first_occurrence_year,
         )
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
         logger.info("finance_add_expense: plan=%r name=%r status=ok", plan_name, name)
-        return f"added expense {name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_expense stored effect: %s", effect.model_dump())
+        return {
+            "name": effect.name,
+            "store_name": store_name,
+            "amount_per_step": getattr(effect, "amount_per_step", None),
+            "interval_steps": effect.interval_steps,
+            "first_occurrence_step": effect.first_occurrence_step,
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def finance_add_fixed_acquisition(  # pyright: ignore[reportUnusedFunction]
@@ -112,13 +145,25 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         step: int,
         inflation_rate: float = 0.0,
         description: str | None = None,
-    ) -> str:
-        """Add a one-time fixed acquisition (always an outflow, magnitude only)."""
+    ) -> dict[str, Any]:
+        """Add a one-time fixed acquisition (always an outflow, magnitude only).
+
+        Returns the stored effect's values, including the negated
+        `amount_per_step` actually applied at `step`.
+        """
         plan = load_plan(working_directory, plan_name)
         add_fixed_acquisition(plan, name, store_name, amount, step, inflation_rate, description)
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
         logger.info("finance_add_fixed_acquisition: plan=%r name=%r status=ok", plan_name, name)
-        return f"added fixed acquisition {name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_fixed_acquisition stored effect: %s", effect.model_dump())
+        return {
+            "name": effect.name,
+            "store_name": store_name,
+            "amount_per_step": getattr(effect, "amount_per_step", None),
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def finance_add_flexible_acquisition(  # pyright: ignore[reportUnusedFunction]
@@ -132,8 +177,12 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
         glidepath_start_step: int,
         inflation_rate: float = 0.0,
         description: str | None = None,
-    ) -> str:
-        """Add a flexible acquisition with reference-path trigger and glidepath de-risking."""
+    ) -> dict[str, Any]:
+        """Add a flexible acquisition with reference-path trigger and glidepath de-risking.
+
+        Returns the stored computed-effect parameters, including the
+        normalized (absolute) `amount`.
+        """
         plan = load_plan(working_directory, plan_name)
         add_flexible_acquisition(
             plan,
@@ -148,5 +197,16 @@ def _register_cashflow_tools(mcp: FastMCP, working_directory: Path) -> None:
             description,
         )
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
+        parameters = getattr(effect, "parameters", {})
         logger.info("finance_add_flexible_acquisition: plan=%r name=%r status=ok", plan_name, name)
-        return f"added flexible acquisition {name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_flexible_acquisition stored effect: %s", effect.model_dump())
+        return {
+            "name": effect.name,
+            "amount": parameters.get("amount"),
+            "target_step": parameters.get("target_step"),
+            "tolerance_steps": parameters.get("tolerance_steps"),
+            "glidepath_start_step": parameters.get("glidepath_start_step"),
+            "risky_store_name": parameters.get("risky_store_name"),
+            "safe_store_name": parameters.get("safe_store_name"),
+        }

@@ -298,6 +298,64 @@ async def test_finance_add_income_stream_rejects_unknown_phase_name(
 
 
 @pytest.mark.anyio
+async def test_add_tools_echo_stored_values(server_params: StdioServerParameters) -> None:
+    """Mutating add_* tools must echo the actually stored, converted values -
+    e.g. the frequency-folded amount_per_step and the pension amount after
+    Rentenabschlag - so the caller can verify them against its own input."""
+    plan_name = "structured-echo-test"
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        await _call_ok(
+            session, "core_create_plan", plan_name=plan_name, step_count=50, steps_per_year=1
+        )
+        await _call_ok(session, "core_add_store", plan_name=plan_name, store_name="cash")
+
+        income_text = await _call_ok(
+            session,
+            "finance_add_income_stream",
+            plan_name=plan_name,
+            name="Gehalt",
+            store_name="cash",
+            amount=1000.0,
+            frequency="monthly",
+        )
+        income = json.loads(income_text)
+        # "monthly" on an annual-step plan folds 12 occurrences into one step.
+        assert income["amount_per_step"] == pytest.approx(12000.0)
+        assert income["interval_steps"] == 1
+        assert income["name"] == "Gehalt"
+        assert income["store_name"] == "cash"
+
+        # The echo matches what is actually stored in the plan.
+        effects_text = await _call_ok(session, "core_list_effects", plan_name=plan_name)
+        stored = next(
+            effect
+            for effect in json.loads(effects_text)["effects"]
+            if effect["name"] == "Gehalt"
+        )
+        assert stored["amount_per_step"] == pytest.approx(income["amount_per_step"])
+
+        pension_text = await _call_ok(
+            session,
+            "finance_add_statutory_pension",
+            plan_name=plan_name,
+            name="Rente",
+            store_name="cash",
+            annual_amount_at_regular_retirement_age=12000.0,
+            regular_retirement_step=47,
+            actual_retirement_step=43,
+        )
+        pension = json.loads(pension_text)
+        # 4 years early -> capped 14.4% reduction -> factor 0.856.
+        assert pension["annual_amount"] == pytest.approx(12000.0 * 0.856)
+        assert pension["adjustment_factor"] == pytest.approx(0.856)
+        assert pension["start_step"] == 43
+
+
+@pytest.mark.anyio
 async def test_finance_set_life_phases_scales_with_steps_per_year(
     server_params: StdioServerParameters,
 ) -> None:

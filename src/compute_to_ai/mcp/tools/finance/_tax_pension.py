@@ -1,7 +1,13 @@
-"""Tax and pension MCP tools."""
+"""Tax and pension MCP tools.
+
+Mutating tools echo the actually stored (possibly computed) values back as
+a structured dict instead of a plain confirmation string (see
+Docs/02-Architektur-und-MCP.md, "Baustein-Katalog").
+"""
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -32,9 +38,14 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         start_year: int = 2026,
         asset_classes: dict[str, AssetClassTaxConfig] | None = None,
         description: str | None = None,
-    ) -> str:
-        """Add the German tax manager (Abgeltungsteuer, Vorabpauschale, Rentenbesteuerung)."""
+    ) -> dict[str, Any]:
+        """Add the German tax manager (Abgeltungsteuer, Vorabpauschale, Rentenbesteuerung).
+
+        Returns the stored values, including the names of the computed
+        effects the building block created.
+        """
         plan = load_plan(working_directory, plan_name)
+        effect_count_before = len(plan.effects)
         add_tax_manager(
             plan,
             cash_store_name,
@@ -52,8 +63,19 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
             description,
         )
         save_plan(working_directory, plan)
+        added_effects = plan.effects[effect_count_before:]
         logger.info("finance_add_tax_manager: plan=%r status=ok", plan_name)
-        return f"added tax manager to plan {plan_name!r}"
+        logger.debug(
+            "finance_add_tax_manager stored effects: %s",
+            [effect.model_dump() for effect in added_effects],
+        )
+        return {
+            "cash_store_name": cash_store_name,
+            "retirement_step": retirement_step,
+            "start_year": start_year,
+            "asset_classes": sorted(asset_classes) if asset_classes else [],
+            "effects_added": [effect.name for effect in added_effects],
+        }
 
     @mcp.tool()
     def finance_add_statutory_pension(  # pyright: ignore[reportUnusedFunction]
@@ -70,8 +92,14 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
         active_phases: list[str] | None = None,
         end_step: int | None = None,
         description: str | None = None,
-    ) -> str:
-        """Add the statutory pension (gesetzliche Rente) including Rentenabschlag/-zuschlag."""
+    ) -> dict[str, Any]:
+        """Add the statutory pension (gesetzliche Rente) including Rentenabschlag/-zuschlag.
+
+        Returns the stored effect's values - most importantly the
+        `annual_amount` actually applied per step, i.e. after the
+        Rentenabschlag/-zuschlag adjustment (which may differ from
+        `annual_amount_at_regular_retirement_age`).
+        """
         plan = load_plan(working_directory, plan_name)
         add_statutory_pension(
             plan,
@@ -89,8 +117,23 @@ def _register_tax_and_pension_tools(mcp: FastMCP, working_directory: Path) -> No
             description,
         )
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
         logger.info("finance_add_statutory_pension: plan=%r name=%r status=ok", plan_name, name)
-        return f"added statutory pension {name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_statutory_pension stored effect: %s", effect.model_dump())
+        annual_amount = getattr(effect, "amount_per_step", None)
+        adjustment_factor = (
+            annual_amount / annual_amount_at_regular_retirement_age
+            if annual_amount is not None and annual_amount_at_regular_retirement_age != 0.0
+            else None
+        )
+        return {
+            "name": effect.name,
+            "store_name": store_name,
+            "annual_amount": annual_amount,
+            "adjustment_factor": adjustment_factor,
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def finance_calculate_pension_adjustment(  # pyright: ignore[reportUnusedFunction]

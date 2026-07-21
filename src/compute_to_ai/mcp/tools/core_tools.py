@@ -150,29 +150,36 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
         name: str,
         amount_per_step: float,
         description: str | None = None,
-    ) -> str:
+    ) -> dict[str, Any]:
         """Add a fixed per-step Effect on a Store in an existing Plan.
 
         `name` is mandatory (unlike the optional `name` on the underlying
         Effect model) - core_remove_effect can only look an effect up by
         name, so an effect added without one could never be removed again.
+
+        Returns the stored effect's values as a structured echo.
         """
         plan = _load_plan(working_directory, plan_name)
         plan.store(store_name)  # raises KeyError if store_name is unknown
-        plan.effects.append(
-            GrowingFixedEffect(
-                name=name,
-                store_name=store_name,
-                amount_per_step=amount_per_step,
-                description=description,
-            )
+        effect = GrowingFixedEffect(
+            name=name,
+            store_name=store_name,
+            amount_per_step=amount_per_step,
+            description=description,
         )
+        plan.effects.append(effect)
         _save_plan(working_directory, plan)
         logger.info(
             "core_add_effect: plan=%r store=%r effect=%r status=ok", plan_name, store_name, name
         )
-        logger.debug("core_add_effect args: amount_per_step=%s", amount_per_step)
-        return f"added effect {name!r} on store {store_name!r} to plan {plan_name!r}"
+        logger.debug("core_add_effect stored effect: %s", effect.model_dump())
+        return {
+            "name": effect.name,
+            "store_name": effect.store_name,
+            "amount_per_step": effect.amount_per_step,
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def core_add_transfer(  # pyright: ignore[reportUnusedFunction]
@@ -185,32 +192,42 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
         start_step: int | None = None,
         end_step: int | None = None,
         description: str | None = None,
-    ) -> str:
+    ) -> dict[str, Any]:
         """Add a per-step Transfer effect between Stores in an existing Plan.
 
         Moves a fixed (optionally growing) amount from one Store, split
         across one or more destination Stores by weight - e.g. a fixed
         savings rate into a portfolio, without a negative-expense/
         positive-income workaround.
+
+        Returns the stored effect's values, including the normalized
+        (absolute) `amount_per_step`.
         """
         plan = _load_plan(working_directory, plan_name)
         _validate_transfer_targets(plan, from_store_name, to_store_weights)
         plan.validate_active_phases(active_phases)
-        plan.effects.append(
-            TransferEffect(
-                from_store_name=from_store_name,
-                to_store_weights=to_store_weights,
-                amount_per_step=abs(amount),
-                growth_rate=growth_rate,
-                active_phases=active_phases,
-                start_step=start_step,
-                end_step=end_step,
-                description=description,
-            )
+        effect = TransferEffect(
+            from_store_name=from_store_name,
+            to_store_weights=to_store_weights,
+            amount_per_step=abs(amount),
+            growth_rate=growth_rate,
+            active_phases=active_phases,
+            start_step=start_step,
+            end_step=end_step,
+            description=description,
         )
+        plan.effects.append(effect)
         _save_plan(working_directory, plan)
         logger.info("core_add_transfer: plan=%r from=%r status=ok", plan_name, from_store_name)
-        return f"added transfer from {from_store_name!r} to plan {plan_name!r}"
+        logger.debug("core_add_transfer stored effect: %s", effect.model_dump())
+        return {
+            "from_store_name": effect.from_store_name,
+            "to_store_weights": effect.to_store_weights,
+            "amount_per_step": effect.amount_per_step,
+            "growth_rate": effect.growth_rate,
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def core_list_stores(plan_name: str) -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]

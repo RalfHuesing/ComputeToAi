@@ -1,6 +1,6 @@
 # Konzept: Task 4.20 – Tool-Ergonomie & MCP-Vollständigkeits-Lücken
 
-**Status**: READY
+**Status**: IN_PROGRESS
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.20
 **Erstellt am**: 2026-07-21
 

@@ -263,6 +263,49 @@ async def test_core_add_transfer_moves_a_fixed_amount_split_by_weight(
 
 
 @pytest.mark.anyio
+async def test_core_add_effect_and_transfer_echo_stored_values(
+    server_params: StdioServerParameters,
+) -> None:
+    """core_add_effect/core_add_transfer must echo the stored values,
+    including the normalized (absolute) transfer amount."""
+    async with (
+        stdio_client(server_params) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        await session.initialize()
+        await _call_ok(session, "core_create_plan", plan_name="echo-test", step_count=10)
+        await _call_ok(session, "core_add_store", plan_name="echo-test", store_name="cash")
+        await _call_ok(session, "core_add_store", plan_name="echo-test", store_name="depot")
+
+        effect_text = await _call_ok(
+            session,
+            "core_add_effect",
+            plan_name="echo-test",
+            store_name="cash",
+            name="Contribution",
+            amount_per_step=100.0,
+        )
+        effect = json.loads(effect_text)
+        assert effect["name"] == "Contribution"
+        assert effect["store_name"] == "cash"
+        assert effect["amount_per_step"] == pytest.approx(100.0)
+
+        transfer_text = await _call_ok(
+            session,
+            "core_add_transfer",
+            plan_name="echo-test",
+            from_store_name="cash",
+            to_store_weights={"depot": 1.0},
+            amount=-50.0,
+        )
+        transfer = json.loads(transfer_text)
+        assert transfer["from_store_name"] == "cash"
+        assert transfer["to_store_weights"] == {"depot": 1.0}
+        # A negative input amount is normalized to its absolute magnitude.
+        assert transfer["amount_per_step"] == pytest.approx(50.0)
+
+
+@pytest.mark.anyio
 async def test_core_add_transfer_rejects_unknown_store(
     server_params: StdioServerParameters,
 ) -> None:

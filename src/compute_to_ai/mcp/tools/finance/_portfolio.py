@@ -1,7 +1,13 @@
-"""Portfolio and asset class allocation MCP tools."""
+"""Portfolio and asset class allocation MCP tools.
+
+Mutating tools echo the actually stored values back as a structured dict
+instead of a plain confirmation string (see Docs/02-Architektur-und-MCP.md,
+"Baustein-Katalog").
+"""
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -27,8 +33,12 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         volatility: float,
         correlation_group: str = "portfolio",
         description: str | None = None,
-    ) -> str:
-        """Add an asset class with a correlated stochastic return effect to the plan."""
+    ) -> dict[str, Any]:
+        """Add an asset class with a correlated stochastic return effect to the plan.
+
+        Returns the stored values, including the store's actual balance
+        (which keeps its prior value if the store already existed).
+        """
         plan = load_plan(working_directory, plan_name)
         add_asset_class(
             plan,
@@ -40,8 +50,17 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
             description,
         )
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
         logger.info("finance_add_asset_class: plan=%r store=%r status=ok", plan_name, store_name)
-        return f"added asset class {store_name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_asset_class stored effect: %s", effect.model_dump())
+        return {
+            "store_name": store_name,
+            "balance": plan.store(store_name).balance,
+            "expected_return": expected_return,
+            "volatility": volatility,
+            "correlation_group": correlation_group,
+            "effect_name": effect.name,
+        }
 
     @mcp.tool()
     def finance_set_correlation_matrix(  # pyright: ignore[reportUnusedFunction]
@@ -64,13 +83,24 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         start_step: int = 0,
         end_step: int | None = None,
         description: str | None = None,
-    ) -> str:
-        """Add a computed rebalancing effect that keeps asset classes at target weights."""
+    ) -> dict[str, Any]:
+        """Add a computed rebalancing effect that keeps asset classes at target weights.
+
+        Returns the stored effect's values (target weights and active window).
+        """
         plan = load_plan(working_directory, plan_name)
         add_portfolio_rebalancing(plan, name, weights, start_step, end_step, description)
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
+        parameters = getattr(effect, "parameters", {})
         logger.info("finance_add_portfolio_rebalancing: plan=%r name=%r status=ok", plan_name, name)
-        return f"added portfolio rebalancing {name!r} to plan {plan_name!r}"
+        logger.debug("finance_add_portfolio_rebalancing stored effect: %s", effect.model_dump())
+        return {
+            "name": effect.name,
+            "weights": parameters.get("weights"),
+            "start_step": effect.start_step,
+            "end_step": effect.end_step,
+        }
 
     @mcp.tool()
     def finance_add_position_rebalancing(  # pyright: ignore[reportUnusedFunction]
@@ -104,8 +134,12 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
         withdrawal_phase_names: list[str] | None = None,
         max_target_cash: float | None = None,
         description: str | None = None,
-    ) -> str:
-        """Add the Cash-Bucket manager (liquidity buffer sizing and rebalancing)."""
+    ) -> dict[str, Any]:
+        """Add the Cash-Bucket manager (liquidity buffer sizing and rebalancing).
+
+        Returns the stored manager parameters (including defaults that were
+        filled in), so the caller can verify the configuration it created.
+        """
         plan = load_plan(working_directory, plan_name)
         add_cash_bucket(
             plan,
@@ -121,5 +155,8 @@ def _register_portfolio_tools(mcp: FastMCP, working_directory: Path) -> None:
             description,
         )
         save_plan(working_directory, plan)
+        effect = plan.effects[-1]
+        parameters = getattr(effect, "parameters", {})
         logger.info("finance_add_cash_bucket: plan=%r status=ok", plan_name)
-        return f"added cash bucket manager to plan {plan_name!r}"
+        logger.debug("finance_add_cash_bucket stored effect: %s", effect.model_dump())
+        return {"name": effect.name, "parameters": parameters}

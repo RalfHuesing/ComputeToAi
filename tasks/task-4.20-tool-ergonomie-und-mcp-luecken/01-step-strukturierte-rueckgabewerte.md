@@ -1,7 +1,7 @@
 # Step 1: Strukturierte Rückgabewerte für add_*-Tools
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.20-tool-ergonomie-und-mcp-luecken/00-konzept.md)
-**Status**: PENDING
+**Status**: DONE
 
 ---
 
