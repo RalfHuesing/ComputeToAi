@@ -67,6 +67,7 @@ async def test_golden_path_100_euro_per_month_zero_return_40_years(
             "core_add_effect",
             plan_name="retirement-baseline",
             store_name="portfolio",
+            name="Contribution",
             amount_per_step=100.0,
         )
         await _call_ok(session, "core_run_simulation", plan_name="retirement-baseline")
@@ -121,6 +122,7 @@ async def test_duplicate_rename_and_delete_plan(server_params: StdioServerParame
             "core_add_effect",
             plan_name="original",
             store_name="cash",
+            name="Contribution",
             amount_per_step=10.0,
         )
 

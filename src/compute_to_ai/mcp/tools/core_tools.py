@@ -147,20 +147,34 @@ def _register_plan_editing_tools(mcp: FastMCP, working_directory: Path) -> None:
 
     @mcp.tool()
     def core_add_effect(  # pyright: ignore[reportUnusedFunction]
-        plan_name: str, store_name: str, amount_per_step: float, description: str | None = None
+        plan_name: str,
+        store_name: str,
+        name: str,
+        amount_per_step: float,
+        description: str | None = None,
     ) -> str:
-        """Add a fixed per-step Effect on a Store in an existing Plan."""
+        """Add a fixed per-step Effect on a Store in an existing Plan.
+
+        `name` is mandatory (unlike the optional `name` on the underlying
+        Effect model) - core_remove_effect can only look an effect up by
+        name, so an effect added without one could never be removed again.
+        """
         plan = _load_plan(working_directory, plan_name)
         plan.store(store_name)  # raises KeyError if store_name is unknown
         plan.effects.append(
             GrowingFixedEffect(
-                store_name=store_name, amount_per_step=amount_per_step, description=description
+                name=name,
+                store_name=store_name,
+                amount_per_step=amount_per_step,
+                description=description,
             )
         )
         _save_plan(working_directory, plan)
-        logger.info("core_add_effect: plan=%r store=%r status=ok", plan_name, store_name)
+        logger.info(
+            "core_add_effect: plan=%r store=%r effect=%r status=ok", plan_name, store_name, name
+        )
         logger.debug("core_add_effect args: amount_per_step=%s", amount_per_step)
-        return f"added effect on store {store_name!r} to plan {plan_name!r}"
+        return f"added effect {name!r} on store {store_name!r} to plan {plan_name!r}"
 
     @mcp.tool()
     def core_add_transfer(  # pyright: ignore[reportUnusedFunction]
