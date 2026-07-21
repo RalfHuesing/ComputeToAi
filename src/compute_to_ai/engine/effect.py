@@ -22,17 +22,32 @@ class BaseEffect(BaseModel):
     description: str | None = Field(
         default=None, description="Optional custom description of this effect"
     )
+    interval_steps: int = Field(
+        default=1, ge=1, description="Interval in steps between occurrences"
+    )
+    first_occurrence_step: int = Field(
+        default=0, ge=0, description="Step of first occurrence"
+    )
 
-    def is_active(self, step: int, active_phase_name: str | None) -> bool:
+    def is_active(self, step: int, active_phase_name: str | None = None) -> bool:
         """Check if the effect is active at a given step and active phase."""
+        if step < self.first_occurrence_step:
+            return False
         if self.start_step is not None and step < self.start_step:
             return False
         if self.end_step is not None and step > self.end_step:
             return False
-        return not (
+        if (
             self.active_phases is not None
             and (active_phase_name is None or active_phase_name not in self.active_phases)
-        )
+        ):
+            return False
+        return (step - self.first_occurrence_step) % self.interval_steps == 0
+
+    def is_active_at_step(self, step: int) -> bool:
+        """Check if the effect is active at a given step regardless of phase."""
+        return self.is_active(step, active_phase_name=None)
+
 
 
 class GrowingFixedEffect(BaseEffect):

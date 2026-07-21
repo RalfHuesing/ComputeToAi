@@ -1,7 +1,7 @@
 # Step 1: Engine-Erweiterung für Intervall-Effekte
 
 **Task-Referenz**: [00-konzept.md](file:///c:/Daten/Entwicklung/Ralf/ComputeToAi/tasks/task-4.11-frequenz-und-intervall-ausgaben/00-konzept.md)  
-**Status**: PENDING  
+**Status**: DONE  
 
 ---
 

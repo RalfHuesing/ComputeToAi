@@ -13,6 +13,7 @@ Ein Speicher kann optional **Lot-/FIFO-Semantik** haben: Statt eines einzelnen S
 Ein Effekt ist eine Funktion, die für einen Zeitschritt aus dem aktuellen Zustand (Salden aller Speicher, aktueller Zeitpunkt, aktive Phase, ggf. eine Zufallsziehung) einen Zufluss oder Abfluss zu bzw. von einem oder mehreren Speichern berechnet. Effekte können:
 
 - **zeitabhängig** sein (z. B. nur in einer bestimmten Phase wirken, siehe Phase unten),
+- **intervallbasiert** sein (z. B. nur in jedem N-ten Zeitschritt wirksam werden via `interval_steps` und optionalem Erstauftritts-Schritt `first_occurrence_step`),
 - **stochastisch** sein (Ziehung aus einer Verteilung statt eines festen Werts) und dabei mit anderen stochastischen Effekten **korreliert** sein (siehe unten),
 - von **anderen Speichern oder Effekten abhängen** (z. B. ein Effekt, der von der Höhe eines Speichersaldos abhängt).
 
