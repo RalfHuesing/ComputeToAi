@@ -1,6 +1,6 @@
 # Konzept: Task 4.19 – Schrittgranularität konsistent durchs Finance-Modul ziehen
 
-**Status**: IN_PROGRESS
+**Status**: DONE
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.19
 **Erstellt am**: 2026-07-21
 
