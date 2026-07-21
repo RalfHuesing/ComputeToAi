@@ -1,6 +1,6 @@
 # Konzept: Task 4.18 – Store-Referenz-Validierung an Bausteinen (Fail-Fast)
 
-**Status**: IN_PROGRESS
+**Status**: DONE
 **Epic / Meilenstein**: Meilenstein 4 – Epic 4.18
 **Erstellt am**: 2026-07-21
 
@@ -111,10 +111,10 @@ msg = f"no store named {cash_store_name!r} in plan {plan.name!r}; add it first w
 
 ## 5. Definition of Done (DoD) & Kontrollkriterien für Review-Agent
 
-- [ ] Alle Steps in diesem Task-Ordner sind grün ausgeführt.
-- [ ] `Plan.validate_store_names` existiert und wird von `_validate_transfer_targets` sowie allen in Abschnitt 2 gelisteten Bausteinen verwendet (keine duplizierte Validierungslogik mehr).
-- [ ] Alle betroffenen bestehenden Tests (Abschnitt 2) sind angepasst und grün, inklusive der neuen Edge-Case-Tests aus Abschnitt 4.
-- [ ] `ruff check` und `pyright` ohne neue Warnungen.
-- [ ] Doku aktualisiert: `Docs/01-Kern-Domaenenmodell.md` (Store-Referenzen werden wie Phasen-Referenzen zur Konfigurationszeit validiert) und `Docs/03-Feature-Finanzen-Domaenenmodell.md` (Auto-Create nur für neu angelegte, "eigene" Stores, nicht für referenzierte).
-- [ ] `review.md` erstellt und gegengezeichnet.
-- [ ] `Docs/10-Roadmap.md` Epic 4.18 abgehakt `[x]`.
+- [x] Alle Steps in diesem Task-Ordner sind grün ausgeführt.
+- [x] `Plan.validate_store_names` existiert und wird von `_validate_transfer_targets` sowie allen in Abschnitt 2 gelisteten Bausteinen verwendet (keine duplizierte Validierungslogik mehr).
+- [x] Alle betroffenen bestehenden Tests (Abschnitt 2) sind angepasst und grün, inklusive der neuen Edge-Case-Tests aus Abschnitt 4.
+- [x] `ruff check` und `pyright` ohne neue Warnungen.
+- [x] Doku aktualisiert: `Docs/01-Kern-Domaenenmodell.md` (Store-Referenzen werden wie Phasen-Referenzen zur Konfigurationszeit validiert) und `Docs/03-Feature-Finanzen-Domaenenmodell.md` (Auto-Create nur für neu angelegte, "eigene" Stores, nicht für referenzierte).
+- [x] `review.md` erstellt und gegengezeichnet.
+- [x] `Docs/10-Roadmap.md` Epic 4.18 abgehakt `[x]`.
